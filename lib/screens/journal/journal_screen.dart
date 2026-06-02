@@ -69,7 +69,10 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 
     final journalAsync = ref.watch(journalNotifierProvider);
     final totalAsync = ref.watch(todayTotalSecondsProvider);
+    final active = ref.watch(activeTaskProvider).valueOrNull;
     final theme = Theme.of(context);
+
+    final totalSeconds = (totalAsync.valueOrNull ?? 0) + (active != null ? active.currentElapsedSeconds : 0);
 
     return Scaffold(
       appBar: AppBar(
@@ -129,7 +132,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                         padding: const EdgeInsets.all(16),
                         children: [
                           totalAsync.when(
-                            data: (s) => s > 0
+                            data: (_) => totalSeconds > 0
                                 ? Container(
                                     padding: const EdgeInsets.all(12),
                                     margin: const EdgeInsets.only(bottom: 16),
@@ -138,7 +141,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                                       borderRadius: BorderRadius.circular(10),
                                     ),
                                     child: Text(
-                                      '${formatDuration(s)} tracked today',
+                                      '${formatDuration(totalSeconds)} tracked today',
                                       style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
                                     ),
                                   )

@@ -145,14 +145,7 @@ final todayTasksProvider = FutureProvider<List<TaskEntry>>((ref) async {
 
 final todayTotalSecondsProvider = FutureProvider<int>((ref) async {
   final tasks = await ref.watch(todayTasksProvider.future);
-  final active = ref.watch(activeTaskProvider).valueOrNull;
-
-  int elapsed = 0;
-  if (active != null) {
-    elapsed = active.currentElapsedSeconds;
-  }
-
-  return tasks.fold<int>(elapsed, (sum, t) => sum + t.durationSeconds);
+  return tasks.fold<int>(0, (sum, t) => sum + t.durationSeconds);
 });
 
 // ── tasks for a given dayKey ─────────────────────────────────────────────────

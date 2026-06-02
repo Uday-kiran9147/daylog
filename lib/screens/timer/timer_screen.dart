@@ -15,17 +15,34 @@ class TimerScreen extends ConsumerStatefulWidget {
   ConsumerState<TimerScreen> createState() => _TimerScreenState();
 }
 
-class _TimerScreenState extends ConsumerState<TimerScreen> {
+class _TimerScreenState extends ConsumerState<TimerScreen> with WidgetsBindingObserver {
   Timer? _ticker;
   final ValueNotifier<int> _elapsedNotifier = ValueNotifier<int>(0);
   int? _activeTaskId;
   bool? _lastIsPaused;
 
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ticker?.cancel();
     _elapsedNotifier.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      final active = ref.read(activeTaskProvider).valueOrNull;
+      if (active != null) {
+        _startTicker(active);
+      }
+    }
   }
 
   void _startTicker(TaskEntry task) {
@@ -36,7 +53,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
       return;
     }
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      _elapsedNotifier.value++;
+      _elapsedNotifier.value = task.currentElapsedSeconds;
     });
   }
 

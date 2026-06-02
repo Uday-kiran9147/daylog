@@ -227,7 +227,7 @@ class _ActiveTaskBanner extends StatefulWidget {
   State<_ActiveTaskBanner> createState() => _ActiveTaskBannerState();
 }
 
-class _ActiveTaskBannerState extends State<_ActiveTaskBanner> {
+class _ActiveTaskBannerState extends State<_ActiveTaskBanner> with WidgetsBindingObserver {
   Timer? _timer;
   late int _elapsed;
 
@@ -241,7 +241,7 @@ class _ActiveTaskBannerState extends State<_ActiveTaskBanner> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
-          _elapsed++;
+          _elapsed = widget.task.currentElapsedSeconds;
         });
       }
     });
@@ -250,7 +250,15 @@ class _ActiveTaskBannerState extends State<_ActiveTaskBanner> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _setupTimer();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _setupTimer();
+    }
   }
 
   @override
@@ -265,6 +273,7 @@ class _ActiveTaskBannerState extends State<_ActiveTaskBanner> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
   }
@@ -371,13 +380,13 @@ class _TrackedTodayStatBox extends ConsumerStatefulWidget {
   ConsumerState<_TrackedTodayStatBox> createState() => _TrackedTodayStatBoxState();
 }
 
-class _TrackedTodayStatBoxState extends ConsumerState<_TrackedTodayStatBox> {
+class _TrackedTodayStatBoxState extends ConsumerState<_TrackedTodayStatBox> with WidgetsBindingObserver {
   Timer? _timer;
-  int _extraElapsed = 0;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _startTimerIfRunning();
   }
 
@@ -387,16 +396,24 @@ class _TrackedTodayStatBoxState extends ConsumerState<_TrackedTodayStatBox> {
     if (active != null && !active.isPaused) {
       _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
         if (mounted) {
-          setState(() {
-            _extraElapsed++;
-          });
+          setState(() {});
         }
       });
+    } else {
+      _timer = null;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startTimerIfRunning();
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     super.dispose();
   }
@@ -404,13 +421,17 @@ class _TrackedTodayStatBoxState extends ConsumerState<_TrackedTodayStatBox> {
   @override
   Widget build(BuildContext context) {
     final totalAsync = ref.watch(todayTotalSecondsProvider);
+    final active = ref.watch(activeTaskProvider).valueOrNull;
 
     ref.listen(activeTaskProvider, (prev, next) {
-      _extraElapsed = 0;
       _startTimerIfRunning();
     });
 
     final theme = Theme.of(context);
+    final baseSeconds = totalAsync.valueOrNull ?? 0;
+    final activeSeconds = active != null ? active.currentElapsedSeconds : 0;
+    final totalSeconds = baseSeconds + activeSeconds;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -422,7 +443,7 @@ class _TrackedTodayStatBoxState extends ConsumerState<_TrackedTodayStatBox> {
         children: [
           Text(
             totalAsync.when(
-              data: (s) => formatDuration(s + _extraElapsed),
+              data: (_) => formatDuration(totalSeconds),
               loading: () => '--',
               error: (_, __) => '--',
             ),
