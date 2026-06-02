@@ -11,12 +11,59 @@ import 'providers/theme_provider.dart';
 
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
 
+final appInitErrorProvider = StateProvider<String?>((ref) => null);
+
 class DayLogApp extends ConsumerWidget {
   const DayLogApp({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
+    final initError = ref.watch(appInitErrorProvider);
+
+    if (initError != null) {
+      return MaterialApp(
+        title: 'DayLog - Error',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(useMaterial3: true),
+        home: Scaffold(
+          body: SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(24.0),
+              child: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.error_outline_rounded,
+                      color: Colors.redAccent,
+                      size: 64,
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Failed to initialize DayLog',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      initError,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.grey,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
 
     return MaterialApp(
       title: 'DayLog',

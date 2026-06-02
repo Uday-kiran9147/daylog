@@ -14,7 +14,7 @@ class StartTaskSheet extends ConsumerStatefulWidget {
 
 class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
   final _controller = TextEditingController();
-  String _category = 'backend';
+  String _category = 'development';
   bool _userChangedCategory = false;
 
   @override
@@ -35,16 +35,24 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
 
     final text = _controller.text.toLowerCase();
     
-    // Auto-detect category based on keywords
+    // Auto-detect category based on generic keywords
     String? detected;
-    if (RegExp(r'\b(backend|api|server|db|database|docker|sql|postgres|mysql|graphql|node|deno|go|rust|golang|django|python|spring)\b').hasMatch(text)) {
-      detected = 'backend';
-    } else if (RegExp(r'\b(mobile|flutter|ios|android|app|swift|kotlin|dart|java|objc|flutterw|apk|ipa|flutterflow|widget|screen|view|ui)\b').hasMatch(text)) {
-      detected = 'mobile';
-    } else if (RegExp(r'\b(content|write|blog|video|post|tweet|social|design|figma|youtube|article|newsletter|script|edit|podcast)\b').hasMatch(text)) {
+    if (RegExp(r'\b(code|debug|test|refactor|fix|api|server|db|database|docker|sql|deploy|flutter|app|react|web|mobile|git|js|python|java|cpp)\b').hasMatch(text)) {
+      detected = 'development';
+    } else if (RegExp(r'\b(figma|ui|ux|design|wireframe|mockup|logo|illustration|sketch|style|theme|color)\b').hasMatch(text)) {
+      detected = 'design';
+    } else if (RegExp(r'\b(study|learn|read|course|tutorial|book|paper|research|class|lecture)\b').hasMatch(text)) {
+      detected = 'learning';
+    } else if (RegExp(r'\b(dsa|algo|algorithm|leet|leetcode|graph|tree|sorting|search)\b').hasMatch(text)) {
+      detected = 'dsa';
+    } else if (RegExp(r'\b(system design|architecture|scaling|caching|microservices|load balancer|redis|kafka|sharding|sql design|nosql)\b').hasMatch(text)) {
+      detected = 'system design';
+    } else if (RegExp(r'\b(write|blog|video|post|tweet|social|youtube|article|newsletter|script|podcast)\b').hasMatch(text)) {
       detected = 'content';
-    } else if (RegExp(r'\b(job|apply|interview|resume|cv|portfolio|hr|recruiter|hunt|career|linkedin|jobseek|application)\b').hasMatch(text)) {
-      detected = 'job hunt';
+    } else if (RegExp(r'\b(email|meeting|standup|plan|organize|call|sync|schedule|review|docs|documentation)\b').hasMatch(text)) {
+      detected = 'admin';
+    } else if (RegExp(r'\b(play|game|gaming|break|walk|exercise|gym|netflix|movie|fun|music|chill)\b').hasMatch(text)) {
+      detected = 'play time';
     }
 
     if (detected != null && detected != _category) {
