@@ -17,10 +17,21 @@ subprojects {
 }
 subprojects {
     plugins.withId("com.android.library") {
+        val androidExtension = extensions.findByName("android") ?: return@withId
         if (name == "isar_flutter_libs") {
-            val androidExtension = extensions.findByName("android") ?: return@withId
             androidExtension.javaClass.getMethod("setNamespace", String::class.java)
                 .invoke(androidExtension, "dev.isar.isar_flutter_libs")
+        }
+        try {
+            androidExtension.javaClass.getMethod("setCompileSdk", java.lang.Integer::class.java)
+                .invoke(androidExtension, 34)
+        } catch (e: Exception) {
+            try {
+                androidExtension.javaClass.getMethod("setCompileSdkVersion", String::class.java)
+                    .invoke(androidExtension, "android-34")
+            } catch (e2: Exception) {
+                // ignore
+            }
         }
     }
     project.evaluationDependsOn(":app")

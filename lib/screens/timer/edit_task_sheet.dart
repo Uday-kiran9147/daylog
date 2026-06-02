@@ -87,7 +87,7 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
                   borderRadius: BorderRadius.circular(20),
                   child: AnimatedContainer(
                     duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
@@ -98,7 +98,7 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
                     child: Text(
                       capitalizeCategory(cat),
                       style: TextStyle(
-                        fontSize: 13,
+                        fontSize: 14,
                         fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
                         color: selected ? catColor : theme.colorScheme.onSurfaceVariant,
                       ),
@@ -116,10 +116,10 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: theme.colorScheme.onPrimary,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
               ),
-              child: const Text('Save Changes', style: TextStyle(fontSize: 15)),
+              child: const Text('Save Changes', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
             ),
           ),
         ],

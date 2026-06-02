@@ -11,7 +11,8 @@ dependencies:
     sdk: flutter
 
   # local db
-  isar: ^3.1.0
+
+  isar: ^3.1.0+1
   isar_flutter_libs: ^3.1.0
   path_provider: ^2.1.1
 

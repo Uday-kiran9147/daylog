@@ -18,7 +18,23 @@ class TaskEntry {
   // duration in seconds, set when stopped
   int durationSeconds = 0;
 
+  DateTime? pausedAt;
+  int pauseDurationSeconds = 0;
+
   bool get isRunning => stoppedAt == null;
+  bool get isPaused => pausedAt != null;
+
+  int get currentElapsedSeconds {
+    if (stoppedAt != null) {
+      return durationSeconds;
+    }
+    if (pausedAt != null) {
+      final diff = pausedAt!.difference(startedAt).inSeconds - pauseDurationSeconds;
+      return diff < 0 ? 0 : diff;
+    }
+    final diff = DateTime.now().difference(startedAt).inSeconds - pauseDurationSeconds;
+    return diff < 0 ? 0 : diff;
+  }
 
   // derived: date key for grouping (yyyy-MM-dd)
   @Index()
@@ -28,9 +44,16 @@ class TaskEntry {
   }
 
   void stop() {
-    stoppedAt = DateTime.now();
-    final diff = stoppedAt!.difference(startedAt).inSeconds;
-    durationSeconds = diff < 0 ? 0 : diff;
+    final now = DateTime.now();
+    stoppedAt = now;
+    if (pausedAt != null) {
+      final diff = now.difference(pausedAt!).inSeconds;
+      pauseDurationSeconds += diff > 0 ? diff : 0;
+      pausedAt = null;
+    }
+    final totalDiff = stoppedAt!.difference(startedAt).inSeconds;
+    final finalDuration = totalDiff - pauseDurationSeconds;
+    durationSeconds = finalDuration < 0 ? 0 : finalDuration;
   }
 
   String get formattedDuration {

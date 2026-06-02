@@ -22,38 +22,58 @@ const TaskEntrySchema = CollectionSchema(
       name: r'category',
       type: IsarType.string,
     ),
-    r'dayKey': PropertySchema(
+    r'currentElapsedSeconds': PropertySchema(
       id: 1,
+      name: r'currentElapsedSeconds',
+      type: IsarType.long,
+    ),
+    r'dayKey': PropertySchema(
+      id: 2,
       name: r'dayKey',
       type: IsarType.string,
     ),
     r'durationSeconds': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'durationSeconds',
       type: IsarType.long,
     ),
     r'formattedDuration': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'formattedDuration',
       type: IsarType.string,
     ),
+    r'isPaused': PropertySchema(
+      id: 5,
+      name: r'isPaused',
+      type: IsarType.bool,
+    ),
     r'isRunning': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'isRunning',
       type: IsarType.bool,
     ),
+    r'pauseDurationSeconds': PropertySchema(
+      id: 7,
+      name: r'pauseDurationSeconds',
+      type: IsarType.long,
+    ),
+    r'pausedAt': PropertySchema(
+      id: 8,
+      name: r'pausedAt',
+      type: IsarType.dateTime,
+    ),
     r'startedAt': PropertySchema(
-      id: 5,
+      id: 9,
       name: r'startedAt',
       type: IsarType.dateTime,
     ),
     r'stoppedAt': PropertySchema(
-      id: 6,
+      id: 10,
       name: r'stoppedAt',
       type: IsarType.dateTime,
     ),
     r'title': PropertySchema(
-      id: 7,
+      id: 11,
       name: r'title',
       type: IsarType.string,
     )
@@ -119,13 +139,17 @@ void _taskEntrySerialize(
   Map<Type, List<int>> allOffsets,
 ) {
   writer.writeString(offsets[0], object.category);
-  writer.writeString(offsets[1], object.dayKey);
-  writer.writeLong(offsets[2], object.durationSeconds);
-  writer.writeString(offsets[3], object.formattedDuration);
-  writer.writeBool(offsets[4], object.isRunning);
-  writer.writeDateTime(offsets[5], object.startedAt);
-  writer.writeDateTime(offsets[6], object.stoppedAt);
-  writer.writeString(offsets[7], object.title);
+  writer.writeLong(offsets[1], object.currentElapsedSeconds);
+  writer.writeString(offsets[2], object.dayKey);
+  writer.writeLong(offsets[3], object.durationSeconds);
+  writer.writeString(offsets[4], object.formattedDuration);
+  writer.writeBool(offsets[5], object.isPaused);
+  writer.writeBool(offsets[6], object.isRunning);
+  writer.writeLong(offsets[7], object.pauseDurationSeconds);
+  writer.writeDateTime(offsets[8], object.pausedAt);
+  writer.writeDateTime(offsets[9], object.startedAt);
+  writer.writeDateTime(offsets[10], object.stoppedAt);
+  writer.writeString(offsets[11], object.title);
 }
 
 TaskEntry _taskEntryDeserialize(
@@ -136,11 +160,13 @@ TaskEntry _taskEntryDeserialize(
 ) {
   final object = TaskEntry();
   object.category = reader.readString(offsets[0]);
-  object.durationSeconds = reader.readLong(offsets[2]);
+  object.durationSeconds = reader.readLong(offsets[3]);
   object.id = id;
-  object.startedAt = reader.readDateTime(offsets[5]);
-  object.stoppedAt = reader.readDateTimeOrNull(offsets[6]);
-  object.title = reader.readString(offsets[7]);
+  object.pauseDurationSeconds = reader.readLong(offsets[7]);
+  object.pausedAt = reader.readDateTimeOrNull(offsets[8]);
+  object.startedAt = reader.readDateTime(offsets[9]);
+  object.stoppedAt = reader.readDateTimeOrNull(offsets[10]);
+  object.title = reader.readString(offsets[11]);
   return object;
 }
 
@@ -154,18 +180,26 @@ P _taskEntryDeserializeProp<P>(
     case 0:
       return (reader.readString(offset)) as P;
     case 1:
-      return (reader.readString(offset)) as P;
-    case 2:
       return (reader.readLong(offset)) as P;
-    case 3:
+    case 2:
       return (reader.readString(offset)) as P;
+    case 3:
+      return (reader.readLong(offset)) as P;
     case 4:
-      return (reader.readBool(offset)) as P;
+      return (reader.readString(offset)) as P;
     case 5:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 6:
-      return (reader.readDateTimeOrNull(offset)) as P;
+      return (reader.readBool(offset)) as P;
     case 7:
+      return (reader.readLong(offset)) as P;
+    case 8:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 9:
+      return (reader.readDateTime(offset)) as P;
+    case 10:
+      return (reader.readDateTimeOrNull(offset)) as P;
+    case 11:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -480,6 +514,62 @@ extension TaskEntryQueryFilter
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'category',
         value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition>
+      currentElapsedSecondsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'currentElapsedSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition>
+      currentElapsedSecondsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'currentElapsedSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition>
+      currentElapsedSecondsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'currentElapsedSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition>
+      currentElapsedSecondsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'currentElapsedSeconds',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -859,12 +949,148 @@ extension TaskEntryQueryFilter
     });
   }
 
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition> isPausedEqualTo(
+      bool value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'isPaused',
+        value: value,
+      ));
+    });
+  }
+
   QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition> isRunningEqualTo(
       bool value) {
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.equalTo(
         property: r'isRunning',
         value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition>
+      pauseDurationSecondsEqualTo(int value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'pauseDurationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition>
+      pauseDurationSecondsGreaterThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'pauseDurationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition>
+      pauseDurationSecondsLessThan(
+    int value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'pauseDurationSeconds',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition>
+      pauseDurationSecondsBetween(
+    int lower,
+    int upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'pauseDurationSeconds',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition> pausedAtIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'pausedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition>
+      pausedAtIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'pausedAt',
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition> pausedAtEqualTo(
+      DateTime? value) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'pausedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition> pausedAtGreaterThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'pausedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition> pausedAtLessThan(
+    DateTime? value, {
+    bool include = false,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'pausedAt',
+        value: value,
+      ));
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterFilterCondition> pausedAtBetween(
+    DateTime? lower,
+    DateTime? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'pausedAt',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
       ));
     });
   }
@@ -1144,6 +1370,20 @@ extension TaskEntryQuerySortBy on QueryBuilder<TaskEntry, TaskEntry, QSortBy> {
     });
   }
 
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy>
+      sortByCurrentElapsedSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentElapsedSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy>
+      sortByCurrentElapsedSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentElapsedSeconds', Sort.desc);
+    });
+  }
+
   QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> sortByDayKey() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dayKey', Sort.asc);
@@ -1181,6 +1421,18 @@ extension TaskEntryQuerySortBy on QueryBuilder<TaskEntry, TaskEntry, QSortBy> {
     });
   }
 
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> sortByIsPaused() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPaused', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> sortByIsPausedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPaused', Sort.desc);
+    });
+  }
+
   QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> sortByIsRunning() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isRunning', Sort.asc);
@@ -1190,6 +1442,32 @@ extension TaskEntryQuerySortBy on QueryBuilder<TaskEntry, TaskEntry, QSortBy> {
   QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> sortByIsRunningDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isRunning', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy>
+      sortByPauseDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pauseDurationSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy>
+      sortByPauseDurationSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pauseDurationSeconds', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> sortByPausedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pausedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> sortByPausedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pausedAt', Sort.desc);
     });
   }
 
@@ -1244,6 +1522,20 @@ extension TaskEntryQuerySortThenBy
     });
   }
 
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy>
+      thenByCurrentElapsedSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentElapsedSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy>
+      thenByCurrentElapsedSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'currentElapsedSeconds', Sort.desc);
+    });
+  }
+
   QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> thenByDayKey() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'dayKey', Sort.asc);
@@ -1293,6 +1585,18 @@ extension TaskEntryQuerySortThenBy
     });
   }
 
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> thenByIsPaused() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPaused', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> thenByIsPausedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'isPaused', Sort.desc);
+    });
+  }
+
   QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> thenByIsRunning() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isRunning', Sort.asc);
@@ -1302,6 +1606,32 @@ extension TaskEntryQuerySortThenBy
   QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> thenByIsRunningDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'isRunning', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy>
+      thenByPauseDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pauseDurationSeconds', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy>
+      thenByPauseDurationSecondsDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pauseDurationSeconds', Sort.desc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> thenByPausedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pausedAt', Sort.asc);
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QAfterSortBy> thenByPausedAtDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'pausedAt', Sort.desc);
     });
   }
 
@@ -1351,6 +1681,13 @@ extension TaskEntryQueryWhereDistinct
     });
   }
 
+  QueryBuilder<TaskEntry, TaskEntry, QDistinct>
+      distinctByCurrentElapsedSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'currentElapsedSeconds');
+    });
+  }
+
   QueryBuilder<TaskEntry, TaskEntry, QDistinct> distinctByDayKey(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1372,9 +1709,28 @@ extension TaskEntryQueryWhereDistinct
     });
   }
 
+  QueryBuilder<TaskEntry, TaskEntry, QDistinct> distinctByIsPaused() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'isPaused');
+    });
+  }
+
   QueryBuilder<TaskEntry, TaskEntry, QDistinct> distinctByIsRunning() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'isRunning');
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QDistinct>
+      distinctByPauseDurationSeconds() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'pauseDurationSeconds');
+    });
+  }
+
+  QueryBuilder<TaskEntry, TaskEntry, QDistinct> distinctByPausedAt() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'pausedAt');
     });
   }
 
@@ -1412,6 +1768,13 @@ extension TaskEntryQueryProperty
     });
   }
 
+  QueryBuilder<TaskEntry, int, QQueryOperations>
+      currentElapsedSecondsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'currentElapsedSeconds');
+    });
+  }
+
   QueryBuilder<TaskEntry, String, QQueryOperations> dayKeyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'dayKey');
@@ -1431,9 +1794,28 @@ extension TaskEntryQueryProperty
     });
   }
 
+  QueryBuilder<TaskEntry, bool, QQueryOperations> isPausedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'isPaused');
+    });
+  }
+
   QueryBuilder<TaskEntry, bool, QQueryOperations> isRunningProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'isRunning');
+    });
+  }
+
+  QueryBuilder<TaskEntry, int, QQueryOperations>
+      pauseDurationSecondsProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'pauseDurationSeconds');
+    });
+  }
+
+  QueryBuilder<TaskEntry, DateTime?, QQueryOperations> pausedAtProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'pausedAt');
     });
   }
 

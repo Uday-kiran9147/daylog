@@ -92,15 +92,8 @@ class HomeScreen extends ConsumerWidget {
             // stat row
             Row(
               children: [
-                Expanded(
-                  child: _StatBox(
-                    label: 'Tracked Today',
-                    value: totalAsync.when(
-                      data: (s) => formatDuration(s),
-                      loading: () => '--',
-                      error: (_, __) => '--',
-                    ),
-                  ),
+                const Expanded(
+                  child: _TrackedTodayStatBox(),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -238,10 +231,13 @@ class _ActiveTaskBannerState extends State<_ActiveTaskBanner> {
   Timer? _timer;
   late int _elapsed;
 
-  @override
-  void initState() {
-    super.initState();
-    _elapsed = DateTime.now().difference(widget.task.startedAt).inSeconds;
+  void _setupTimer() {
+    _timer?.cancel();
+    _elapsed = widget.task.currentElapsedSeconds;
+    if (widget.task.isPaused) {
+      _timer = null;
+      return;
+    }
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
@@ -252,18 +248,18 @@ class _ActiveTaskBannerState extends State<_ActiveTaskBanner> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    _setupTimer();
+  }
+
+  @override
   void didUpdateWidget(covariant _ActiveTaskBanner oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.task.id != widget.task.id || oldWidget.task.startedAt != widget.task.startedAt) {
-      _timer?.cancel();
-      _elapsed = DateTime.now().difference(widget.task.startedAt).inSeconds;
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (mounted) {
-          setState(() {
-            _elapsed++;
-          });
-        }
-      });
+    if (oldWidget.task.id != widget.task.id || 
+        oldWidget.task.startedAt != widget.task.startedAt || 
+        oldWidget.task.isPaused != widget.task.isPaused) {
+      _setupTimer();
     }
   }
 
@@ -303,7 +299,9 @@ class _ActiveTaskBannerState extends State<_ActiveTaskBanner> {
             ),
           ),
           Text(
-            'Running (${formatTimer(_elapsed)})',
+            widget.task.isPaused
+                ? 'Paused (${formatTimer(_elapsed)})'
+                : 'Running (${formatTimer(_elapsed)})',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onPrimaryContainer),
           ),
         ],
@@ -361,6 +359,81 @@ class _EmptyState extends StatelessWidget {
           style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),
+      ),
+    );
+  }
+}
+
+class _TrackedTodayStatBox extends ConsumerStatefulWidget {
+  const _TrackedTodayStatBox();
+
+  @override
+  ConsumerState<_TrackedTodayStatBox> createState() => _TrackedTodayStatBoxState();
+}
+
+class _TrackedTodayStatBoxState extends ConsumerState<_TrackedTodayStatBox> {
+  Timer? _timer;
+  int _extraElapsed = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimerIfRunning();
+  }
+
+  void _startTimerIfRunning() {
+    _timer?.cancel();
+    final active = ref.read(activeTaskProvider).valueOrNull;
+    if (active != null && !active.isPaused) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+        if (mounted) {
+          setState(() {
+            _extraElapsed++;
+          });
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final totalAsync = ref.watch(todayTotalSecondsProvider);
+
+    ref.listen(activeTaskProvider, (prev, next) {
+      _extraElapsed = 0;
+      _startTimerIfRunning();
+    });
+
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            totalAsync.when(
+              data: (s) => formatDuration(s + _extraElapsed),
+              loading: () => '--',
+              error: (_, __) => '--',
+            ),
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Tracked Today',
+            style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+          ),
+        ],
       ),
     );
   }

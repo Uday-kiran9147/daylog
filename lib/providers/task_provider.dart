@@ -59,10 +59,36 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
 
   Future<void> pauseActive() async {
     try {
-      // for simplicity: pause = stop (duration saved), can resume as new entry
-      await stopActive();
-    } catch (e) {
-      debugPrint('Error pausing task: $e');
+      final running = state.valueOrNull;
+      if (running == null || running.isPaused) return;
+
+      final db = await DbService.db;
+      running.pausedAt = DateTime.now();
+      await db.writeTxn(() => db.taskEntrys.put(running));
+      state = AsyncData(running);
+    } catch (e, stackTrace) {
+      debugPrint('Error pausing task: $e\n$stackTrace');
+      state = AsyncError(e, stackTrace);
+      rethrow;
+    }
+  }
+
+  Future<void> resumeActive() async {
+    try {
+      final running = state.valueOrNull;
+      if (running == null || !running.isPaused) return;
+
+      final db = await DbService.db;
+      final now = DateTime.now();
+      final diff = now.difference(running.pausedAt!).inSeconds;
+      running.pauseDurationSeconds += diff > 0 ? diff : 0;
+      running.pausedAt = null;
+      await db.writeTxn(() => db.taskEntrys.put(running));
+      state = AsyncData(running);
+    } catch (e, stackTrace) {
+      debugPrint('Error resuming task: $e\n$stackTrace');
+      state = AsyncError(e, stackTrace);
+      rethrow;
     }
   }
 
@@ -123,8 +149,7 @@ final todayTotalSecondsProvider = FutureProvider<int>((ref) async {
 
   int elapsed = 0;
   if (active != null) {
-    final diff = DateTime.now().difference(active.startedAt).inSeconds;
-    elapsed = diff > 0 ? diff : 0;
+    elapsed = active.currentElapsedSeconds;
   }
 
   return tasks.fold<int>(elapsed, (sum, t) => sum + t.durationSeconds);

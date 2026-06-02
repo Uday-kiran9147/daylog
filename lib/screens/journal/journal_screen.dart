@@ -172,11 +172,11 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                             style: FilledButton.styleFrom(
                               backgroundColor: theme.colorScheme.primary,
                               foregroundColor: theme.colorScheme.onPrimary,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            icon: const Icon(Icons.check),
-                            label: const Text('Save Journal Entry', style: TextStyle(fontSize: 15)),
+                            icon: const Icon(Icons.check, size: 20),
+                            label: const Text('Save Journal Entry', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                           ),
                         ],
                       );
@@ -433,11 +433,11 @@ class _SavedView extends StatelessWidget {
         OutlinedButton.icon(
           onPressed: onEdit,
           style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
+            padding: const EdgeInsets.symmetric(vertical: 16),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
-          icon: const Icon(Icons.edit_rounded, size: 18),
-          label: const Text('Edit Journal Entry', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          icon: const Icon(Icons.edit_rounded, size: 20),
+          label: const Text('Edit Journal Entry', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
         ),
       ],
     );

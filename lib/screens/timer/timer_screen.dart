@@ -19,6 +19,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
   Timer? _ticker;
   final ValueNotifier<int> _elapsedNotifier = ValueNotifier<int>(0);
   int? _activeTaskId;
+  bool? _lastIsPaused;
 
   @override
   void dispose() {
@@ -29,7 +30,11 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
 
   void _startTicker(TaskEntry task) {
     _ticker?.cancel();
-    _elapsedNotifier.value = DateTime.now().difference(task.startedAt).inSeconds;
+    _elapsedNotifier.value = task.currentElapsedSeconds;
+    if (task.isPaused) {
+      _ticker = null;
+      return;
+    }
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       _elapsedNotifier.value++;
     });
@@ -49,12 +54,15 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
     return activeAsync.when(
       data: (active) {
         if (active != null) {
-          if (_activeTaskId != active.id) {
+          final isPausedChanged = _lastIsPaused != active.isPaused;
+          if (_activeTaskId != active.id || isPausedChanged) {
             _activeTaskId = active.id;
+            _lastIsPaused = active.isPaused;
             _startTicker(active);
           }
         } else {
           _activeTaskId = null;
+          _lastIsPaused = null;
           _stopTicker();
         }
 
@@ -122,13 +130,21 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                     ),
                     const SizedBox(width: 10),
                     Expanded(
-                      child: _ActionBtn(
-                        label: 'Pause',
-                        icon: Icons.pause_rounded,
-                        color: theme.colorScheme.surfaceContainer,
-                        textColor: theme.colorScheme.onSurfaceVariant,
-                        onTap: () => ref.read(activeTaskProvider.notifier).pauseActive(),
-                      ),
+                      child: active.isPaused
+                          ? _ActionBtn(
+                              label: 'Resume',
+                              icon: Icons.play_arrow_rounded,
+                              color: theme.colorScheme.primaryContainer,
+                              textColor: theme.colorScheme.onPrimaryContainer,
+                              onTap: () => ref.read(activeTaskProvider.notifier).resumeActive(),
+                            )
+                          : _ActionBtn(
+                              label: 'Pause',
+                              icon: Icons.pause_rounded,
+                              color: theme.colorScheme.surfaceContainer,
+                              textColor: theme.colorScheme.onSurfaceVariant,
+                              onTap: () => ref.read(activeTaskProvider.notifier).pauseActive(),
+                            ),
                     ),
                   ],
                 ),
@@ -151,9 +167,11 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                         style: FilledButton.styleFrom(
                           backgroundColor: theme.colorScheme.primary,
                           foregroundColor: theme.colorScheme.onPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        icon: const Icon(Icons.add),
-                        label: const Text('Start a Task'),
+                        icon: const Icon(Icons.add, size: 20),
+                        label: const Text('Start a Task', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
                       ),
                     ],
                   ),
@@ -207,18 +225,25 @@ class _ActionBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: color,
-      borderRadius: BorderRadius.circular(10),
+      borderRadius: BorderRadius.circular(14),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(14),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 16),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 18, color: textColor),
-              const SizedBox(width: 6),
-              Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textColor)),
+              Icon(icon, size: 22, color: textColor),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: textColor,
+                ),
+              ),
             ],
           ),
         ),
