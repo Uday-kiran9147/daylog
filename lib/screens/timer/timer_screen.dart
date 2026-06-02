@@ -32,46 +32,51 @@ class TimerScreen extends ConsumerWidget {
             padding: const EdgeInsets.all(16),
             children: [
               if (active != null) ...[
-                // running hero
+                // running hero (optimized for distance visibility)
                 Container(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
                   decoration: BoxDecoration(
                     color: theme.colorScheme.primaryContainer,
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(24),
                   ),
                   child: Column(
                     children: [
                       Text(
                         active.title,
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: theme.colorScheme.onPrimaryContainer),
+                        style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: theme.colorScheme.onPrimaryContainer),
                         textAlign: TextAlign.center,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                         decoration: BoxDecoration(
                           color: theme.colorScheme.primary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           capitalizeCategory(active.category),
-                          style: TextStyle(fontSize: 12, color: theme.colorScheme.onPrimaryContainer),
+                          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: theme.colorScheme.onPrimaryContainer),
                         ),
                       ),
-                      const SizedBox(height: 18),
-                      Text(
-                        formatTimer(elapsed),
-                        style: TextStyle(
-                          fontSize: 42,
-                          fontWeight: FontWeight.w500,
-                          color: theme.colorScheme.onPrimaryContainer,
-                          fontFeatures: const [FontFeature.tabularFigures()],
+                      const SizedBox(height: 32),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          formatTimer(elapsed),
+                          maxLines: 1,
+                          style: TextStyle(
+                            fontSize: 72,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 2,
+                            color: theme.colorScheme.onPrimaryContainer,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 20),
                 Row(
                   children: [
                     Expanded(
@@ -83,7 +88,7 @@ class TimerScreen extends ConsumerWidget {
                         onTap: () => ref.read(activeTaskProvider.notifier).stopActive(),
                       ),
                     ),
-                    const SizedBox(width: 10),
+                    const SizedBox(width: 14),
                     Expanded(
                       child: active.isPaused
                           ? _ActionBtn(
@@ -180,22 +185,22 @@ class _ActionBtn extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: color,
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(18),
         child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 16),
+          padding: const EdgeInsets.symmetric(vertical: 20),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon, size: 22, color: textColor),
-              const SizedBox(width: 8),
+              Icon(icon, size: 26, color: textColor),
+              const SizedBox(width: 10),
               Text(
                 label,
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
                   color: textColor,
                 ),
               ),

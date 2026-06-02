@@ -230,7 +230,7 @@ class _ActiveTaskBanner extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: theme.colorScheme.primaryContainer,
         borderRadius: BorderRadius.circular(12),
@@ -246,7 +246,7 @@ class _ActiveTaskBanner extends ConsumerWidget {
               children: [
                 Text(
                   task.title,
-                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: theme.colorScheme.onPrimaryContainer),
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: theme.colorScheme.onPrimaryContainer),
                 ),
                 Text(
                   capitalizeCategory(task.category),
@@ -259,7 +259,7 @@ class _ActiveTaskBanner extends ConsumerWidget {
             task.isPaused
                 ? 'Paused (${formatTimer(elapsed)})'
                 : 'Running (${formatTimer(elapsed)})',
-            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onPrimaryContainer),
+            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: theme.colorScheme.onPrimaryContainer),
           ),
         ],
       ),
