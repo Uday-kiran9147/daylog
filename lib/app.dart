@@ -89,12 +89,13 @@ class _Shell extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final index = ref.watch(navigationIndexProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
       body: IndexedStack(index: index, children: _screens),
       bottomNavigationBar: Container(
-        decoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: Color(0x18000000), width: 0.5)),
+        decoration: BoxDecoration(
+          border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5)),
         ),
         child: BottomNavigationBar(
           currentIndex: index,

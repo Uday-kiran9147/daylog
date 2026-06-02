@@ -36,9 +36,6 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final tasksAsync = ref.watch(todayTasksProvider);
-    final totalAsync = ref.watch(todayTotalSecondsProvider);
-    final activeAsync = ref.watch(activeTaskProvider);
     final themeMode = ref.watch(themeModeProvider);
     final now = DateTime.now();
 
@@ -90,91 +87,33 @@ class HomeScreen extends ConsumerWidget {
           padding: const EdgeInsets.all(16),
           children: [
             // stat row
-            Row(
+            const Row(
               children: [
-                const Expanded(
+                Expanded(
                   child: _TrackedTodayStatBox(),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
-                  child: _StatBox(
-                    label: 'Tasks Logged',
-                    value: tasksAsync.when(
-                      data: (t) => t.where((x) => !x.isRunning).length.toString(),
-                      loading: () => '--',
-                      error: (_, __) => '--',
-                    ),
-                  ),
+                  child: _LoggedTasksStatBox(),
                 ),
               ],
             ),
 
             const SizedBox(height: 20),
 
-            // active task banner
-            activeAsync.when(
-              data: (active) => active != null
-                  ? _ActiveTaskBanner(task: active)
-                  : const SizedBox.shrink(),
-              loading: () => const SizedBox.shrink(),
-              error: (_, __) => const SizedBox.shrink(),
-            ),
+            // active task banner / dashboard (self-contained to prevent full screen rebuilds)
+            const _ActiveTaskSection(),
 
             const SizedBox(height: 20),
 
             // task list
             Text(
-              'Tasks',
+              'Completed Today',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.outline),
             ),
             const SizedBox(height: 10),
 
-            tasksAsync.when(
-              data: (tasks) => tasks.isEmpty
-                  ? const _EmptyState()
-                  : Card(
-                      clipBehavior: Clip.antiAlias,
-                      child: Column(
-                        children: tasks
-                            .where((t) => !t.isRunning)
-                            .map((t) {
-                              return Dismissible(
-                                key: ValueKey(t.id),
-                                direction: DismissDirection.endToStart,
-                                background: Container(
-                                  color: theme.colorScheme.errorContainer,
-                                  alignment: Alignment.centerRight,
-                                  padding: const EdgeInsets.only(right: 16),
-                                  child: Icon(Icons.delete, color: theme.colorScheme.onErrorContainer),
-                                ),
-                                confirmDismiss: (_) => _showDeleteConfirmDialog(context),
-                                onDismissed: (_) {
-                                  ref.read(activeTaskProvider.notifier).deleteTask(t.id);
-                                },
-                                child: InkWell(
-                                  onTap: () => showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    builder: (_) => EditTaskSheet(task: t),
-                                  ),
-                                  child: _TaskRow(task: t),
-                                ),
-                              );
-                            })
-                            .toList(),
-                      ),
-                    ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (e, _) => Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text(
-                    'Failed to load tasks: $e',
-                    style: TextStyle(color: theme.colorScheme.error, fontSize: 14),
-                  ),
-                ),
-              ),
-            ),
+            const _CompletedTasksSection(),
           ],
         ),
       ),
@@ -193,6 +132,85 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
+class _LoggedTasksStatBox extends ConsumerWidget {
+  const _LoggedTasksStatBox();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasksAsync = ref.watch(todayTasksProvider);
+    return _StatBox(
+      label: 'Tasks Logged',
+      value: tasksAsync.when(
+        data: (t) => t.where((x) => !x.isRunning).length.toString(),
+        loading: () => '--',
+        error: (_, __) => '--',
+      ),
+    );
+  }
+}
+
+class _CompletedTasksSection extends ConsumerWidget {
+  const _CompletedTasksSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final tasksAsync = ref.watch(todayTasksProvider);
+    final theme = Theme.of(context);
+
+    return tasksAsync.when(
+      data: (tasks) {
+        final completed = tasks.where((t) => !t.isRunning).toList();
+        return completed.isEmpty
+            ? const _EmptyState()
+            : Card(
+                clipBehavior: Clip.antiAlias,
+                child: Column(
+                  children: completed.map((t) {
+                    return Dismissible(
+                      key: ValueKey(t.id),
+                      direction: DismissDirection.endToStart,
+                      background: Container(
+                        color: theme.colorScheme.errorContainer,
+                        alignment: Alignment.centerRight,
+                        padding: const EdgeInsets.only(right: 16),
+                        child: Icon(Icons.delete, color: theme.colorScheme.onErrorContainer),
+                      ),
+                      confirmDismiss: (_) => _showDeleteConfirmDialog(context),
+                      onDismissed: (_) {
+                        ref.read(activeTaskProvider.notifier).deleteTask(t.id);
+                      },
+                      child: InkWell(
+                        onTap: () => showModalBottomSheet(
+                          context: context,
+                          isScrollControlled: true,
+                          builder: (_) => EditTaskSheet(task: t),
+                        ),
+                        child: _TaskRow(task: t),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              );
+      },
+      loading: () => const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 24),
+          child: CircularProgressIndicator(),
+        ),
+      ),
+      error: (e, _) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            'Failed to load tasks: $e',
+            style: TextStyle(color: theme.colorScheme.error, fontSize: 14),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _StatBox extends StatelessWidget {
   final String label;
   final String value;
@@ -202,17 +220,43 @@ class _StatBox extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 2),
-          Text(label, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              Icon(
+                Icons.check_circle_outline_rounded,
+                size: 16,
+                color: theme.colorScheme.primary.withValues(alpha: 0.7),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
         ],
       ),
     );
@@ -230,36 +274,185 @@ class _ActiveTaskBanner extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.2), width: 0.5),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.circle, size: 8, color: theme.colorScheme.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  task.title,
-                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold, color: theme.colorScheme.onPrimaryContainer),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: task.isPaused ? theme.colorScheme.error : theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    task.isPaused ? 'PAUSED' : 'TRACKING FOCUS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                      color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.surface.withValues(alpha: 0.6),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
                 ),
-                Text(
+                child: Text(
                   capitalizeCategory(task.category),
-                  style: TextStyle(fontSize: 11, color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7)),
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onPrimaryContainer,
+                  ),
                 ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Text(
+            task.title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onPrimaryContainer,
             ),
           ),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                formatTimer(elapsed),
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  color: theme.colorScheme.onPrimaryContainer,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              Row(
+                children: [
+                  Material(
+                    color: theme.colorScheme.surface,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: () {
+                        if (task.isPaused) {
+                          ref.read(activeTaskProvider.notifier).resumeActive();
+                        } else {
+                          ref.read(activeTaskProvider.notifier).pauseActive();
+                        }
+                      },
+                      customBorder: const CircleBorder(),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        child: Icon(
+                          task.isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                          size: 24,
+                          color: theme.colorScheme.primary,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Material(
+                    color: theme.colorScheme.errorContainer,
+                    shape: const CircleBorder(),
+                    child: InkWell(
+                      onTap: () => ref.read(activeTaskProvider.notifier).stopActive(),
+                      customBorder: const CircleBorder(),
+                      child: Container(
+                        padding: const EdgeInsets.all(10),
+                        child: Icon(
+                          Icons.stop_rounded,
+                          size: 24,
+                          color: theme.colorScheme.onErrorContainer,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IdleActiveTaskCard extends StatelessWidget {
+  const _IdleActiveTaskCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.rocket_launch_outlined,
+            size: 32,
+            color: theme.colorScheme.primary.withValues(alpha: 0.6),
+          ),
+          const SizedBox(height: 12),
           Text(
-            task.isPaused
-                ? 'Paused (${formatTimer(elapsed)})'
-                : 'Running (${formatTimer(elapsed)})',
-            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: theme.colorScheme.onPrimaryContainer),
+            'Ready to focus?',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            'Start a task block to begin tracking your work.',
+            style: TextStyle(
+              fontSize: 12,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 16),
+          FilledButton.icon(
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              builder: (_) => const StartTaskSheet(),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            icon: const Icon(Icons.add_rounded, size: 18),
+            label: const Text('Start Focus Session', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -308,13 +501,39 @@ class _EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Text(
-          'No tasks yet — tap + to start tracking',
-          style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurfaceVariant),
-          textAlign: TextAlign.center,
+    return Container(
+      padding: const EdgeInsets.all(32),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Icon(
+              Icons.checklist_rounded,
+              size: 36,
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'No completed tasks today',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: theme.colorScheme.onSurface,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              'Tracked logs will appear here once completed.',
+              style: TextStyle(
+                fontSize: 12,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -339,29 +558,65 @@ class _TrackedTodayStatBox extends ConsumerWidget {
     final totalSeconds = baseSeconds + activeSeconds;
 
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            totalAsync.when(
-              data: (_) => formatDuration(totalSeconds),
-              loading: () => '--',
-              error: (_, __) => '--',
-            ),
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                totalAsync.when(
+                  data: (_) => formatDuration(totalSeconds),
+                  loading: () => '--',
+                  error: (_, __) => '--',
+                ),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.onSurface,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              Icon(
+                Icons.schedule_rounded,
+                size: 16,
+                color: theme.colorScheme.primary.withValues(alpha: 0.7),
+              ),
+            ],
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             'Tracked Today',
-            style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w500,
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
         ],
       ),
+    );
+  }
+}
+
+class _ActiveTaskSection extends ConsumerWidget {
+  const _ActiveTaskSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeAsync = ref.watch(activeTaskProvider);
+    return activeAsync.when(
+      data: (active) => active != null
+          ? _ActiveTaskBanner(task: active)
+          : const _IdleActiveTaskCard(),
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }

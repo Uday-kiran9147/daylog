@@ -36,6 +36,8 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       state = AsyncData(task);
       NotificationService.updateTaskReminders(task);
       NotificationService.showTestNotification();
+      ref.invalidate(todayTasksProvider);
+      ref.invalidate(todayTotalSecondsProvider);
       return task;
     } catch (e, stackTrace) {
       debugPrint('Error starting task: $e\n$stackTrace');
@@ -54,6 +56,8 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       await db.writeTxn(() => db.taskEntrys.put(running));
       state = const AsyncData(null);
       NotificationService.updateTaskReminders(null);
+      ref.invalidate(todayTasksProvider);
+      ref.invalidate(todayTotalSecondsProvider);
     } catch (e, stackTrace) {
       debugPrint('Error stopping task: $e\n$stackTrace');
       state = AsyncError(e, stackTrace);
@@ -132,7 +136,6 @@ final activeTaskProvider = AsyncNotifierProvider<ActiveTaskNotifier, TaskEntry?>
 // ── today's tasks ────────────────────────────────────────────────────────────
 
 final todayTasksProvider = FutureProvider<List<TaskEntry>>((ref) async {
-  ref.watch(activeTaskProvider); // refresh when active task changes
   try {
     final db = await DbService.db;
     final key = dayKey(DateTime.now());

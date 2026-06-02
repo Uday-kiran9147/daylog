@@ -296,16 +296,16 @@ class _QuestionCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainerLow,
+        color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(number, style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant)),
+          Text(number, style: TextStyle(fontSize: 11, color: theme.colorScheme.onSurfaceVariant, fontWeight: FontWeight.w500)),
           const SizedBox(height: 4),
-          Text(question, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
+          Text(question, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
           const SizedBox(height: 10),
           TextField(
             controller: controller,
@@ -314,7 +314,7 @@ class _QuestionCard extends StatelessWidget {
             decoration: InputDecoration(
               hintText: hint,
               hintStyle: TextStyle(color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
-              fillColor: theme.colorScheme.surface,
+              fillColor: theme.colorScheme.surfaceContainer,
             ),
           ),
         ],
@@ -341,9 +341,9 @@ class _SavedView extends StatelessWidget {
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.25),
+            color: theme.colorScheme.primaryContainer,
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3), width: 1),
+            border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
           ),
           child: Row(
             children: [
@@ -395,7 +395,7 @@ class _SavedView extends StatelessWidget {
         Card(
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             side: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5),
           ),
           child: Padding(
