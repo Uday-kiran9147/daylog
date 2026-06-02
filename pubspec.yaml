@@ -17,22 +17,19 @@ dependencies:
 
   # state management
   flutter_riverpod: ^2.4.9
-  riverpod_annotation: ^2.3.3
 
   # notifications (offline, no internet needed)
   flutter_local_notifications: ^20.1.0
   timezone: ^0.10.1
 
   # utils
-  intl: ^0.18.1
-  uuid: ^4.2.2
+  share_plus: ^12.0.2
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   build_runner: ^2.4.7
   isar_generator: ^3.1.0
-  riverpod_generator: ^2.3.9
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
 

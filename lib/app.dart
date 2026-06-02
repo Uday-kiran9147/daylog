@@ -7,31 +7,26 @@ import 'screens/journal/journal_screen.dart';
 import 'screens/stats/stats_screen.dart';
 import 'utils/constants.dart';
 
+final navigationIndexProvider = StateProvider<int>((ref) => 0);
+
 class DayLogApp extends StatelessWidget {
   const DayLogApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return ProviderScope(
-      child: MaterialApp(
-        title: 'DayLog',
-        theme: kAppTheme,
-        debugShowCheckedModeBanner: false,
-        home: const _Shell(),
-      ),
+    return MaterialApp(
+      title: 'DayLog',
+      theme: kLightTheme,
+      darkTheme: kDarkTheme,
+      themeMode: ThemeMode.system,
+      debugShowCheckedModeBanner: false,
+      home: const _Shell(),
     );
   }
 }
 
-class _Shell extends StatefulWidget {
+class _Shell extends ConsumerWidget {
   const _Shell();
-
-  @override
-  State<_Shell> createState() => _ShellState();
-}
-
-class _ShellState extends State<_Shell> {
-  int _index = 0;
 
   static const _screens = [
     HomeScreen(),
@@ -41,16 +36,18 @@ class _ShellState extends State<_Shell> {
   ];
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final index = ref.watch(navigationIndexProvider);
+
     return Scaffold(
-      body: IndexedStack(index: _index, children: _screens),
+      body: IndexedStack(index: index, children: _screens),
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
           border: Border(top: BorderSide(color: Color(0x18000000), width: 0.5)),
         ),
         child: BottomNavigationBar(
-          currentIndex: _index,
-          onTap: (i) => setState(() => _index = i),
+          currentIndex: index,
+          onTap: (i) => ref.read(navigationIndexProvider.notifier).state = i,
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_rounded), label: 'home'),
             BottomNavigationBarItem(icon: Icon(Icons.timer_outlined), activeIcon: Icon(Icons.timer_rounded), label: 'timer'),

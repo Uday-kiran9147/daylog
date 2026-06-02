@@ -1,6 +1,6 @@
-// lib/providers/stats_provider.dart
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import '../models/task_entry.dart';
@@ -20,25 +20,41 @@ class DayStats {
 }
 
 final weekStatsProvider = FutureProvider<List<DayStats>>((ref) async {
-  final db = await DbService.db;
-  final now = DateTime.now();
+  try {
+    final db = await DbService.db;
+    final now = DateTime.now();
 
-  final stats = <DayStats>[];
-  for (int i = 6; i >= 0; i--) {
-    final d = now.subtract(Duration(days: i));
-    final key = dayKey(d);
-    final tasks = await db.taskEntrys.filter().dayKeyEqualTo(key).findAll();
+    final keys = List.generate(7, (i) {
+      final d = now.subtract(Duration(days: 6 - i));
+      return dayKey(d);
+    });
 
-    final byCategory = <String, int>{};
-    int total = 0;
+    final tasks = await db.taskEntrys
+        .filter()
+        .anyOf(keys, (q, k) => q.dayKeyEqualTo(k))
+        .findAll();
+
+    final tasksByDay = <String, List<TaskEntry>>{};
     for (final t in tasks) {
-      byCategory[t.category] = (byCategory[t.category] ?? 0) + t.durationSeconds;
-      total += t.durationSeconds;
+      tasksByDay.putIfAbsent(t.dayKey, () => []).add(t);
     }
 
-    stats.add(DayStats(dayKey: key, totalSeconds: total, byCategory: byCategory));
+    final stats = <DayStats>[];
+    for (final key in keys) {
+      final dayTasks = tasksByDay[key] ?? [];
+      final byCategory = <String, int>{};
+      int total = 0;
+      for (final t in dayTasks) {
+        byCategory[t.category] = (byCategory[t.category] ?? 0) + t.durationSeconds;
+        total += t.durationSeconds;
+      }
+      stats.add(DayStats(dayKey: key, totalSeconds: total, byCategory: byCategory));
+    }
+    return stats;
+  } catch (e, stackTrace) {
+    debugPrint('Error getting week stats: $e\n$stackTrace');
+    return [];
   }
-  return stats;
 });
 
 final weekTotalSecondsProvider = FutureProvider<int>((ref) async {

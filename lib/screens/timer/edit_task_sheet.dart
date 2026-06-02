@@ -1,19 +1,28 @@
-// lib/screens/timer/start_task_sheet.dart
+// lib/screens/timer/edit_task_sheet.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../models/task_entry.dart';
 import '../../providers/task_provider.dart';
 import '../../utils/constants.dart';
 
-class StartTaskSheet extends ConsumerStatefulWidget {
-  const StartTaskSheet({super.key});
+class EditTaskSheet extends ConsumerStatefulWidget {
+  final TaskEntry task;
+  const EditTaskSheet({super.key, required this.task});
 
   @override
-  ConsumerState<StartTaskSheet> createState() => _StartTaskSheetState();
+  ConsumerState<EditTaskSheet> createState() => _EditTaskSheetState();
 }
 
-class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
-  final _controller = TextEditingController();
-  String _category = 'backend';
+class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
+  late final TextEditingController _controller;
+  late String _category;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.task.title);
+    _category = widget.task.category;
+  }
 
   @override
   void dispose() {
@@ -21,11 +30,27 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
     super.dispose();
   }
 
-  Future<void> _start() async {
+  Future<void> _save() async {
     final title = _controller.text.trim();
     if (title.isEmpty) return;
-    await ref.read(activeTaskProvider.notifier).startTask(title, _category);
-    if (mounted) Navigator.pop(context);
+
+    final updated = widget.task
+      ..title = title
+      ..category = _category;
+
+    try {
+      await ref.read(activeTaskProvider.notifier).updateTask(updated);
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to update task: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -39,14 +64,13 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('new task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+          const Text('edit task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
-            autofocus: true,
-            decoration: const InputDecoration(hintText: 'what are you working on?'),
+            decoration: const InputDecoration(hintText: 'task name'),
             textCapitalization: TextCapitalization.sentences,
-            onSubmitted: (_) => _start(),
+            onSubmitted: (_) => _save(),
           ),
           const SizedBox(height: 12),
           Wrap(
@@ -88,14 +112,14 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
           SizedBox(
             width: double.infinity,
             child: FilledButton(
-              onPressed: _start,
+              onPressed: _save,
               style: FilledButton.styleFrom(
                 backgroundColor: theme.colorScheme.primary,
                 foregroundColor: theme.colorScheme.onPrimary,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('start timer', style: TextStyle(fontSize: 15)),
+              child: const Text('save changes', style: TextStyle(fontSize: 15)),
             ),
           ),
         ],

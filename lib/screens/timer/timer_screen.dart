@@ -17,19 +17,21 @@ class TimerScreen extends ConsumerStatefulWidget {
 
 class _TimerScreenState extends ConsumerState<TimerScreen> {
   Timer? _ticker;
-  int _elapsed = 0;
+  final ValueNotifier<int> _elapsedNotifier = ValueNotifier<int>(0);
+  int? _activeTaskId;
 
   @override
   void dispose() {
     _ticker?.cancel();
+    _elapsedNotifier.dispose();
     super.dispose();
   }
 
   void _startTicker(TaskEntry task) {
     _ticker?.cancel();
-    _elapsed = DateTime.now().difference(task.startedAt).inSeconds;
+    _elapsedNotifier.value = DateTime.now().difference(task.startedAt).inSeconds;
     _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _elapsed++);
+      _elapsedNotifier.value++;
     });
   }
 
@@ -42,12 +44,17 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
   Widget build(BuildContext context) {
     final activeAsync = ref.watch(activeTaskProvider);
     final recentAsync = ref.watch(recentTasksProvider);
+    final theme = Theme.of(context);
 
     return activeAsync.when(
       data: (active) {
         if (active != null) {
-          _startTicker(active);
+          if (_activeTaskId != active.id) {
+            _activeTaskId = active.id;
+            _startTicker(active);
+          }
         } else {
+          _activeTaskId = null;
           _stopTicker();
         }
 
@@ -61,37 +68,42 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE1F5EE),
+                    color: theme.colorScheme.primaryContainer,
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
                     children: [
                       Text(
                         active.title,
-                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Color(0xFF085041)),
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: theme.colorScheme.onPrimaryContainer),
                         textAlign: TextAlign.center,
                       ),
                       const SizedBox(height: 6),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF9FE1CB),
+                          color: theme.colorScheme.primary.withValues(alpha: 0.15),
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
                           active.category,
-                          style: const TextStyle(fontSize: 12, color: Color(0xFF085041)),
+                          style: TextStyle(fontSize: 12, color: theme.colorScheme.onPrimaryContainer),
                         ),
                       ),
                       const SizedBox(height: 18),
-                      Text(
-                        formatTimer(_elapsed),
-                        style: const TextStyle(
-                          fontSize: 42,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF085041),
-                          fontFeatures: [FontFeature.tabularFigures()],
-                        ),
+                      ValueListenableBuilder<int>(
+                        valueListenable: _elapsedNotifier,
+                        builder: (context, elapsed, _) {
+                          return Text(
+                            formatTimer(elapsed),
+                            style: TextStyle(
+                              fontSize: 42,
+                              fontWeight: FontWeight.w500,
+                              color: theme.colorScheme.onPrimaryContainer,
+                              fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -103,8 +115,8 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                       child: _ActionBtn(
                         label: 'stop',
                         icon: Icons.stop_rounded,
-                        color: const Color(0xFFFCEBEB),
-                        textColor: const Color(0xFFA32D2D),
+                        color: theme.colorScheme.errorContainer,
+                        textColor: theme.colorScheme.onErrorContainer,
                         onTap: () => ref.read(activeTaskProvider.notifier).stopActive(),
                       ),
                     ),
@@ -113,8 +125,8 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                       child: _ActionBtn(
                         label: 'pause',
                         icon: Icons.pause_rounded,
-                        color: const Color(0xFFF1F1EF),
-                        textColor: const Color(0xFF5F5E5A),
+                        color: theme.colorScheme.surfaceContainer,
+                        textColor: theme.colorScheme.onSurfaceVariant,
                         onTap: () => ref.read(activeTaskProvider.notifier).pauseActive(),
                       ),
                     ),
@@ -126,9 +138,9 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                 Center(
                   child: Column(
                     children: [
-                      const Icon(Icons.timer_outlined, size: 48, color: Color(0xFF888780)),
+                      Icon(Icons.timer_outlined, size: 48, color: theme.colorScheme.outline),
                       const SizedBox(height: 12),
-                      const Text('no active task', style: TextStyle(fontSize: 16, color: Color(0xFF888780))),
+                      Text('no active task', style: TextStyle(fontSize: 16, color: theme.colorScheme.outline)),
                       const SizedBox(height: 20),
                       FilledButton.icon(
                         onPressed: () => showModalBottomSheet(
@@ -136,7 +148,10 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                           isScrollControlled: true,
                           builder: (_) => const StartTaskSheet(),
                         ),
-                        style: FilledButton.styleFrom(backgroundColor: const Color(0xFF1D9E75)),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: theme.colorScheme.onPrimary,
+                        ),
                         icon: const Icon(Icons.add),
                         label: const Text('start a task'),
                       ),
@@ -146,7 +161,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
               ],
 
               const SizedBox(height: 24),
-              const Text('quick-start recent', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF888780))),
+              Text('quick-start recent', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.outline)),
               const SizedBox(height: 10),
 
               recentAsync.when(
@@ -191,18 +206,22 @@ class _ActionBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(10)),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(icon, size: 18, color: textColor),
-            const SizedBox(width: 6),
-            Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textColor)),
-          ],
+    return Material(
+      color: color,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 12),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 18, color: textColor),
+              const SizedBox(width: 6),
+              Text(label, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: textColor)),
+            ],
+          ),
         ),
       ),
     );
@@ -215,25 +234,30 @@ class _RecentChip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return GestureDetector(
-      onTap: () => ref.read(activeTaskProvider.notifier).startTask(task.title, task.category),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: const Color(0xFFF1F1EF),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: const Color(0x22000000), width: 0.5),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 6, height: 6,
-              decoration: BoxDecoration(color: categoryColor(task.category), shape: BoxShape.circle),
-            ),
-            const SizedBox(width: 6),
-            Text(task.title, style: const TextStyle(fontSize: 13, color: Color(0xFF5F5E5A))),
-          ],
+    final theme = Theme.of(context);
+    return Material(
+      color: theme.colorScheme.surfaceContainer,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: () => ref.read(activeTaskProvider.notifier).startTask(task.title, task.category),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 6, height: 6,
+                decoration: BoxDecoration(color: categoryColor(task.category), shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+              Text(task.title, style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant)),
+            ],
+          ),
         ),
       ),
     );

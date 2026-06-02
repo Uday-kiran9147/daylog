@@ -1,7 +1,8 @@
-// lib/screens/stats/stats_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/stats_provider.dart';
+import '../../providers/journal_provider.dart';
+import '../../services/export_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 
@@ -10,11 +11,35 @@ class StatsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
     final statsAsync = ref.watch(weekStatsProvider);
     final totalAsync = ref.watch(weekTotalSecondsProvider);
+    final journalsAsync = ref.watch(weekJournalsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('this week')),
+      appBar: AppBar(
+        title: const Text('this week'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.share_rounded),
+            tooltip: 'export data',
+            onPressed: () async {
+              try {
+                await ExportService.exportData();
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('failed to export data: $e'),
+                      backgroundColor: Colors.redAccent,
+                    ),
+                  );
+                }
+              }
+            },
+          ),
+        ],
+      ),
       body: statsAsync.when(
         data: (stats) {
           final maxSeconds = stats.fold<int>(1, (m, s) => s.totalSeconds > m ? s.totalSeconds : m);
@@ -28,6 +53,11 @@ class StatsScreen extends ConsumerWidget {
           }
           final topCategory = categoryTotals.isEmpty ? null
               : categoryTotals.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+
+          final totalWeekSeconds = totalAsync.valueOrNull ?? 0;
+          final percentage = totalWeekSeconds > 0 && topCategory != null
+              ? ((categoryTotals[topCategory]! / totalWeekSeconds) * 100).round()
+              : 0;
 
           return ListView(
             padding: const EdgeInsets.all(16),
@@ -49,8 +79,8 @@ class StatsScreen extends ConsumerWidget {
                   Expanded(
                     child: _StatBox(
                       label: 'days journaled',
-                      value: totalAsync.when(
-                        data: (_) => '${stats.where((s) => s.totalSeconds > 0).length} / 7',
+                      value: journalsAsync.when(
+                        data: (journals) => '${journals.length} / 7',
                         loading: () => '--',
                         error: (_, __) => '--',
                       ),
@@ -62,7 +92,7 @@ class StatsScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // bar chart
-              const Text('daily hours', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: Color(0xFF888780))),
+              Text('daily hours', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.outline)),
               const SizedBox(height: 12),
               SizedBox(
                 height: 120,
@@ -81,7 +111,7 @@ class StatsScreen extends ConsumerWidget {
                             if (s.totalSeconds > 0)
                               Text(
                                 formatDuration(s.totalSeconds),
-                                style: const TextStyle(fontSize: 9, color: Color(0xFF888780)),
+                                style: TextStyle(fontSize: 9, color: theme.colorScheme.onSurfaceVariant),
                               ),
                             const SizedBox(height: 3),
                             AnimatedContainer(
@@ -89,8 +119,8 @@ class StatsScreen extends ConsumerWidget {
                               height: ratio == 0 ? 4 : 80 * ratio,
                               decoration: BoxDecoration(
                                 color: ratio == 0
-                                    ? const Color(0xFFD3D1C7)
-                                    : const Color(0xFF1D9E75),
+                                    ? theme.colorScheme.outlineVariant
+                                    : theme.colorScheme.primary,
                                 borderRadius: const BorderRadius.only(
                                   topLeft: Radius.circular(4),
                                   topRight: Radius.circular(4),
@@ -103,7 +133,7 @@ class StatsScreen extends ConsumerWidget {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: isToday ? FontWeight.w500 : FontWeight.w400,
-                                color: isToday ? const Color(0xFF1D9E75) : const Color(0xFF888780),
+                                color: isToday ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
                               ),
                             ),
                           ],
@@ -130,7 +160,7 @@ class StatsScreen extends ConsumerWidget {
                     const SizedBox(width: 5),
                     Text(
                       '$cat  ${formatDuration(categoryTotals[cat]!)}',
-                      style: const TextStyle(fontSize: 12, color: Color(0xFF5F5E5A)),
+                      style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],
                 )).toList(),
@@ -141,14 +171,14 @@ class StatsScreen extends ConsumerWidget {
                 Container(
                   padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFEEEDFE),
+                    color: theme.colorScheme.secondaryContainer,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
-                    topCategory == null
+                    totalWeekSeconds == 0
                         ? 'start tracking to see insights'
-                        : '$topCategory work takes up ${((categoryTotals[topCategory]! / (totalAsync.valueOrNull ?? 1)) * 100).round()}% of your week.',
-                    style: const TextStyle(fontSize: 13, color: Color(0xFF3C3489), height: 1.5),
+                        : '$topCategory work takes up $percentage% of your week.',
+                    style: TextStyle(fontSize: 13, color: theme.colorScheme.onSecondaryContainer, height: 1.5),
                   ),
                 ),
               ],
@@ -156,7 +186,28 @@ class StatsScreen extends ConsumerWidget {
           );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(child: Text('$e')),
+        error: (e, _) => Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.error_outline_rounded, color: Colors.redAccent, size: 48),
+                const SizedBox(height: 12),
+                const Text(
+                  'Failed to load stats',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  e.toString(),
+                  style: const TextStyle(color: Colors.grey, fontSize: 13),
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -169,10 +220,11 @@ class _StatBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F1EF),
+        color: theme.colorScheme.surfaceContainer,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Column(
@@ -180,7 +232,7 @@ class _StatBox extends StatelessWidget {
         children: [
           Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w500)),
           const SizedBox(height: 2),
-          Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF888780))),
+          Text(label, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
         ],
       ),
     );

@@ -29,7 +29,8 @@ class TaskEntry {
 
   void stop() {
     stoppedAt = DateTime.now();
-    durationSeconds = stoppedAt!.difference(startedAt).inSeconds;
+    final diff = stoppedAt!.difference(startedAt).inSeconds;
+    durationSeconds = diff < 0 ? 0 : diff;
   }
 
   String get formattedDuration {
