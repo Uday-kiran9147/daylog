@@ -1,6 +1,7 @@
 // lib/screens/journal/journal_history_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../app.dart';
 import '../../models/journal_entry.dart';
 import '../../providers/journal_provider.dart';
 import '../../utils/date_utils.dart';
@@ -8,7 +9,7 @@ import '../../utils/date_utils.dart';
 class JournalHistoryScreen extends ConsumerWidget {
   const JournalHistoryScreen({super.key});
 
-  void _showEntryDetail(BuildContext context, JournalEntry entry) {
+  void _showEntryDetail(BuildContext context, WidgetRef ref, JournalEntry entry) {
     final theme = Theme.of(context);
     showDialog(
       context: context,
@@ -70,6 +71,21 @@ class JournalHistoryScreen extends ConsumerWidget {
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
+          TextButton.icon(
+            onPressed: () {
+              try {
+                final parsedDate = DateTime.parse(entry.dayKey);
+                ref.read(selectedJournalDateProvider.notifier).state = parsedDate;
+              } catch (_) {
+                ref.read(selectedJournalDateProvider.notifier).state = entry.createdAt;
+              }
+              ref.read(navigationIndexProvider.notifier).state = 2;
+              Navigator.pop(context); // Close dialog
+              Navigator.pop(context); // Close history screen
+            },
+            icon: const Icon(Icons.open_in_new_rounded, size: 16),
+            label: const Text('View/Edit'),
+          ),
         ],
       ),
     );
@@ -124,7 +140,7 @@ class JournalHistoryScreen extends ConsumerWidget {
                 child: Card(
                   clipBehavior: Clip.antiAlias,
                   child: InkWell(
-                    onTap: () => _showEntryDetail(context, entry),
+                    onTap: () => _showEntryDetail(context, ref, entry),
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Column(

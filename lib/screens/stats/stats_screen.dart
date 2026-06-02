@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/stats_provider.dart';
 import '../../providers/journal_provider.dart';
-import '../../services/export_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 
@@ -19,26 +18,26 @@ class StatsScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: const Text('this week'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.share_rounded),
-            tooltip: 'export data',
-            onPressed: () async {
-              try {
-                await ExportService.exportData();
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('failed to export data: $e'),
-                      backgroundColor: Colors.redAccent,
-                    ),
-                  );
-                }
-              }
-            },
-          ),
-        ],
+        // actions: [
+          // IconButton(
+          //   icon: const Icon(Icons.share_rounded),
+          //   tooltip: 'export data',
+          //   onPressed: () async {
+          //     try {
+          //       await ExportService.exportData();
+          //     } catch (e) {
+          //       if (context.mounted) {
+          //         ScaffoldMessenger.of(context).showSnackBar(
+          //           SnackBar(
+          //             content: Text('failed to export data: $e'),
+          //             backgroundColor: Colors.redAccent,
+          //           ),
+          //         );
+          //       }
+          //     }
+          //   },
+          // ),
+        // ],
       ),
       body: statsAsync.when(
         data: (stats) {

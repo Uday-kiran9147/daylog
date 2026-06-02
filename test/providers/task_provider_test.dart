@@ -25,6 +25,9 @@ void main() {
         return null;
       });
 
+      // Initialize Isar core
+      await Isar.initializeIsarCore(download: true);
+
       // Clear any existing db instance
       await DbService.close();
       isar = await DbService.db;

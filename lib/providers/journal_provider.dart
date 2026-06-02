@@ -8,14 +8,16 @@ import '../utils/date_utils.dart';
 
 // ── save / update today's journal ────────────────────────────────────────────
 
-class JournalNotifier extends AsyncNotifier<JournalEntry?> {
+final selectedJournalDateProvider = StateProvider<DateTime>((ref) => DateTime.now());
+
+class JournalForDateNotifier extends FamilyAsyncNotifier<JournalEntry?, String> {
   @override
-  Future<JournalEntry?> build() async {
+  Future<JournalEntry?> build(String arg) async {
     try {
       final db = await DbService.db;
-      return await db.journalEntrys.getByDayKey(dayKey(DateTime.now()));
+      return await db.journalEntrys.getByDayKey(arg);
     } catch (e) {
-      debugPrint('Error building journal provider: $e');
+      debugPrint('Error building journal for date $arg: $e');
       return null;
     }
   }
@@ -27,9 +29,9 @@ class JournalNotifier extends AsyncNotifier<JournalEntry?> {
   }) async {
     try {
       final db = await DbService.db;
-      final key = dayKey(DateTime.now());
+      final key = arg;
 
-      // sum up today's tracked time
+      // sum up this day's tracked time
       final tasks = await db.taskEntrys
           .filter()
           .dayKeyEqualTo(key)
@@ -37,7 +39,19 @@ class JournalNotifier extends AsyncNotifier<JournalEntry?> {
       final totalSeconds = tasks.fold<int>(0, (s, t) => s + t.durationSeconds);
 
       final existing = await db.journalEntrys.getByDayKey(key);
-      final entry = (existing ?? JournalEntry()..dayKey = key..createdAt = DateTime.now())
+      
+      DateTime createdAt;
+      if (existing != null) {
+        createdAt = existing.createdAt;
+      } else {
+        try {
+          createdAt = DateTime.parse(key);
+        } catch (_) {
+          createdAt = DateTime.now();
+        }
+      }
+
+      final entry = (existing ?? JournalEntry()..dayKey = key..createdAt = createdAt)
         ..shipped = shipped
         ..blockers = blockers
         ..tomorrow = tomorrow
@@ -49,9 +63,34 @@ class JournalNotifier extends AsyncNotifier<JournalEntry?> {
       ref.invalidate(weekJournalsProvider);
       ref.invalidate(allJournalsProvider);
     } catch (e, stackTrace) {
-      debugPrint('Error saving journal entry: $e\n$stackTrace');
+      debugPrint('Error saving journal entry for date $arg: $e\n$stackTrace');
       rethrow;
     }
+  }
+}
+
+final journalForDateProvider = AsyncNotifierProviderFamily<JournalForDateNotifier, JournalEntry?, String>(
+  JournalForDateNotifier.new,
+);
+
+class JournalNotifier extends AsyncNotifier<JournalEntry?> {
+  @override
+  Future<JournalEntry?> build() async {
+    final date = ref.watch(selectedJournalDateProvider);
+    return ref.watch(journalForDateProvider(dayKey(date)).future);
+  }
+
+  Future<void> save({
+    required String shipped,
+    required String blockers,
+    required String tomorrow,
+  }) async {
+    final date = ref.read(selectedJournalDateProvider);
+    await ref.read(journalForDateProvider(dayKey(date)).notifier).save(
+      shipped: shipped,
+      blockers: blockers,
+      tomorrow: tomorrow,
+    );
   }
 }
 

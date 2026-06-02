@@ -20,6 +20,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   final _q3 = TextEditingController();
   bool _saved = false;
   bool _initialized = false;
+  DateTime? _lastProcessedDate;
 
   @override
   void dispose() {
@@ -52,107 +53,203 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final selectedDate = ref.watch(selectedJournalDateProvider);
+    
+    // Reset inputs and saved flag when date changes
+    if (_lastProcessedDate == null || !DateUtils.isSameDay(_lastProcessedDate!, selectedDate)) {
+      _lastProcessedDate = selectedDate;
+      _initialized = false;
+      _saved = false;
+      _q1.clear();
+      _q2.clear();
+      _q3.clear();
+    }
+
     final journalAsync = ref.watch(journalNotifierProvider);
     final totalAsync = ref.watch(todayTotalSecondsProvider);
+    final theme = Theme.of(context);
 
-    return journalAsync.when(
-      data: (existing) {
-        // pre-fill if entry exists and not yet initialized
-        if (existing != null && !_initialized) {
-          _q1.text = existing.shipped;
-          _q2.text = existing.blockers;
-          _q3.text = existing.tomorrow;
-          _saved = true;
-          _initialized = true;
-        } else if (existing == null && !_initialized) {
-          _initialized = true;
-        }
-
-        final theme = Theme.of(context);
-        return Scaffold(
-          appBar: AppBar(
-            title: const Text('journal'),
-            actions: [
-              IconButton(
-                icon: const Icon(Icons.history_rounded),
-                tooltip: 'journal history',
-                onPressed: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const JournalHistoryScreen()),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(right: 16, left: 8),
-                child: Center(
-                  child: Text(
-                    friendlyDate(DateTime.now()),
-                    style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                ),
-              ),
-            ],
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('journal'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.history_rounded),
+            tooltip: 'journal history',
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const JournalHistoryScreen()),
+            ),
           ),
-          body: _saved
-              ? _SavedView(entry: existing)
-              : ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    totalAsync.when(
-                      data: (s) => s > 0
-                          ? Container(
-                              padding: const EdgeInsets.all(12),
-                              margin: const EdgeInsets.only(bottom: 16),
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.surfaceContainer,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Text(
-                                '${formatDuration(s)} tracked today',
-                                style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                      loading: () => const SizedBox.shrink(),
-                      error: (_, __) => const SizedBox.shrink(),
+        ],
+      ),
+      body: Column(
+        children: [
+          const _DateSelectorHeader(),
+          Expanded(
+            child: journalAsync.when(
+              data: (existing) {
+                // pre-fill if entry exists and not yet initialized
+                if (existing != null && !_initialized) {
+                  _q1.text = existing.shipped;
+                  _q2.text = existing.blockers;
+                  _q3.text = existing.tomorrow;
+                  _saved = true;
+                  _initialized = true;
+                } else if (existing == null && !_initialized) {
+                  _initialized = true;
+                }
+
+                return _saved
+                    ? _SavedView(
+                        entry: existing!,
+                        onEdit: () => setState(() => _saved = false),
+                      )
+                    : ListView(
+                        padding: const EdgeInsets.all(16),
+                        children: [
+                          totalAsync.when(
+                            data: (s) => s > 0
+                                ? Container(
+                                    padding: const EdgeInsets.all(12),
+                                    margin: const EdgeInsets.only(bottom: 16),
+                                    decoration: BoxDecoration(
+                                      color: theme.colorScheme.surfaceContainer,
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    child: Text(
+                                      '${formatDuration(s)} tracked today',
+                                      style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
+                                    ),
+                                  )
+                                : const SizedBox.shrink(),
+                            loading: () => const SizedBox.shrink(),
+                            error: (_, __) => const SizedBox.shrink(),
+                          ),
+                          _QuestionCard(
+                            number: '01 / 03',
+                            question: 'what did you do today?',
+                            controller: _q1,
+                            hint: 'features, fixes, progress…',
+                          ),
+                          const SizedBox(height: 10),
+                          _QuestionCard(
+                            number: '02 / 03',
+                            question: 'what slowed you down?',
+                            controller: _q2,
+                            hint: 'blockers, bugs, distractions…',
+                          ),
+                          const SizedBox(height: 10),
+                          _QuestionCard(
+                            number: '03 / 03',
+                            question: 'what\'s the priority tomorrow?',
+                            controller: _q3,
+                            hint: 'top 1-2 things to tackle…',
+                          ),
+                          const SizedBox(height: 20),
+                          FilledButton.icon(
+                            onPressed: _save,
+                            style: FilledButton.styleFrom(
+                              backgroundColor: theme.colorScheme.primary,
+                              foregroundColor: theme.colorScheme.onPrimary,
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            icon: const Icon(Icons.check),
+                            label: const Text('save journal entry', style: TextStyle(fontSize: 15)),
+                          ),
+                        ],
+                      );
+              },
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (e, _) => Center(child: Text('$e')),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _DateSelectorHeader extends ConsumerWidget {
+  const _DateSelectorHeader();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedDate = ref.watch(selectedJournalDateProvider);
+    final theme = Theme.of(context);
+    
+    final dateStr = DateUtils.isSameDay(selectedDate, DateTime.now())
+        ? 'Today'
+        : DateUtils.isSameDay(selectedDate, DateTime.now().subtract(const Duration(days: 1)))
+            ? 'Yesterday'
+            : friendlyDate(selectedDate);
+
+    final isToday = DateUtils.isSameDay(selectedDate, DateTime.now());
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5)),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            icon: const Icon(Icons.chevron_left_rounded),
+            tooltip: 'Previous Day',
+            onPressed: () {
+              ref.read(selectedJournalDateProvider.notifier).state =
+                  selectedDate.subtract(const Duration(days: 1));
+            },
+          ),
+          InkWell(
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: selectedDate,
+                firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                lastDate: DateTime.now(),
+              );
+              if (picked != null) {
+                ref.read(selectedJournalDateProvider.notifier).state = picked;
+              }
+            },
+            borderRadius: BorderRadius.circular(20),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.calendar_today_rounded, size: 16, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    dateStr,
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.primary,
                     ),
-                    _QuestionCard(
-                      number: '01 / 03',
-                      question: 'what did you do today?',
-                      controller: _q1,
-                      hint: 'features, fixes, progress…',
-                    ),
-                    const SizedBox(height: 10),
-                    _QuestionCard(
-                      number: '02 / 03',
-                      question: 'what slowed you down?',
-                      controller: _q2,
-                      hint: 'blockers, bugs, distractions…',
-                    ),
-                    const SizedBox(height: 10),
-                    _QuestionCard(
-                      number: '03 / 03',
-                      question: 'what\'s the priority tomorrow?',
-                      controller: _q3,
-                      hint: 'top 1-2 things to tackle…',
-                    ),
-                    const SizedBox(height: 20),
-                    FilledButton.icon(
-                      onPressed: _save,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: theme.colorScheme.primary,
-                        foregroundColor: theme.colorScheme.onPrimary,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      ),
-                      icon: const Icon(Icons.check),
-                      label: const Text('save journal entry', style: TextStyle(fontSize: 15)),
-                    ),
-                  ],
-                ),
-        );
-      },
-      loading: () => const Scaffold(body: Center(child: CircularProgressIndicator())),
-      error: (e, _) => Scaffold(body: Center(child: Text('$e'))),
+                  ),
+                  const SizedBox(width: 4),
+                  Icon(Icons.arrow_drop_down_rounded, color: theme.colorScheme.primary),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.chevron_right_rounded),
+            tooltip: 'Next Day',
+            onPressed: isToday
+                ? null
+                : () {
+                    ref.read(selectedJournalDateProvider.notifier).state =
+                        selectedDate.add(const Duration(days: 1));
+                  },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -204,33 +301,153 @@ class _QuestionCard extends StatelessWidget {
 }
 
 class _SavedView extends StatelessWidget {
-  final JournalEntry? entry;
-  const _SavedView({required this.entry});
+  final JournalEntry entry;
+  final VoidCallback onEdit;
+
+  const _SavedView({
+    required this.entry,
+    required this.onEdit,
+  });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56, height: 56,
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(28),
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: theme.colorScheme.primaryContainer.withValues(alpha: 0.25),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3), width: 1),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary, size: 24),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'journal logged',
+                      style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary, fontSize: 15),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'you can edit this entry anytime',
+                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
+                    ),
+                  ],
+                ),
               ),
-              child: Icon(Icons.check_rounded, color: theme.colorScheme.onPrimaryContainer, size: 28),
-            ),
-            const SizedBox(height: 16),
-            const Text('journal saved', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 6),
-            Text('see you tomorrow', style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurfaceVariant)),
-          ],
+              if (entry.totalTrackedSeconds > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.primary,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.timer_outlined, size: 12, color: theme.colorScheme.onPrimary),
+                      const SizedBox(width: 4),
+                      Text(
+                        formatDuration(entry.totalTrackedSeconds),
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
         ),
-      ),
+        const SizedBox(height: 20),
+        Card(
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5),
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSection(
+                  context,
+                  title: '01 / what did you do today?',
+                  content: entry.shipped,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Divider(height: 1),
+                ),
+                _buildSection(
+                  context,
+                  title: '02 / what slowed you down?',
+                  content: entry.blockers.isNotEmpty ? entry.blockers : 'none',
+                  isItalic: entry.blockers.isEmpty,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Divider(height: 1),
+                ),
+                _buildSection(
+                  context,
+                  title: '03 / what\'s the priority tomorrow?',
+                  content: entry.tomorrow.isNotEmpty ? entry.tomorrow : 'none',
+                  isItalic: entry.tomorrow.isEmpty,
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 20),
+        OutlinedButton.icon(
+          onPressed: onEdit,
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+          icon: const Icon(Icons.edit_rounded, size: 18),
+          label: const Text('edit journal entry', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSection(BuildContext context, {required String title, required String content, bool isItalic = false}) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.primary,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          content,
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.4,
+            fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
+            color: isItalic ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6) : theme.colorScheme.onSurface,
+          ),
+        ),
+      ],
     );
   }
 }
