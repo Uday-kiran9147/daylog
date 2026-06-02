@@ -5,13 +5,18 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import '../app.dart';
+import '../models/task_entry.dart';
 
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static const _journalId = 1;
+  static const _reminderBaseId = 100;
+  static const _remindersCount = 12; // 12 reminders of 2 hours = 24 hours
   static ProviderContainer? container;
+  static bool _initialized = false;
 
   static Future<void> init() async {
+    if (_initialized) return;
     tz_data.initializeTimeZones();
     try {
       final String timeZoneName = DateTime.now().timeZoneName;
@@ -45,6 +50,7 @@ class NotificationService {
     } catch (e) {
       debugPrint('Failed to request notifications permission: $e');
     }
+    _initialized = true;
   }
 
   static Future<void> scheduleDaily9pmReminder() async {
@@ -61,6 +67,10 @@ class NotificationService {
             channelDescription: 'Reminds you to fill in your end-of-day journal',
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
+            styleInformation: BigTextStyleInformation(
+              'Log what you built today — takes 2 minutes.',
+              contentTitle: 'Time to wrap up',
+            ),
           ),
           iOS: DarwinNotificationDetails(),
         ),
@@ -87,5 +97,115 @@ class NotificationService {
       scheduled = scheduled.add(const Duration(days: 1));
     }
     return scheduled;
+  }
+
+  static Future<void> updateTaskReminders(TaskEntry? activeTask) async {
+    if (!_initialized) {
+      debugPrint('NotificationService not initialized yet. Skipping task reminders update.');
+      return;
+    }
+    try {
+      // 1. Cancel any existing reminders
+      for (int i = 0; i < _remindersCount; i++) {
+        await _plugin.cancel(id: _reminderBaseId + i);
+      }
+
+      final now = tz.TZDateTime.now(tz.local);
+
+      // 2. Schedule new reminders
+      for (int i = 0; i < _remindersCount; i++) {
+        // TO TEST: Change Duration(hours: (i + 1) * 2) to Duration(seconds: (i + 1) * 10)
+        final duration = Duration(hours: (i + 1) * 2);
+        // final duration = Duration(seconds: (i + 1) * 10); // 10s, 20s, 30s, etc.
+        // print('Scheduling reminder in ${duration.inSeconds} seconds');
+        final scheduledTime = now.add(duration);
+
+        // Formats duration text automatically (e.g. "2 hours" or "10 seconds")
+        final timeStr = duration.inHours > 0
+            ? '${duration.inHours} hours'
+            : '${duration.inSeconds} seconds';
+
+        String title;
+        String body;
+
+        if (activeTask != null) {
+          if (activeTask.isPaused) {
+            title = 'Task Paused';
+            body = 'Task "${activeTask.title}" has been paused for $timeStr. Ready to resume?';
+          } else {
+            title = 'Focus Check';
+            if (duration.inHours == 2) {
+              body = 'You\'ve been working on "${activeTask.title}" for 2 hours. Time for a quick stretch?';
+            } else if (duration.inHours == 4) {
+              body = 'You\'ve been working on "${activeTask.title}" for 4 hours. Take a screen break!';
+            } else {
+              body = 'You\'ve been working on "${activeTask.title}" for $timeStr. Make sure to rest!';
+            }
+          }
+        } else {
+          title = 'Track your progress';
+          body = 'You haven\'t logged any tasks in the last $timeStr. Starting something new?';
+        }
+
+        await _plugin.zonedSchedule(
+          id: _reminderBaseId + i,
+          title: title,
+          body: body,
+          scheduledDate: scheduledTime,
+          notificationDetails: NotificationDetails(
+            android: AndroidNotificationDetails(
+              'daylog_task_reminders',
+              'Task Reminders',
+              channelDescription: 'Reminds you about active, paused, or idle tasks every 2 hours',
+              importance: Importance.high,
+              priority: Priority.high,
+              styleInformation: BigTextStyleInformation(
+                body,
+                contentTitle: title,
+              ),
+            ),
+            iOS: const DarwinNotificationDetails(),
+          ),
+          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+        );
+      }
+    } catch (e, stack) {
+      debugPrint('Failed to update task reminders: $e\n$stack');
+    }
+  }
+
+  static Future<void> showTestNotification() async {
+    if (!_initialized) {
+      debugPrint('NotificationService not initialized yet. Cannot show test notification.');
+      return;
+    }
+    try {
+      await _plugin.show(
+        id: 999,
+        title: 'Notification Test',
+        body: 'If you see this, notifications are working and permission is granted!',
+        notificationDetails: const NotificationDetails(
+          android: AndroidNotificationDetails(
+            'daylog_test',
+            'Test Channel',
+            channelDescription: 'For testing instant notifications',
+            importance: Importance.max,
+            priority: Priority.high,
+            playSound: true,
+            styleInformation: BigTextStyleInformation(
+              'If you see this, notifications are working and permission is granted!',
+              contentTitle: 'Notification Test',
+            ),
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBadge: true,
+            presentSound: true,
+          ),
+        ),
+      );
+    } catch (e, stack) {
+      debugPrint('Failed to show test notification: $e\n$stack');
+    }
   }
 }

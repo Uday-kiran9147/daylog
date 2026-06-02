@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/stats_provider.dart';
 import '../../providers/journal_provider.dart';
+import '../../providers/task_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 
@@ -14,38 +15,56 @@ class StatsScreen extends ConsumerWidget {
     final statsAsync = ref.watch(weekStatsProvider);
     final totalAsync = ref.watch(weekTotalSecondsProvider);
     final journalsAsync = ref.watch(weekJournalsProvider);
+    final todayTasksAsync = ref.watch(todayTasksProvider);
+    final activeTaskAsync = ref.watch(activeTaskProvider);
+
+    final activeTask = activeTaskAsync.valueOrNull;
+    if (activeTask != null && !activeTask.isPaused) {
+      ref.watch(appTickerProvider);
+    }
+
+    // ── TODAY STATS CALCULATIONS ─────────────────────────────────────────────
+    final todayTasks = todayTasksAsync.valueOrNull ?? [];
+    final todayCategoryTotals = <String, int>{};
+    int todayTotalSeconds = 0;
+    int todayTasksLoggedCount = 0;
+
+    for (final t in todayTasks) {
+      final duration = t.isRunning ? t.currentElapsedSeconds : t.durationSeconds;
+      todayCategoryTotals[t.category] = (todayCategoryTotals[t.category] ?? 0) + duration;
+      todayTotalSeconds += duration;
+      if (!t.isRunning) {
+        todayTasksLoggedCount++;
+      }
+    }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('This Week'),
-        // actions: [
-          // IconButton(
-          //   icon: const Icon(Icons.share_rounded),
-          //   tooltip: 'export data',
-          //   onPressed: () async {
-          //     try {
-          //       await ExportService.exportData();
-          //     } catch (e) {
-          //       if (context.mounted) {
-          //         ScaffoldMessenger.of(context).showSnackBar(
-          //           SnackBar(
-          //             content: Text('failed to export data: $e'),
-          //             backgroundColor: Colors.redAccent,
-          //           ),
-          //         );
-          //       }
-          //     }
-          //   },
-          // ),
-        // ],
+        title: const Text('Stats'),
       ),
       body: statsAsync.when(
         data: (stats) {
-          final maxSeconds = stats.fold<int>(1, (m, s) => s.totalSeconds > m ? s.totalSeconds : m);
+          // Adjust weekly stats in real-time to include active task ticks
+          final todayKeyStr = dayKey(DateTime.now());
+          final processedStats = stats.map((s) {
+            if (s.dayKey == todayKeyStr && activeTask != null && !activeTask.isPaused) {
+              final activeSeconds = activeTask.currentElapsedSeconds;
+              final newByCategory = Map<String, int>.from(s.byCategory);
+              newByCategory[activeTask.category] = (newByCategory[activeTask.category] ?? 0) + activeSeconds;
+              return DayStats(
+                dayKey: s.dayKey,
+                totalSeconds: s.totalSeconds + activeSeconds,
+                byCategory: newByCategory,
+              );
+            }
+            return s;
+          }).toList();
+
+          final maxSeconds = processedStats.fold<int>(1, (m, s) => s.totalSeconds > m ? s.totalSeconds : m);
 
           // aggregate category totals
           final categoryTotals = <String, int>{};
-          for (final s in stats) {
+          for (final s in processedStats) {
             for (final e in s.byCategory.entries) {
               categoryTotals[e.key] = (categoryTotals[e.key] ?? 0) + e.value;
             }
@@ -53,7 +72,7 @@ class StatsScreen extends ConsumerWidget {
           final topCategory = categoryTotals.isEmpty ? null
               : categoryTotals.entries.reduce((a, b) => a.value > b.value ? a : b).key;
 
-          final totalWeekSeconds = totalAsync.valueOrNull ?? 0;
+          final totalWeekSeconds = processedStats.fold<int>(0, (sum, s) => sum + s.totalSeconds);
           final percentage = totalWeekSeconds > 0 && topCategory != null
               ? ((categoryTotals[topCategory]! / totalWeekSeconds) * 100).round()
               : 0;
@@ -61,17 +80,71 @@ class StatsScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.all(16),
             children: [
-              // stat row
+              // ── TODAY SECTION ────────────────────────────────────────────────
+              Text(
+                'TODAY',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: _StatBox(
+                      label: 'Tracked Today',
+                      value: formatDuration(todayTotalSeconds),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _StatBox(
+                      label: 'Tasks Logged',
+                      value: todayTasksLoggedCount.toString(),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              if (todayCategoryTotals.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'No tasks logged today yet.',
+                    style: TextStyle(fontSize: 13, color: theme.colorScheme.outline),
+                  ),
+                )
+              else
+                ...todayCategoryTotals.entries.map((e) => CategoryProgressBar(
+                      category: e.key,
+                      seconds: e.value,
+                      totalSeconds: todayTotalSeconds,
+                    )),
+
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+
+              // ── THIS WEEK SECTION ────────────────────────────────────────────
+              Text(
+                'THIS WEEK',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: theme.colorScheme.primary,
+                  letterSpacing: 1.2,
+                ),
+              ),
+              const SizedBox(height: 12),
               Row(
                 children: [
                   Expanded(
                     child: _StatBox(
                       label: 'Total Tracked',
-                      value: totalAsync.when(
-                        data: (s) => formatDuration(s),
-                        loading: () => '--',
-                        error: (_, __) => '--',
-                      ),
+                      value: formatDuration(totalWeekSeconds),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -97,7 +170,7 @@ class StatsScreen extends ConsumerWidget {
                 height: 120,
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.end,
-                  children: stats.map((s) {
+                  children: processedStats.map((s) {
                     final ratio = maxSeconds > 0 ? s.totalSeconds / maxSeconds : 0.0;
                     final dayLabel = s.dayKey.split('-').last;
                     final isToday = s.dayKey == dayKey(DateTime.now());
@@ -143,27 +216,23 @@ class StatsScreen extends ConsumerWidget {
                 ),
               ),
 
-              const SizedBox(height: 20),
-
-              // legend
-              Wrap(
-                spacing: 14,
-                runSpacing: 8,
-                children: categoryTotals.keys.map((cat) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 8, height: 8,
-                      decoration: BoxDecoration(color: categoryColor(cat), shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      '${capitalizeCategory(cat)}  ${formatDuration(categoryTotals[cat]!)}',
-                      style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
-                    ),
-                  ],
-                )).toList(),
-              ),
+              const SizedBox(height: 24),
+              Text('Weekly Breakdown', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.outline)),
+              const SizedBox(height: 12),
+              if (categoryTotals.isEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Text(
+                    'No tasks tracked this week.',
+                    style: TextStyle(fontSize: 13, color: theme.colorScheme.outline),
+                  ),
+                )
+              else
+                ...categoryTotals.entries.map((e) => CategoryProgressBar(
+                      category: e.key,
+                      seconds: e.value,
+                      totalSeconds: totalWeekSeconds,
+                    )),
 
               if (topCategory != null) ...[
                 const SizedBox(height: 20),
@@ -211,6 +280,75 @@ class StatsScreen extends ConsumerWidget {
     );
   }
 }
+
+class CategoryProgressBar extends StatelessWidget {
+  final String category;
+  final int seconds;
+  final int totalSeconds;
+
+  const CategoryProgressBar({
+    super.key,
+    required this.category,
+    required this.seconds,
+    required this.totalSeconds,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final percent = totalSeconds > 0 ? seconds / totalSeconds : 0.0;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: categoryColor(category),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    capitalizeCategory(category),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                  ),
+                ],
+              ),
+              Text(
+                '${formatDuration(seconds)} (${(percent * 100).round()}%)',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: percent,
+              backgroundColor: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
+              valueColor: AlwaysStoppedAnimation<Color>(categoryColor(category)),
+              minHeight: 6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 
 class _StatBox extends StatelessWidget {
   final String label;

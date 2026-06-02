@@ -1,4 +1,5 @@
 // lib/main.dart
+import 'package:daylog/providers/task_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'app.dart';
@@ -17,7 +18,11 @@ void main() {
   // Initialize database and notifications concurrently in the background
   Future.wait([
     DbService.db,
-    NotificationService.init().then((_) => NotificationService.scheduleDaily9pmReminder()),
+    NotificationService.init().then((_) {
+      NotificationService.scheduleDaily9pmReminder();
+      final activeTask = container.read(activeTaskProvider).valueOrNull;
+      NotificationService.updateTaskReminders(activeTask);
+    }),
   ]).catchError((e, stackTrace) {
     debugPrint('Initialization error: $e\n$stackTrace');
     container.read(appInitErrorProvider.notifier).state = e.toString();

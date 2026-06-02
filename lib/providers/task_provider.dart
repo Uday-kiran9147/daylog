@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import '../models/task_entry.dart';
 import '../services/db_service.dart';
+import '../services/notification_service.dart';
 import '../utils/date_utils.dart';
 
 // ── active running task ──────────────────────────────────────────────────────
@@ -33,6 +34,8 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
 
       await db.writeTxn(() => db.taskEntrys.put(task));
       state = AsyncData(task);
+      NotificationService.updateTaskReminders(task);
+      NotificationService.showTestNotification();
       return task;
     } catch (e, stackTrace) {
       debugPrint('Error starting task: $e\n$stackTrace');
@@ -50,6 +53,7 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       running.stop();
       await db.writeTxn(() => db.taskEntrys.put(running));
       state = const AsyncData(null);
+      NotificationService.updateTaskReminders(null);
     } catch (e, stackTrace) {
       debugPrint('Error stopping task: $e\n$stackTrace');
       state = AsyncError(e, stackTrace);
@@ -66,6 +70,7 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       running.pausedAt = DateTime.now();
       await db.writeTxn(() => db.taskEntrys.put(running));
       state = AsyncData(running);
+      NotificationService.updateTaskReminders(running);
     } catch (e, stackTrace) {
       debugPrint('Error pausing task: $e\n$stackTrace');
       state = AsyncError(e, stackTrace);
@@ -85,6 +90,7 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       running.pausedAt = null;
       await db.writeTxn(() => db.taskEntrys.put(running));
       state = AsyncData(running);
+      NotificationService.updateTaskReminders(running);
     } catch (e, stackTrace) {
       debugPrint('Error resuming task: $e\n$stackTrace');
       state = AsyncError(e, stackTrace);
