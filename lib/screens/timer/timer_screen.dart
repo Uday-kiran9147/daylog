@@ -59,7 +59,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
         }
 
         return Scaffold(
-          appBar: AppBar(title: const Text('timer')),
+          appBar: AppBar(title: const Text('Timer')),
           body: ListView(
             padding: const EdgeInsets.all(16),
             children: [
@@ -86,7 +86,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          active.category,
+                          capitalizeCategory(active.category),
                           style: TextStyle(fontSize: 12, color: theme.colorScheme.onPrimaryContainer),
                         ),
                       ),
@@ -113,7 +113,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                   children: [
                     Expanded(
                       child: _ActionBtn(
-                        label: 'stop',
+                        label: 'Stop',
                         icon: Icons.stop_rounded,
                         color: theme.colorScheme.errorContainer,
                         textColor: theme.colorScheme.onErrorContainer,
@@ -123,7 +123,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                     const SizedBox(width: 10),
                     Expanded(
                       child: _ActionBtn(
-                        label: 'pause',
+                        label: 'Pause',
                         icon: Icons.pause_rounded,
                         color: theme.colorScheme.surfaceContainer,
                         textColor: theme.colorScheme.onSurfaceVariant,
@@ -140,7 +140,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                     children: [
                       Icon(Icons.timer_outlined, size: 48, color: theme.colorScheme.outline),
                       const SizedBox(height: 12),
-                      Text('no active task', style: TextStyle(fontSize: 16, color: theme.colorScheme.outline)),
+                      Text('No active task', style: TextStyle(fontSize: 16, color: theme.colorScheme.outline)),
                       const SizedBox(height: 20),
                       FilledButton.icon(
                         onPressed: () => showModalBottomSheet(
@@ -153,15 +153,14 @@ class _TimerScreenState extends ConsumerState<TimerScreen> {
                           foregroundColor: theme.colorScheme.onPrimary,
                         ),
                         icon: const Icon(Icons.add),
-                        label: const Text('start a task'),
+                        label: const Text('Start a Task'),
                       ),
                     ],
                   ),
                 ),
               ],
-
               const SizedBox(height: 24),
-              Text('quick-start recent', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.outline)),
+              Text('Quick-Start Recent', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.outline)),
               const SizedBox(height: 10),
 
               recentAsync.when(

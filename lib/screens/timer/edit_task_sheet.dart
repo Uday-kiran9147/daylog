@@ -64,11 +64,11 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('edit task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+          const Text('Edit Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
-            decoration: const InputDecoration(hintText: 'task name'),
+            decoration: const InputDecoration(hintText: 'Task Name'),
             textCapitalization: TextCapitalization.sentences,
             onSubmitted: (_) => _save(),
           ),
@@ -96,7 +96,7 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
                       ),
                     ),
                     child: Text(
-                      cat,
+                      capitalizeCategory(cat),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
@@ -119,7 +119,7 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('save changes', style: TextStyle(fontSize: 15)),
+              child: const Text('Save Changes', style: TextStyle(fontSize: 15)),
             ),
           ),
         ],

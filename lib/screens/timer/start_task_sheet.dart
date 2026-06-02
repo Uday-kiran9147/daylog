@@ -39,12 +39,12 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('new task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+          const Text('New Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
           const SizedBox(height: 16),
           TextField(
             controller: _controller,
             autofocus: true,
-            decoration: const InputDecoration(hintText: 'what are you working on?'),
+            decoration: const InputDecoration(hintText: 'What are you working on?'),
             textCapitalization: TextCapitalization.sentences,
             onSubmitted: (_) => _start(),
           ),
@@ -72,7 +72,7 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
                       ),
                     ),
                     child: Text(
-                      cat,
+                      capitalizeCategory(cat),
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
@@ -95,7 +95,7 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
               ),
-              child: const Text('start timer', style: TextStyle(fontSize: 15)),
+              child: const Text('Start Timer', style: TextStyle(fontSize: 15)),
             ),
           ),
         ],

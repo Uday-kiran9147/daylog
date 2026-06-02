@@ -16,6 +16,14 @@ const kCategoryColors = <String, Color>{
 Color categoryColor(String cat) =>
     kCategoryColors[cat] ?? const Color(0xFF888780);
 
+String capitalizeCategory(String cat) {
+  if (cat == 'dsa') return 'DSA';
+  return cat.split(' ').map((word) {
+    if (word.isEmpty) return '';
+    return '${word[0].toUpperCase()}${word.substring(1)}';
+  }).join(' ');
+}
+
 // ── theme ────────────────────────────────────────────────────────────────────
 
 final kLightTheme = ThemeData(

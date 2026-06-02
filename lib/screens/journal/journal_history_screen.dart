@@ -23,14 +23,14 @@ class JournalHistoryScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _sectionHeader(theme, 'what did you do today?'),
+              _sectionHeader(theme, 'What did you do today?'),
               const SizedBox(height: 6),
               Text(entry.shipped, style: const TextStyle(fontSize: 14)),
               const SizedBox(height: 16),
-              _sectionHeader(theme, 'what slowed you down?'),
+              _sectionHeader(theme, 'What slowed you down?'),
               const SizedBox(height: 6),
               Text(
-                entry.blockers.isNotEmpty ? entry.blockers : 'none',
+                entry.blockers.isNotEmpty ? entry.blockers : 'None',
                 style: TextStyle(
                   fontSize: 14,
                   color: entry.blockers.isNotEmpty ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
@@ -38,10 +38,10 @@ class JournalHistoryScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
-              _sectionHeader(theme, 'what\'s the priority tomorrow?'),
+              _sectionHeader(theme, 'What\'s the priority tomorrow?'),
               const SizedBox(height: 6),
               Text(
-                entry.tomorrow.isNotEmpty ? entry.tomorrow : 'none',
+                entry.tomorrow.isNotEmpty ? entry.tomorrow : 'None',
                 style: TextStyle(
                   fontSize: 14,
                   color: entry.tomorrow.isNotEmpty ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
@@ -110,7 +110,7 @@ class JournalHistoryScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('journal history'),
+        title: const Text('Journal History'),
       ),
       body: journalsAsync.when(
         data: (journals) {
@@ -122,7 +122,7 @@ class JournalHistoryScreen extends ConsumerWidget {
                   Icon(Icons.history_edu_outlined, size: 48, color: theme.colorScheme.outline),
                   const SizedBox(height: 12),
                   Text(
-                    'no journals logged yet',
+                    'No journals logged yet',
                     style: TextStyle(fontSize: 16, color: theme.colorScheme.onSurfaceVariant),
                   ),
                 ],

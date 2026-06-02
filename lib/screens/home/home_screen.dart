@@ -8,22 +8,23 @@ import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 import '../timer/start_task_sheet.dart';
 import '../timer/edit_task_sheet.dart';
+import '../../providers/theme_provider.dart';
 
 Future<bool?> _showDeleteConfirmDialog(BuildContext context) {
   return showDialog<bool>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('delete task?'),
-      content: const Text('are you sure you want to delete this task? this action cannot be undone.'),
+      title: const Text('Delete Task?'),
+      content: const Text('Are you sure you want to delete this task? This action cannot be undone.'),
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context, false),
-          child: const Text('cancel'),
+          child: const Text('Cancel'),
         ),
         TextButton(
           onPressed: () => Navigator.pop(context, true),
           style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
-          child: const Text('delete'),
+          child: const Text('Delete'),
         ),
       ],
     ),
@@ -38,15 +39,34 @@ class HomeScreen extends ConsumerWidget {
     final tasksAsync = ref.watch(todayTasksProvider);
     final totalAsync = ref.watch(todayTotalSecondsProvider);
     final activeAsync = ref.watch(activeTaskProvider);
+    final themeMode = ref.watch(themeModeProvider);
     final now = DateTime.now();
 
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('today'),
+        title: const Text('Today'),
         actions: [
+          IconButton(
+            icon: Icon(
+              themeMode == ThemeMode.light
+                  ? Icons.dark_mode_outlined
+                  : themeMode == ThemeMode.dark
+                      ? Icons.light_mode_outlined
+                      : Icons.brightness_auto_outlined,
+            ),
+            tooltip: 'switch theme',
+            onPressed: () {
+              final next = themeMode == ThemeMode.system
+                  ? ThemeMode.light
+                  : themeMode == ThemeMode.light
+                      ? ThemeMode.dark
+                      : ThemeMode.system;
+              ref.read(themeModeProvider.notifier).state = next;
+            },
+          ),
           Padding(
-            padding: const EdgeInsets.only(right: 16),
+            padding: const EdgeInsets.only(right: 16, left: 4),
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               decoration: BoxDecoration(
@@ -74,7 +94,7 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 Expanded(
                   child: _StatBox(
-                    label: 'tracked today',
+                    label: 'Tracked Today',
                     value: totalAsync.when(
                       data: (s) => formatDuration(s),
                       loading: () => '--',
@@ -85,7 +105,7 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: _StatBox(
-                    label: 'tasks logged',
+                    label: 'Tasks Logged',
                     value: tasksAsync.when(
                       data: (t) => t.where((x) => !x.isRunning).length.toString(),
                       loading: () => '--',
@@ -111,7 +131,7 @@ class HomeScreen extends ConsumerWidget {
 
             // task list
             Text(
-              'tasks',
+              'Tasks',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.outline),
             ),
             const SizedBox(height: 10),
@@ -174,7 +194,7 @@ class HomeScreen extends ConsumerWidget {
         backgroundColor: theme.colorScheme.primary,
         foregroundColor: theme.colorScheme.onPrimary,
         icon: const Icon(Icons.add),
-        label: const Text('start new task'),
+        label: const Text('Start New Task'),
       ),
     );
   }
@@ -276,14 +296,14 @@ class _ActiveTaskBannerState extends State<_ActiveTaskBanner> {
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: theme.colorScheme.onPrimaryContainer),
                 ),
                 Text(
-                  widget.task.category,
+                  capitalizeCategory(widget.task.category),
                   style: TextStyle(fontSize: 11, color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7)),
                 ),
               ],
             ),
           ),
           Text(
-            'running (${formatTimer(_elapsed)})',
+            'Running (${formatTimer(_elapsed)})',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onPrimaryContainer),
           ),
         ],
@@ -316,7 +336,7 @@ class _TaskRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(task.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                Text(task.category, style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
+                Text(capitalizeCategory(task.category), style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
               ],
             ),
           ),
@@ -337,7 +357,7 @@ class _EmptyState extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(32),
         child: Text(
-          'no tasks yet — tap + to start tracking',
+          'No tasks yet — tap + to start tracking',
           style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurfaceVariant),
           textAlign: TextAlign.center,
         ),

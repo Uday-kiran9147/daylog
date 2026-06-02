@@ -6,6 +6,7 @@ import '../../providers/journal_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../utils/date_utils.dart';
 import 'journal_history_screen.dart';
+import '../../providers/theme_provider.dart';
 
 class JournalScreen extends ConsumerStatefulWidget {
   const JournalScreen({super.key});
@@ -54,6 +55,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedJournalDateProvider);
+    final themeMode = ref.watch(themeModeProvider);
     
     // Reset inputs and saved flag when date changes
     if (_lastProcessedDate == null || !DateUtils.isSameDay(_lastProcessedDate!, selectedDate)) {
@@ -71,8 +73,26 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('journal'),
+        title: const Text('Journal'),
         actions: [
+          IconButton(
+            icon: Icon(
+              themeMode == ThemeMode.light
+                  ? Icons.dark_mode_outlined
+                  : themeMode == ThemeMode.dark
+                      ? Icons.light_mode_outlined
+                      : Icons.brightness_auto_outlined,
+            ),
+            tooltip: 'switch theme',
+            onPressed: () {
+              final next = themeMode == ThemeMode.system
+                  ? ThemeMode.light
+                  : themeMode == ThemeMode.light
+                      ? ThemeMode.dark
+                      : ThemeMode.system;
+              ref.read(themeModeProvider.notifier).state = next;
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.history_rounded),
             tooltip: 'journal history',
@@ -128,23 +148,23 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                           ),
                           _QuestionCard(
                             number: '01 / 03',
-                            question: 'what did you do today?',
+                            question: 'What did you do today?',
                             controller: _q1,
-                            hint: 'features, fixes, progress…',
+                            hint: 'Features, fixes, progress…',
                           ),
                           const SizedBox(height: 10),
                           _QuestionCard(
                             number: '02 / 03',
-                            question: 'what slowed you down?',
+                            question: 'What slowed you down?',
                             controller: _q2,
-                            hint: 'blockers, bugs, distractions…',
+                            hint: 'Blockers, bugs, distractions…',
                           ),
                           const SizedBox(height: 10),
                           _QuestionCard(
                             number: '03 / 03',
-                            question: 'what\'s the priority tomorrow?',
+                            question: 'What\'s the priority tomorrow?',
                             controller: _q3,
-                            hint: 'top 1-2 things to tackle…',
+                            hint: 'Top 1-2 things to tackle…',
                           ),
                           const SizedBox(height: 20),
                           FilledButton.icon(
@@ -156,7 +176,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                             ),
                             icon: const Icon(Icons.check),
-                            label: const Text('save journal entry', style: TextStyle(fontSize: 15)),
+                            label: const Text('Save Journal Entry', style: TextStyle(fontSize: 15)),
                           ),
                         ],
                       );
@@ -331,12 +351,12 @@ class _SavedView extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'journal logged',
+                      'Journal Logged',
                       style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary, fontSize: 15),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      'you can edit this entry anytime',
+                      'You can edit this entry anytime',
                       style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 12),
                     ),
                   ],
@@ -382,7 +402,7 @@ class _SavedView extends StatelessWidget {
               children: [
                 _buildSection(
                   context,
-                  title: '01 / what did you do today?',
+                  title: '01 / What did you do today?',
                   content: entry.shipped,
                 ),
                 const Padding(
@@ -391,8 +411,8 @@ class _SavedView extends StatelessWidget {
                 ),
                 _buildSection(
                   context,
-                  title: '02 / what slowed you down?',
-                  content: entry.blockers.isNotEmpty ? entry.blockers : 'none',
+                  title: '02 / What slowed you down?',
+                  content: entry.blockers.isNotEmpty ? entry.blockers : 'None',
                   isItalic: entry.blockers.isEmpty,
                 ),
                 const Padding(
@@ -401,8 +421,8 @@ class _SavedView extends StatelessWidget {
                 ),
                 _buildSection(
                   context,
-                  title: '03 / what\'s the priority tomorrow?',
-                  content: entry.tomorrow.isNotEmpty ? entry.tomorrow : 'none',
+                  title: '03 / What\'s the priority tomorrow?',
+                  content: entry.tomorrow.isNotEmpty ? entry.tomorrow : 'None',
                   isItalic: entry.tomorrow.isEmpty,
                 ),
               ],
@@ -417,7 +437,7 @@ class _SavedView extends StatelessWidget {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           icon: const Icon(Icons.edit_rounded, size: 18),
-          label: const Text('edit journal entry', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+          label: const Text('Edit Journal Entry', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
         ),
       ],
     );

@@ -17,7 +17,7 @@ class StatsScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('this week'),
+        title: const Text('This Week'),
         // actions: [
           // IconButton(
           //   icon: const Icon(Icons.share_rounded),
@@ -66,7 +66,7 @@ class StatsScreen extends ConsumerWidget {
                 children: [
                   Expanded(
                     child: _StatBox(
-                      label: 'total tracked',
+                      label: 'Total Tracked',
                       value: totalAsync.when(
                         data: (s) => formatDuration(s),
                         loading: () => '--',
@@ -77,7 +77,7 @@ class StatsScreen extends ConsumerWidget {
                   const SizedBox(width: 10),
                   Expanded(
                     child: _StatBox(
-                      label: 'days journaled',
+                      label: 'Days Journaled',
                       value: journalsAsync.when(
                         data: (journals) => '${journals.length} / 7',
                         loading: () => '--',
@@ -91,7 +91,7 @@ class StatsScreen extends ConsumerWidget {
               const SizedBox(height: 20),
 
               // bar chart
-              Text('daily hours', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.outline)),
+              Text('Daily Hours', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.outline)),
               const SizedBox(height: 12),
               SizedBox(
                 height: 120,
@@ -158,7 +158,7 @@ class StatsScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 5),
                     Text(
-                      '$cat  ${formatDuration(categoryTotals[cat]!)}',
+                      '${capitalizeCategory(cat)}  ${formatDuration(categoryTotals[cat]!)}',
                       style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
                     ),
                   ],
@@ -175,8 +175,8 @@ class StatsScreen extends ConsumerWidget {
                   ),
                   child: Text(
                     totalWeekSeconds == 0
-                        ? 'start tracking to see insights'
-                        : '$topCategory work takes up $percentage% of your week.',
+                        ? 'Start tracking to see insights'
+                        : '${capitalizeCategory(topCategory)} work takes up $percentage% of your week.',
                     style: TextStyle(fontSize: 13, color: theme.colorScheme.onSecondaryContainer, height: 1.5),
                   ),
                 ),
