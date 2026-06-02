@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import '../models/task_entry.dart';
@@ -175,4 +175,61 @@ final recentTasksProvider = FutureProvider<List<TaskEntry>>((ref) async {
     debugPrint('Error getting recent tasks: $e');
     return [];
   }
+});
+
+// ── centralized battery-saving ticker ───────────────────────────────────────
+
+class AppTickerNotifier extends StateNotifier<DateTime> with WidgetsBindingObserver {
+  AppTickerNotifier(this._ref) : super(DateTime.now()) {
+    WidgetsBinding.instance.addObserver(this);
+    _startTimer();
+  }
+
+  final Ref _ref;
+  Timer? _timer;
+  bool _isBackground = false;
+
+  void _startTimer() {
+    _timer?.cancel();
+    final active = _ref.read(activeTaskProvider).valueOrNull;
+    if (active != null && !active.isPaused && !_isBackground) {
+      _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+        state = DateTime.now();
+      });
+    } else {
+      _timer = null;
+    }
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
+    final isBg = lifecycleState != AppLifecycleState.resumed;
+    if (isBg != _isBackground) {
+      _isBackground = isBg;
+      _startTimer();
+      if (lifecycleState == AppLifecycleState.resumed) {
+        state = DateTime.now();
+      }
+    }
+  }
+
+  void updateTimerState() {
+    _startTimer();
+    state = DateTime.now();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _timer?.cancel();
+    super.dispose();
+  }
+}
+
+final appTickerProvider = StateNotifierProvider<AppTickerNotifier, DateTime>((ref) {
+  final notifier = AppTickerNotifier(ref);
+  ref.listen(activeTaskProvider, (_, __) {
+    notifier.updateTimerState();
+  });
+  return notifier;
 });

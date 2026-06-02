@@ -219,68 +219,16 @@ class _StatBox extends StatelessWidget {
   }
 }
 
-class _ActiveTaskBanner extends StatefulWidget {
+class _ActiveTaskBanner extends ConsumerWidget {
   final TaskEntry task;
   const _ActiveTaskBanner({required this.task});
 
   @override
-  State<_ActiveTaskBanner> createState() => _ActiveTaskBannerState();
-}
-
-class _ActiveTaskBannerState extends State<_ActiveTaskBanner> with WidgetsBindingObserver {
-  Timer? _timer;
-  late int _elapsed;
-
-  void _setupTimer() {
-    _timer?.cancel();
-    _elapsed = widget.task.currentElapsedSeconds;
-    if (widget.task.isPaused) {
-      _timer = null;
-      return;
-    }
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted) {
-        setState(() {
-          _elapsed = widget.task.currentElapsedSeconds;
-        });
-      }
-    });
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _setupTimer();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _setupTimer();
-    }
-  }
-
-  @override
-  void didUpdateWidget(covariant _ActiveTaskBanner oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.task.id != widget.task.id || 
-        oldWidget.task.startedAt != widget.task.startedAt || 
-        oldWidget.task.isPaused != widget.task.isPaused) {
-      _setupTimer();
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appTickerProvider);
+    final elapsed = task.currentElapsedSeconds;
     final theme = Theme.of(context);
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
@@ -297,20 +245,20 @@ class _ActiveTaskBannerState extends State<_ActiveTaskBanner> with WidgetsBindin
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  widget.task.title,
+                  task.title,
                   style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: theme.colorScheme.onPrimaryContainer),
                 ),
                 Text(
-                  capitalizeCategory(widget.task.category),
+                  capitalizeCategory(task.category),
                   style: TextStyle(fontSize: 11, color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.7)),
                 ),
               ],
             ),
           ),
           Text(
-            widget.task.isPaused
-                ? 'Paused (${formatTimer(_elapsed)})'
-                : 'Running (${formatTimer(_elapsed)})',
+            task.isPaused
+                ? 'Paused (${formatTimer(elapsed)})'
+                : 'Running (${formatTimer(elapsed)})',
             style: TextStyle(fontSize: 12, fontWeight: FontWeight.w500, color: theme.colorScheme.onPrimaryContainer),
           ),
         ],
@@ -373,59 +321,17 @@ class _EmptyState extends StatelessWidget {
   }
 }
 
-class _TrackedTodayStatBox extends ConsumerStatefulWidget {
+class _TrackedTodayStatBox extends ConsumerWidget {
   const _TrackedTodayStatBox();
 
   @override
-  ConsumerState<_TrackedTodayStatBox> createState() => _TrackedTodayStatBoxState();
-}
-
-class _TrackedTodayStatBoxState extends ConsumerState<_TrackedTodayStatBox> with WidgetsBindingObserver {
-  Timer? _timer;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _startTimerIfRunning();
-  }
-
-  void _startTimerIfRunning() {
-    _timer?.cancel();
-    final active = ref.read(activeTaskProvider).valueOrNull;
-    if (active != null && !active.isPaused) {
-      _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-        if (mounted) {
-          setState(() {});
-        }
-      });
-    } else {
-      _timer = null;
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _startTimerIfRunning();
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final totalAsync = ref.watch(todayTotalSecondsProvider);
     final active = ref.watch(activeTaskProvider).valueOrNull;
 
-    ref.listen(activeTaskProvider, (prev, next) {
-      _startTimerIfRunning();
-    });
+    if (active != null) {
+      ref.watch(appTickerProvider);
+    }
 
     final theme = Theme.of(context);
     final baseSeconds = totalAsync.valueOrNull ?? 0;

@@ -8,81 +8,24 @@ import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 import 'start_task_sheet.dart';
 
-class TimerScreen extends ConsumerStatefulWidget {
+class TimerScreen extends ConsumerWidget {
   const TimerScreen({super.key});
 
   @override
-  ConsumerState<TimerScreen> createState() => _TimerScreenState();
-}
-
-class _TimerScreenState extends ConsumerState<TimerScreen> with WidgetsBindingObserver {
-  Timer? _ticker;
-  final ValueNotifier<int> _elapsedNotifier = ValueNotifier<int>(0);
-  int? _activeTaskId;
-  bool? _lastIsPaused;
-
-  @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addObserver(this);
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _ticker?.cancel();
-    _elapsedNotifier.dispose();
-    super.dispose();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      final active = ref.read(activeTaskProvider).valueOrNull;
-      if (active != null) {
-        _startTicker(active);
-      }
-    }
-  }
-
-  void _startTicker(TaskEntry task) {
-    _ticker?.cancel();
-    _elapsedNotifier.value = task.currentElapsedSeconds;
-    if (task.isPaused) {
-      _ticker = null;
-      return;
-    }
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      _elapsedNotifier.value = task.currentElapsedSeconds;
-    });
-  }
-
-  void _stopTicker() {
-    _ticker?.cancel();
-    _ticker = null;
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final activeAsync = ref.watch(activeTaskProvider);
     final recentAsync = ref.watch(recentTasksProvider);
     final theme = Theme.of(context);
 
+    final active = activeAsync.valueOrNull;
+    if (active != null) {
+      ref.watch(appTickerProvider);
+    }
+
+    final elapsed = active != null ? active.currentElapsedSeconds : 0;
+
     return activeAsync.when(
       data: (active) {
-        if (active != null) {
-          final isPausedChanged = _lastIsPaused != active.isPaused;
-          if (_activeTaskId != active.id || isPausedChanged) {
-            _activeTaskId = active.id;
-            _lastIsPaused = active.isPaused;
-            _startTicker(active);
-          }
-        } else {
-          _activeTaskId = null;
-          _lastIsPaused = null;
-          _stopTicker();
-        }
-
         return Scaffold(
           appBar: AppBar(title: const Text('Timer')),
           body: ListView(
@@ -116,19 +59,14 @@ class _TimerScreenState extends ConsumerState<TimerScreen> with WidgetsBindingOb
                         ),
                       ),
                       const SizedBox(height: 18),
-                      ValueListenableBuilder<int>(
-                        valueListenable: _elapsedNotifier,
-                        builder: (context, elapsed, _) {
-                          return Text(
-                            formatTimer(elapsed),
-                            style: TextStyle(
-                              fontSize: 42,
-                              fontWeight: FontWeight.w500,
-                              color: theme.colorScheme.onPrimaryContainer,
-                              fontFeatures: const [FontFeature.tabularFigures()],
-                            ),
-                          );
-                        },
+                      Text(
+                        formatTimer(elapsed),
+                        style: TextStyle(
+                          fontSize: 42,
+                          fontWeight: FontWeight.w500,
+                          color: theme.colorScheme.onPrimaryContainer,
+                          fontFeatures: const [FontFeature.tabularFigures()],
+                        ),
                       ),
                     ],
                   ),
