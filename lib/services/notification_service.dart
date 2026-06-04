@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz_data;
 import '../app.dart';
@@ -19,7 +20,7 @@ class NotificationService {
     if (_initialized) return;
     tz_data.initializeTimeZones();
     try {
-      final String timeZoneName = DateTime.now().timeZoneName;
+      final String timeZoneName = (await FlutterTimezone.getLocalTimezone()).identifier;
       tz.setLocalLocation(tz.getLocation(timeZoneName));
     } catch (e) {
       debugPrint('Failed to initialize local timezone, falling back to UTC: $e');
