@@ -37,6 +37,7 @@ class ExportService {
           'day_key': j.dayKey,
           'shipped': j.shipped,
           'blockers': j.blockers,
+          'improved': j.improved,
           'tomorrow': j.tomorrow,
           'created_at': j.createdAt.toIso8601String(),
           'total_tracked_seconds': j.totalTrackedSeconds,

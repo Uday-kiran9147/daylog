@@ -68,7 +68,7 @@ class NotificationService {
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
             styleInformation: BigTextStyleInformation(
-              'Log what you built today — takes 2 minutes.',
+              'Log what you do today — takes 2 minutes.',
               contentTitle: 'Time to wrap up',
             ),
           ),

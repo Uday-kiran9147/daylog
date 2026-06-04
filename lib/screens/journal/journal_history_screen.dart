@@ -38,6 +38,17 @@ class JournalHistoryScreen extends ConsumerWidget {
                 ),
               ),
               const SizedBox(height: 16),
+              _sectionHeader(theme, 'What did you improve today?'),
+              const SizedBox(height: 6),
+              Text(
+                entry.improved.isNotEmpty ? entry.improved : 'None',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: entry.improved.isNotEmpty ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  fontStyle: entry.improved.isNotEmpty ? FontStyle.normal : FontStyle.italic,
+                ),
+              ),
+              const SizedBox(height: 16),
               _sectionHeader(theme, 'What\'s the priority tomorrow?'),
               const SizedBox(height: 6),
               Text(

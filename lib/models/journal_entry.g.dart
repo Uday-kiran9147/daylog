@@ -32,18 +32,23 @@ const JournalEntrySchema = CollectionSchema(
       name: r'dayKey',
       type: IsarType.string,
     ),
-    r'shipped': PropertySchema(
+    r'improved': PropertySchema(
       id: 3,
+      name: r'improved',
+      type: IsarType.string,
+    ),
+    r'shipped': PropertySchema(
+      id: 4,
       name: r'shipped',
       type: IsarType.string,
     ),
     r'tomorrow': PropertySchema(
-      id: 4,
+      id: 5,
       name: r'tomorrow',
       type: IsarType.string,
     ),
     r'totalTrackedSeconds': PropertySchema(
-      id: 5,
+      id: 6,
       name: r'totalTrackedSeconds',
       type: IsarType.long,
     )
@@ -84,6 +89,7 @@ int _journalEntryEstimateSize(
   var bytesCount = offsets.last;
   bytesCount += 3 + object.blockers.length * 3;
   bytesCount += 3 + object.dayKey.length * 3;
+  bytesCount += 3 + object.improved.length * 3;
   bytesCount += 3 + object.shipped.length * 3;
   bytesCount += 3 + object.tomorrow.length * 3;
   return bytesCount;
@@ -98,9 +104,10 @@ void _journalEntrySerialize(
   writer.writeString(offsets[0], object.blockers);
   writer.writeDateTime(offsets[1], object.createdAt);
   writer.writeString(offsets[2], object.dayKey);
-  writer.writeString(offsets[3], object.shipped);
-  writer.writeString(offsets[4], object.tomorrow);
-  writer.writeLong(offsets[5], object.totalTrackedSeconds);
+  writer.writeString(offsets[3], object.improved);
+  writer.writeString(offsets[4], object.shipped);
+  writer.writeString(offsets[5], object.tomorrow);
+  writer.writeLong(offsets[6], object.totalTrackedSeconds);
 }
 
 JournalEntry _journalEntryDeserialize(
@@ -114,9 +121,10 @@ JournalEntry _journalEntryDeserialize(
   object.createdAt = reader.readDateTime(offsets[1]);
   object.dayKey = reader.readString(offsets[2]);
   object.id = id;
-  object.shipped = reader.readString(offsets[3]);
-  object.tomorrow = reader.readString(offsets[4]);
-  object.totalTrackedSeconds = reader.readLong(offsets[5]);
+  object.improved = reader.readString(offsets[3]);
+  object.shipped = reader.readString(offsets[4]);
+  object.tomorrow = reader.readString(offsets[5]);
+  object.totalTrackedSeconds = reader.readLong(offsets[6]);
   return object;
 }
 
@@ -138,6 +146,8 @@ P _journalEntryDeserializeProp<P>(
     case 4:
       return (reader.readString(offset)) as P;
     case 5:
+      return (reader.readString(offset)) as P;
+    case 6:
       return (reader.readLong(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -719,6 +729,142 @@ extension JournalEntryQueryFilter
   }
 
   QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      improvedEqualTo(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'improved',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      improvedGreaterThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'improved',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      improvedLessThan(
+    String value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'improved',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      improvedBetween(
+    String lower,
+    String upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'improved',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      improvedStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'improved',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      improvedEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'improved',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      improvedContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'improved',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      improvedMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'improved',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      improvedIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'improved',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
+      improvedIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'improved',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterFilterCondition>
       shippedEqualTo(
     String value, {
     bool caseSensitive = true,
@@ -1091,6 +1237,18 @@ extension JournalEntryQuerySortBy
     });
   }
 
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByImproved() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'improved', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByImprovedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'improved', Sort.desc);
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> sortByShipped() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'shipped', Sort.asc);
@@ -1180,6 +1338,18 @@ extension JournalEntryQuerySortThenBy
     });
   }
 
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByImproved() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'improved', Sort.asc);
+    });
+  }
+
+  QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByImprovedDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'improved', Sort.desc);
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QAfterSortBy> thenByShipped() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'shipped', Sort.asc);
@@ -1241,6 +1411,13 @@ extension JournalEntryQueryWhereDistinct
     });
   }
 
+  QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByImproved(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'improved', caseSensitive: caseSensitive);
+    });
+  }
+
   QueryBuilder<JournalEntry, JournalEntry, QDistinct> distinctByShipped(
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
@@ -1286,6 +1463,12 @@ extension JournalEntryQueryProperty
   QueryBuilder<JournalEntry, String, QQueryOperations> dayKeyProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'dayKey');
+    });
+  }
+
+  QueryBuilder<JournalEntry, String, QQueryOperations> improvedProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'improved');
     });
   }
 

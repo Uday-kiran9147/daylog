@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 
 // ── categories ───────────────────────────────────────────────────────────────
 
-const kCategories = ['learning', 'dsa', 'system design', 'content', 'play time', 'other'];
+const kCategories = ['learning', 'dsa', 'system design', 'content', 'play time', 'job hunt', 'other'];
 
 const kCategoryColors = <String, Color>{
   'learning': Color(0xFF4A90E2),
@@ -11,6 +11,7 @@ const kCategoryColors = <String, Color>{
   'system design': Color(0xFFFF5722),
   'content': Color(0xFFFFA500),
   'play time': Color(0xFF8BC34A),
+  'job hunt': Color(0xFFE91E63),
 };
 
 Color categoryColor(String cat) =>

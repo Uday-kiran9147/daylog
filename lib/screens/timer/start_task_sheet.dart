@@ -53,6 +53,8 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
       detected = 'admin';
     } else if (RegExp(r'\b(play|game|gaming|break|walk|exercise|gym|netflix|movie|fun|music|chill)\b').hasMatch(text)) {
       detected = 'play time';
+    } else if (RegExp(r'\b(job|apply|interview|resume|cv|portfolio|hr|recruiter|hunt|career|linkedin|jobseek|application)\b').hasMatch(text)) {
+      detected = 'job hunt';
     }
 
     if (detected != null && detected != _category) {

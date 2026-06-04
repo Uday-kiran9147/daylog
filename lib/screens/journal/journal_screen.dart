@@ -19,13 +19,14 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   final _q1 = TextEditingController();
   final _q2 = TextEditingController();
   final _q3 = TextEditingController();
+  final _q4 = TextEditingController();
   bool _saved = false;
   bool _initialized = false;
   DateTime? _lastProcessedDate;
 
   @override
   void dispose() {
-    _q1.dispose(); _q2.dispose(); _q3.dispose();
+    _q1.dispose(); _q2.dispose(); _q3.dispose(); _q4.dispose();
     super.dispose();
   }
 
@@ -35,7 +36,8 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       await ref.read(journalNotifierProvider.notifier).save(
         shipped: _q1.text.trim(),
         blockers: _q2.text.trim(),
-        tomorrow: _q3.text.trim(),
+        improved: _q3.text.trim(),
+        tomorrow: _q4.text.trim(),
       );
       if (mounted) {
         setState(() => _saved = true);
@@ -65,6 +67,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
       _q1.clear();
       _q2.clear();
       _q3.clear();
+      _q4.clear();
     }
 
     final journalAsync = ref.watch(journalNotifierProvider);
@@ -116,7 +119,8 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                 if (existing != null && !_initialized) {
                   _q1.text = existing.shipped;
                   _q2.text = existing.blockers;
-                  _q3.text = existing.tomorrow;
+                  _q3.text = existing.improved;
+                  _q4.text = existing.tomorrow;
                   _saved = true;
                   _initialized = true;
                 } else if (existing == null && !_initialized) {
@@ -150,23 +154,30 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                             error: (_, __) => const SizedBox.shrink(),
                           ),
                           _QuestionCard(
-                            number: '01 / 03',
+                            number: '01 / 04',
                             question: 'What did you do today?',
                             controller: _q1,
                             hint: 'Features, fixes, progress…',
                           ),
                           const SizedBox(height: 10),
                           _QuestionCard(
-                            number: '02 / 03',
+                            number: '02 / 04',
                             question: 'What slowed you down?',
                             controller: _q2,
                             hint: 'Blockers, bugs, distractions…',
                           ),
                           const SizedBox(height: 10),
                           _QuestionCard(
-                            number: '03 / 03',
-                            question: 'What\'s the priority tomorrow?',
+                            number: '03 / 04',
+                            question: 'What did you improve today?',
                             controller: _q3,
+                            hint: 'Refactoring, habits, learnings…',
+                          ),
+                          const SizedBox(height: 10),
+                          _QuestionCard(
+                            number: '04 / 04',
+                            question: 'What\'s the priority tomorrow?',
+                            controller: _q4,
                             hint: 'Top 1-2 things to tackle…',
                           ),
                           const SizedBox(height: 20),
@@ -424,7 +435,17 @@ class _SavedView extends StatelessWidget {
                 ),
                 _buildSection(
                   context,
-                  title: '03 / What\'s the priority tomorrow?',
+                  title: '03 / What did you improve today?',
+                  content: entry.improved.isNotEmpty ? entry.improved : 'None',
+                  isItalic: entry.improved.isEmpty,
+                ),
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                  child: Divider(height: 1),
+                ),
+                _buildSection(
+                  context,
+                  title: '04 / What\'s the priority tomorrow?',
                   content: entry.tomorrow.isNotEmpty ? entry.tomorrow : 'None',
                   isItalic: entry.tomorrow.isEmpty,
                 ),

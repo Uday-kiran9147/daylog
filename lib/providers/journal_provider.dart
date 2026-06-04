@@ -25,6 +25,7 @@ class JournalForDateNotifier extends FamilyAsyncNotifier<JournalEntry?, String> 
   Future<void> save({
     required String shipped,
     required String blockers,
+    required String improved,
     required String tomorrow,
   }) async {
     try {
@@ -54,6 +55,7 @@ class JournalForDateNotifier extends FamilyAsyncNotifier<JournalEntry?, String> 
       final entry = (existing ?? JournalEntry()..dayKey = key..createdAt = createdAt)
         ..shipped = shipped
         ..blockers = blockers
+        ..improved = improved
         ..tomorrow = tomorrow
         ..totalTrackedSeconds = totalSeconds;
 
@@ -83,12 +85,14 @@ class JournalNotifier extends AsyncNotifier<JournalEntry?> {
   Future<void> save({
     required String shipped,
     required String blockers,
+    required String improved,
     required String tomorrow,
   }) async {
     final date = ref.read(selectedJournalDateProvider);
     await ref.read(journalForDateProvider(dayKey(date)).notifier).save(
       shipped: shipped,
       blockers: blockers,
+      improved: improved,
       tomorrow: tomorrow,
     );
   }

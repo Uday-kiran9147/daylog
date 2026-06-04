@@ -12,7 +12,8 @@ class JournalEntry {
 
   late String shipped;    // Q1: what did you do today?
   late String blockers;   // Q2: what slowed you down?
-  late String tomorrow;   // Q3: what's the priority tomorrow?
+  late String improved;   // Q3: what did you improve today?
+  late String tomorrow;   // Q4: what's the priority tomorrow?
 
   late DateTime createdAt;
 
