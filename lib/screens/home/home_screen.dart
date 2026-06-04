@@ -9,6 +9,7 @@ import '../../utils/date_utils.dart';
 import '../timer/start_task_sheet.dart';
 import '../timer/edit_task_sheet.dart';
 import '../../providers/theme_provider.dart';
+import '../../services/export_service.dart';
 
 Future<bool?> _showDeleteConfirmDialog(BuildContext context) {
   return showDialog<bool>(
@@ -61,6 +62,81 @@ class HomeScreen extends ConsumerWidget {
                       : ThemeMode.system;
               ref.read(themeModeProvider.notifier).state = next;
             },
+          ),
+          PopupMenuButton<String>(
+            tooltip: 'More options',
+            icon: const Icon(Icons.more_vert_rounded),
+            onSelected: (value) async {
+              if (value == 'export') {
+                try {
+                  await ExportService.exportData();
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Data exported successfully!')),
+                    );
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Export failed: $e'),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                  }
+                }
+              } else if (value == 'import') {
+                try {
+                  final result = await ExportService.importData();
+                  if (result != null) {
+                    ref.invalidate(todayTasksProvider);
+                    ref.invalidate(todayTotalSecondsProvider);
+                    ref.invalidate(recentTasksProvider);
+                    
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Imported ${result.tasks} new tasks and ${result.journals} journals successfully!',
+                          ),
+                        ),
+                      );
+                    }
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Import failed: $e'),
+                        backgroundColor: Colors.redAccent,
+                      ),
+                    );
+                  }
+                }
+              }
+            },
+            itemBuilder: (context) => [
+              const PopupMenuItem(
+                value: 'import',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_download_outlined, size: 20),
+                    SizedBox(width: 8),
+                    Text('Import Data'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'export',
+                child: Row(
+                  children: [
+                    Icon(Icons.file_upload_outlined, size: 20),
+                    SizedBox(width: 8),
+                    Text('Export Data'),
+                  ],
+                ),
+              ),
+            ],
           ),
           Padding(
             padding: const EdgeInsets.only(right: 16, left: 4),
@@ -149,17 +225,26 @@ class _LoggedTasksStatBox extends ConsumerWidget {
   }
 }
 
-class _CompletedTasksSection extends ConsumerWidget {
+class _CompletedTasksSection extends ConsumerStatefulWidget {
   const _CompletedTasksSection();
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<_CompletedTasksSection> createState() => _CompletedTasksSectionState();
+}
+
+class _CompletedTasksSectionState extends ConsumerState<_CompletedTasksSection> {
+  final Set<int> _dismissedIds = {};
+
+  @override
+  Widget build(BuildContext context) {
     final tasksAsync = ref.watch(todayTasksProvider);
     final theme = Theme.of(context);
 
     return tasksAsync.when(
       data: (tasks) {
-        final completed = tasks.where((t) => !t.isRunning).toList();
+        final completed = tasks
+            .where((t) => !t.isRunning && !_dismissedIds.contains(t.id))
+            .toList();
         return completed.isEmpty
             ? const _EmptyState()
             : Card(
@@ -177,6 +262,9 @@ class _CompletedTasksSection extends ConsumerWidget {
                       ),
                       confirmDismiss: (_) => _showDeleteConfirmDialog(context),
                       onDismissed: (_) {
+                        setState(() {
+                          _dismissedIds.add(t.id);
+                        });
                         ref.read(activeTaskProvider.notifier).deleteTask(t.id);
                       },
                       child: InkWell(

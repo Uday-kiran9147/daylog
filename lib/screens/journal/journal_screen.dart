@@ -59,6 +59,10 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     final selectedDate = ref.watch(selectedJournalDateProvider);
     final themeMode = ref.watch(themeModeProvider);
     
+    final yesterdayDate = selectedDate.subtract(const Duration(days: 1));
+    final yesterdayJournalAsync = ref.watch(journalForDateProvider(dayKey(yesterdayDate)));
+    final yesterdayPriority = yesterdayJournalAsync.valueOrNull?.tomorrow;
+    
     // Reset inputs and saved flag when date changes
     if (_lastProcessedDate == null || !DateUtils.isSameDay(_lastProcessedDate!, selectedDate)) {
       _lastProcessedDate = selectedDate;
@@ -135,6 +139,53 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                     : ListView(
                         padding: const EdgeInsets.all(16),
                         children: [
+                          if (yesterdayPriority != null && yesterdayPriority.trim().isNotEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              margin: const EdgeInsets.only(bottom: 16),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                                  width: 0.5,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Icon(
+                                        Icons.star_rounded,
+                                        size: 16,
+                                        color: theme.colorScheme.primary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "Yesterday's Priority",
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.colorScheme.primary,
+                                          letterSpacing: 0.5,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    yesterdayPriority,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      height: 1.4,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           totalAsync.when(
                             data: (_) => totalSeconds > 0
                                 ? Container(
@@ -334,7 +385,7 @@ class _QuestionCard extends StatelessWidget {
   }
 }
 
-class _SavedView extends StatelessWidget {
+class _SavedView extends ConsumerWidget {
   final JournalEntry entry;
   final VoidCallback onEdit;
 
@@ -344,11 +395,70 @@ class _SavedView extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    
+    DateTime? selectedDate;
+    try {
+      selectedDate = DateTime.parse(entry.dayKey);
+    } catch (_) {}
+    
+    final yesterdayPriority = selectedDate != null
+        ? ref.watch(journalForDateProvider(dayKey(selectedDate.subtract(const Duration(days: 1)))))
+            .valueOrNull
+            ?.tomorrow
+        : null;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
+        if (yesterdayPriority != null && yesterdayPriority.trim().isNotEmpty) ...[
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: theme.colorScheme.primary.withValues(alpha: 0.2),
+                width: 0.5,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.star_rounded,
+                      size: 16,
+                      color: theme.colorScheme.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      "Yesterday's Priority",
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.amber[700],
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  yesterdayPriority,
+                  style: TextStyle(
+                    fontSize: 14,
+                    height: 1.4,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
