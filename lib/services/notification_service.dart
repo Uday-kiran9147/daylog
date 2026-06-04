@@ -4,7 +4,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tz_data;
+import 'package:timezone/data/latest_all.dart' as tz_data;
 import '../app.dart';
 import '../models/task_entry.dart';
 
@@ -20,8 +20,39 @@ class NotificationService {
     if (_initialized) return;
     tz_data.initializeTimeZones();
     try {
-      final String timeZoneName = (await FlutterTimezone.getLocalTimezone()).identifier;
+      var timeZoneName = (await FlutterTimezone.getLocalTimezone()).identifier.trim();
+      debugPrint('Device timezone identifier returned: "$timeZoneName"');
+      
+      const abbrevMap = {
+        'ist': 'Asia/Kolkata',
+        'jst': 'Asia/Tokyo',
+        'gmt': 'Europe/London',
+        'bst': 'Europe/London',
+        'cet': 'Europe/Paris',
+        'cest': 'Europe/Paris',
+        'eet': 'Europe/Bucharest',
+        'eest': 'Europe/Bucharest',
+        'pst': 'America/Los_Angeles',
+        'pdt': 'America/Los_Angeles',
+        'mst': 'America/Denver',
+        'mdt': 'America/Denver',
+        'cst': 'America/Chicago',
+        'cdt': 'America/Chicago',
+        'est': 'America/New_York',
+        'edt': 'America/New_York',
+        'aest': 'Australia/Sydney',
+        'aedt': 'Australia/Sydney',
+        'awst': 'Australia/Perth',
+      };
+      
+      final lowerTz = timeZoneName.toLowerCase();
+      if (abbrevMap.containsKey(lowerTz)) {
+        timeZoneName = abbrevMap[lowerTz]!;
+        debugPrint('Mapped abbreviation "$lowerTz" to timezone: "$timeZoneName"');
+      }
+
       tz.setLocalLocation(tz.getLocation(timeZoneName));
+      debugPrint('Successfully set local timezone to: "$timeZoneName"');
     } catch (e) {
       debugPrint('Failed to initialize local timezone, falling back to UTC: $e');
       tz.setLocalLocation(tz.UTC);
