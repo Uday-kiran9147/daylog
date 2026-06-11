@@ -7,12 +7,15 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz_data;
 import '../app.dart';
 import '../models/task_entry.dart';
+import '../models/todo_entry.dart';
 
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static const _journalId = 1;
   static const _reminderBaseId = 100;
   static const _remindersCount = 12; // 12 reminders of 2 hours = 24 hours
+  static const _todoReminderBaseId = 200;
+  static const _todoRemindersCount = 24; // 24 reminders of 1 hour = 24 hours
   static ProviderContainer? container;
   static bool _initialized = false;
 
@@ -238,6 +241,71 @@ class NotificationService {
       );
     } catch (e, stack) {
       debugPrint('Failed to show test notification: $e\n$stack');
+    }
+  }
+
+  static Future<void> updateTodoReminders(List<TodoEntry> pendingHighPriorityTodos) async {
+    if (!_initialized) {
+      debugPrint('NotificationService not initialized yet. Skipping todo reminders update.');
+      return;
+    }
+    try {
+      // 1. Cancel any existing todo reminders
+      for (int i = 0; i < _todoRemindersCount; i++) {
+        await _plugin.cancel(id: _todoReminderBaseId + i);
+      }
+
+      if (pendingHighPriorityTodos.isEmpty) {
+        debugPrint('No pending high-priority todos. Cleared notifications.');
+        return;
+      }
+
+      final now = tz.TZDateTime.now(tz.local);
+      final count = pendingHighPriorityTodos.length;
+      final titles = pendingHighPriorityTodos.map((t) => t.title).join(', ');
+      
+      // Limit description length if there are many items
+      final truncatedTitles = titles.length > 80 ? '${titles.substring(0, 77)}...' : titles;
+
+      const titleText = 'Pending High Priority Tasks';
+      final bodyText = 'You have $count high-priority task(s) pending: $truncatedTitles';
+
+      // 2. Schedule new reminders for the next 24 hours (every 1 hour)
+      for (int i = 0; i < _todoRemindersCount; i++) {
+        final duration = Duration(hours: i + 1);
+        final scheduledTime = now.add(duration);
+
+        await _plugin.zonedSchedule(
+          id: _todoReminderBaseId + i,
+          title: titleText,
+          body: bodyText,
+          scheduledDate: scheduledTime,
+          notificationDetails: NotificationDetails(
+            android: AndroidNotificationDetails(
+              'daylog_todo_reminders',
+              'Todo Reminders',
+              channelDescription: 'Reminds you of incomplete high-priority todos every 1 hour',
+              importance: Importance.max,
+              priority: Priority.high,
+              playSound: true,
+              enableVibration: true,
+              styleInformation: BigTextStyleInformation(
+                bodyText,
+                contentTitle: titleText,
+              ),
+            ),
+            iOS: const DarwinNotificationDetails(
+              presentAlert: true,
+              presentBadge: true,
+              presentSound: true,
+            ),
+          ),
+          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        );
+      }
+      debugPrint('Scheduled $_todoRemindersCount hourly todo reminders.');
+    } catch (e, stack) {
+      debugPrint('Failed to update todo reminders: $e\n$stack');
     }
   }
 }

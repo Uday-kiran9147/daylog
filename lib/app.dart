@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/timer/timer_screen.dart';
+import 'screens/todos/todos_screen.dart';
 import 'screens/journal/journal_screen.dart';
 import 'screens/stats/stats_screen.dart';
 import 'utils/constants.dart';
@@ -82,6 +83,7 @@ class _Shell extends ConsumerWidget {
   static const _screens = [
     HomeScreen(),
     TimerScreen(),
+    TodosScreen(),
     JournalScreen(),
     StatsScreen(),
   ];
@@ -103,6 +105,7 @@ class _Shell extends ConsumerWidget {
           items: const [
             BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_rounded), label: 'Home'),
             BottomNavigationBarItem(icon: Icon(Icons.timer_outlined), activeIcon: Icon(Icons.timer_rounded), label: 'Timer'),
+            BottomNavigationBarItem(icon: Icon(Icons.check_box_outlined), activeIcon: Icon(Icons.check_box_rounded), label: 'Todos'),
             BottomNavigationBarItem(icon: Icon(Icons.edit_note_outlined), activeIcon: Icon(Icons.edit_note_rounded), label: 'Journal'),
             BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), activeIcon: Icon(Icons.bar_chart_rounded), label: 'Stats'),
           ],

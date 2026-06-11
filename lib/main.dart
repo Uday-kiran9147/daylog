@@ -1,7 +1,9 @@
 // lib/main.dart
+import 'package:daylog/models/todo_entry.dart';
 import 'package:daylog/providers/task_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:isar/isar.dart';
 import 'app.dart';
 import 'services/db_service.dart';
 import 'services/notification_service.dart';
@@ -16,8 +18,19 @@ void main() {
   runApp(UncontrolledProviderScope(container: container, child: const DayLogApp()));
 
   // Initialize database and notifications concurrently in the background
-  Future.wait([
-    DbService.db,
+  Future.wait<Object?>([
+    DbService.db.then((db) async {
+      await NotificationService.init();
+      try {
+        final pending = await db.todoEntrys.filter()
+            .isCompletedEqualTo(false)
+            .isHighPriorityEqualTo(true)
+            .findAll();
+        await NotificationService.updateTodoReminders(pending);
+      } catch (e) {
+        debugPrint('Error syncing todo reminders on startup: $e');
+      }
+    }),
     NotificationService.init().then((_) {
       NotificationService.scheduleDaily9pmReminder();
       final activeTask = container.read(activeTaskProvider).valueOrNull;
@@ -26,6 +39,6 @@ void main() {
   ]).catchError((e, stackTrace) {
     debugPrint('Initialization error: $e\n$stackTrace');
     container.read(appInitErrorProvider.notifier).state = e.toString();
-    return [];
+    return <Object?>[];
   });
 }
