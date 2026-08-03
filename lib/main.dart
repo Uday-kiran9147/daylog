@@ -18,27 +18,26 @@ void main() {
   runApp(UncontrolledProviderScope(container: container, child: const DayLogApp()));
 
   // Initialize database and notifications concurrently in the background
-  Future.wait<Object?>([
-    DbService.db.then((db) async {
-      await NotificationService.init();
-      try {
-        final pending = await db.todoEntrys.filter()
-            .isCompletedEqualTo(false)
-            .isHighPriorityEqualTo(true)
-            .findAll();
-        await NotificationService.updateTodoReminders(pending);
-      } catch (e) {
-        debugPrint('Error syncing todo reminders on startup: $e');
-      }
-    }),
-    NotificationService.init().then((_) {
-      NotificationService.scheduleDaily9pmReminder();
-      final activeTask = container.read(activeTaskProvider).valueOrNull;
-      NotificationService.updateTaskReminders(activeTask);
-    }),
-  ]).catchError((e, stackTrace) {
+  _initBackgroundServices(container);
+}
+
+Future<void> _initBackgroundServices(ProviderContainer container) async {
+  try {
+    final db = await DbService.db;
+    await NotificationService.init();
+
+    final pending = await db.todoEntrys
+        .filter()
+        .isCompletedEqualTo(false)
+        .isHighPriorityEqualTo(true)
+        .findAll();
+    await NotificationService.updateTodoReminders(pending);
+
+    await NotificationService.scheduleDaily9pmReminder();
+    final activeTask = container.read(activeTaskProvider).valueOrNull;
+    await NotificationService.updateTaskReminders(activeTask);
+  } catch (e, stackTrace) {
     debugPrint('Initialization error: $e\n$stackTrace');
     container.read(appInitErrorProvider.notifier).state = e.toString();
-    return <Object?>[];
-  });
+  }
 }

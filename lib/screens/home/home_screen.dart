@@ -4,33 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/task_entry.dart';
 import '../../providers/task_provider.dart';
+import '../../providers/todo_provider.dart';
+import '../../providers/theme_provider.dart';
+import '../../services/export_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 import '../timer/start_task_sheet.dart';
 import '../timer/edit_task_sheet.dart';
-import '../../providers/theme_provider.dart';
-import '../../services/export_service.dart';
-
-Future<bool?> _showDeleteConfirmDialog(BuildContext context) {
-  return showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Delete Task?'),
-      content: const Text('Are you sure you want to delete this task? This action cannot be undone.'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
-          child: const Text('Delete'),
-        ),
-      ],
-    ),
-  );
-}
+import '../../widgets/notion_widgets.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -39,158 +20,156 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeModeProvider);
     final now = DateTime.now();
-
     final theme = Theme.of(context);
+
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Today'),
-        actions: [
-          IconButton(
-            icon: Icon(
-              themeMode == ThemeMode.light
-                  ? Icons.dark_mode_outlined
-                  : themeMode == ThemeMode.dark
-                      ? Icons.light_mode_outlined
-                      : Icons.brightness_auto_outlined,
-            ),
-            tooltip: 'switch theme',
-            onPressed: () {
-              final next = themeMode == ThemeMode.system
-                  ? ThemeMode.light
-                  : themeMode == ThemeMode.light
-                      ? ThemeMode.dark
-                      : ThemeMode.system;
-              ref.read(themeModeProvider.notifier).state = next;
-            },
-          ),
-          PopupMenuButton<String>(
-            tooltip: 'More options',
-            icon: const Icon(Icons.more_vert_rounded),
-            onSelected: (value) async {
-              if (value == 'export') {
-                try {
-                  await ExportService.exportData();
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Data exported successfully!')),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Export failed: $e'),
-                        backgroundColor: Colors.redAccent,
+      body: SafeArea(
+        top: false,
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.invalidate(todayTasksProvider);
+            ref.invalidate(todayTotalSecondsProvider);
+          },
+          child: ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              // Modern Compact Header
+              NotionPageHeader(
+                icon: Icons.bolt_rounded,
+                title: "Today's Focus Workspace",
+                subtitle: friendlyDate(now),
+                trailingActions: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      icon: Icon(
+                        themeMode == ThemeMode.light
+                            ? Icons.dark_mode_outlined
+                            : themeMode == ThemeMode.dark
+                                ? Icons.light_mode_outlined
+                                : Icons.brightness_auto_outlined,
+                        size: 20,
                       ),
-                    );
-                  }
-                }
-              } else if (value == 'import') {
-                try {
-                  final result = await ExportService.importData();
-                  if (result != null) {
-                    ref.invalidate(todayTasksProvider);
-                    ref.invalidate(todayTotalSecondsProvider);
-                    ref.invalidate(recentTasksProvider);
-                    
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Imported ${result.tasks} new tasks and ${result.journals} journals successfully!',
+                      tooltip: 'Switch theme',
+                      onPressed: () {
+                        final next = themeMode == ThemeMode.system
+                            ? ThemeMode.light
+                            : themeMode == ThemeMode.light
+                                ? ThemeMode.dark
+                                : ThemeMode.system;
+                        ref.read(themeModeProvider.notifier).state = next;
+                      },
+                    ),
+                    PopupMenuButton<String>(
+                      tooltip: 'More options',
+                      icon: const Icon(Icons.more_vert_rounded, size: 20),
+                      onSelected: (value) async {
+                        if (value == 'export') {
+                          try {
+                            await ExportService.exportData();
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Data exported successfully!')),
+                              );
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Export failed: $e'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          }
+                        } else if (value == 'import') {
+                          try {
+                            final result = await ExportService.importData();
+                            if (result != null) {
+                              ref.invalidate(todayTasksProvider);
+                              ref.invalidate(todayTotalSecondsProvider);
+                              ref.invalidate(recentTasksProvider);
+                              ref.invalidate(todoProvider);
+
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(
+                                      'Imported ${result.tasks} tasks, ${result.journals} journals, and ${result.todos} todos!',
+                                    ),
+                                  ),
+                                );
+                              }
+                            }
+                          } catch (e) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Import failed: $e'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                          }
+                        }
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: 'import',
+                          child: Row(
+                            children: [
+                              Icon(Icons.file_download_outlined, size: 18),
+                              SizedBox(width: 8),
+                              Text('Import Data', style: TextStyle(fontSize: 13)),
+                            ],
                           ),
                         ),
-                      );
-                    }
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('Import failed: $e'),
-                        backgroundColor: Colors.redAccent,
-                      ),
-                    );
-                  }
-                }
-              }
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: 'import',
-                child: Row(
-                  children: [
-                    Icon(Icons.file_download_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Import Data'),
+                        const PopupMenuItem(
+                          value: 'export',
+                          child: Row(
+                            children: [
+                              Icon(Icons.file_upload_outlined, size: 18),
+                              SizedBox(width: 8),
+                              Text('Export Data', style: TextStyle(fontSize: 13)),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
-              const PopupMenuItem(
-                value: 'export',
-                child: Row(
+
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(Icons.file_upload_outlined, size: 20),
-                    SizedBox(width: 8),
-                    Text('Export Data'),
+                    // Quick Summary Stats Row
+                    const Row(
+                      children: [
+                        Expanded(child: _TrackedTodayStatBox()),
+                        SizedBox(width: 12),
+                        Expanded(child: _LoggedTasksStatBox()),
+                      ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    // Active Focus Card
+                    const _ActiveTaskSection(),
+
+                    const SizedBox(height: 20),
+
+                    // Dynamic non-scrollable category grid board
+                    const _HomeKanbanBoardSection(),
+
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),
             ],
           ),
-          Padding(
-            padding: const EdgeInsets.only(right: 16, left: 4),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.surfaceContainer,
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Text(
-                friendlyDate(now),
-                style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          ref.invalidate(todayTasksProvider);
-          ref.invalidate(todayTotalSecondsProvider);
-        },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            // stat row
-            const Row(
-              children: [
-                Expanded(
-                  child: _TrackedTodayStatBox(),
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: _LoggedTasksStatBox(),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // active task banner / dashboard (self-contained to prevent full screen rebuilds)
-            const _ActiveTaskSection(),
-
-            const SizedBox(height: 20),
-
-            // task list
-            Text(
-              'Completed Today',
-              style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.outline),
-            ),
-            const SizedBox(height: 10),
-
-            const _CompletedTasksSection(),
-          ],
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -200,10 +179,213 @@ class HomeScreen extends ConsumerWidget {
           builder: (_) => const StartTaskSheet(),
         ),
         backgroundColor: theme.colorScheme.primary,
-        foregroundColor: theme.colorScheme.onPrimary,
-        icon: const Icon(Icons.add),
-        label: const Text('Start New Task'),
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        icon: const Icon(Icons.add_rounded, size: 20),
+        label: const Text('Start Session', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
       ),
+    );
+  }
+}
+
+class _ActiveTaskSection extends ConsumerWidget {
+  const _ActiveTaskSection();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final activeAsync = ref.watch(activeTaskProvider);
+    return activeAsync.when(
+      data: (active) => active != null
+          ? _ActiveTaskBanner(task: active)
+          : const _IdleActiveTaskCard(),
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+}
+
+class _ActiveTaskBanner extends ConsumerWidget {
+  final TaskEntry task;
+  const _ActiveTaskBanner({required this.task});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    ref.watch(appTickerProvider);
+    final elapsed = task.currentElapsedSeconds;
+    final theme = Theme.of(context);
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: theme.colorScheme.primary.withValues(alpha: 0.3), width: 1.0),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: task.isPaused ? theme.colorScheme.error : theme.colorScheme.primary,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    task.isPaused ? 'PAUSED' : 'LIVE FOCUSING',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.8,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              NotionTag(label: capitalizeCategory(task.category), categoryKey: task.category),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            task.title,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                formatTimer(elapsed),
+                style: TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 1.0,
+                  color: theme.colorScheme.onSurface,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              Row(
+                children: [
+                  IconButton.filledTonal(
+                    onPressed: () {
+                      if (task.isPaused) {
+                        ref.read(activeTaskProvider.notifier).resumeActive();
+                      } else {
+                        ref.read(activeTaskProvider.notifier).pauseActive();
+                      }
+                    },
+                    icon: Icon(task.isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded, size: 22),
+                  ),
+                  const SizedBox(width: 8),
+                  IconButton.filled(
+                    onPressed: () => ref.read(activeTaskProvider.notifier).stopActive(),
+                    style: IconButton.styleFrom(
+                      backgroundColor: theme.colorScheme.errorContainer,
+                      foregroundColor: theme.colorScheme.onErrorContainer,
+                    ),
+                    icon: const Icon(Icons.stop_rounded, size: 22),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IdleActiveTaskCard extends StatelessWidget {
+  const _IdleActiveTaskCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(Icons.play_circle_outline_rounded, color: theme.colorScheme.primary, size: 24),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'No Active Session',
+                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Start a timer block to track your focus.',
+                  style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                ),
+              ],
+            ),
+          ),
+          FilledButton(
+            onPressed: () => showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              builder: (_) => const StartTaskSheet(),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('Start', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TrackedTodayStatBox extends ConsumerWidget {
+  const _TrackedTodayStatBox();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final totalAsync = ref.watch(todayTotalSecondsProvider);
+    final active = ref.watch(activeTaskProvider).valueOrNull;
+
+    if (active != null) {
+      ref.watch(appTickerProvider);
+    }
+
+    final baseSeconds = totalAsync.valueOrNull ?? 0;
+    final activeSeconds = active != null ? active.currentElapsedSeconds : 0;
+    final totalSeconds = baseSeconds + activeSeconds;
+
+    return _StatBox(
+      label: 'Tracked Today',
+      value: formatDuration(totalSeconds),
+      icon: Icons.timer_outlined,
     );
   }
 }
@@ -221,80 +403,7 @@ class _LoggedTasksStatBox extends ConsumerWidget {
         loading: () => '--',
         error: (_, __) => '--',
       ),
-    );
-  }
-}
-
-class _CompletedTasksSection extends ConsumerStatefulWidget {
-  const _CompletedTasksSection();
-
-  @override
-  ConsumerState<_CompletedTasksSection> createState() => _CompletedTasksSectionState();
-}
-
-class _CompletedTasksSectionState extends ConsumerState<_CompletedTasksSection> {
-  final Set<int> _dismissedIds = {};
-
-  @override
-  Widget build(BuildContext context) {
-    final tasksAsync = ref.watch(todayTasksProvider);
-    final theme = Theme.of(context);
-
-    return tasksAsync.when(
-      data: (tasks) {
-        final completed = tasks
-            .where((t) => !t.isRunning && !_dismissedIds.contains(t.id))
-            .toList();
-        return completed.isEmpty
-            ? const _EmptyState()
-            : Card(
-                clipBehavior: Clip.antiAlias,
-                child: Column(
-                  children: completed.map((t) {
-                    return Dismissible(
-                      key: ValueKey(t.id),
-                      direction: DismissDirection.endToStart,
-                      background: Container(
-                        color: theme.colorScheme.errorContainer,
-                        alignment: Alignment.centerRight,
-                        padding: const EdgeInsets.only(right: 16),
-                        child: Icon(Icons.delete, color: theme.colorScheme.onErrorContainer),
-                      ),
-                      confirmDismiss: (_) => _showDeleteConfirmDialog(context),
-                      onDismissed: (_) {
-                        setState(() {
-                          _dismissedIds.add(t.id);
-                        });
-                        ref.read(activeTaskProvider.notifier).deleteTask(t.id);
-                      },
-                      child: InkWell(
-                        onTap: () => showModalBottomSheet(
-                          context: context,
-                          isScrollControlled: true,
-                          builder: (_) => EditTaskSheet(task: t),
-                        ),
-                        child: _TaskRow(task: t),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              );
-      },
-      loading: () => const Center(
-        child: Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: CircularProgressIndicator(),
-        ),
-      ),
-      error: (e, _) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text(
-            'Failed to load tasks: $e',
-            style: TextStyle(color: theme.colorScheme.error, fontSize: 14),
-          ),
-        ),
-      ),
+      icon: Icons.check_circle_outline_rounded,
     );
   }
 }
@@ -302,7 +411,13 @@ class _CompletedTasksSectionState extends ConsumerState<_CompletedTasksSection> 
 class _StatBox extends StatelessWidget {
   final String label;
   final String value;
-  const _StatBox({required this.label, required this.value});
+  final IconData icon;
+
+  const _StatBox({
+    required this.label,
+    required this.value,
+    required this.icon,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -323,17 +438,13 @@ class _StatBox extends StatelessWidget {
               Text(
                 value,
                 style: TextStyle(
-                  fontSize: 22,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
                   color: theme.colorScheme.onSurface,
                   fontFeatures: const [FontFeature.tabularFigures()],
                 ),
               ),
-              Icon(
-                Icons.check_circle_outline_rounded,
-                size: 16,
-                color: theme.colorScheme.primary.withValues(alpha: 0.7),
-              ),
+              Icon(icon, size: 16, color: theme.colorScheme.primary.withValues(alpha: 0.7)),
             ],
           ),
           const SizedBox(height: 4),
@@ -351,246 +462,189 @@ class _StatBox extends StatelessWidget {
   }
 }
 
-class _ActiveTaskBanner extends ConsumerWidget {
-  final TaskEntry task;
-  const _ActiveTaskBanner({required this.task});
+/// Dynamic, Non-Scrollable Category Grid/Stack for Home Screen
+class _HomeKanbanBoardSection extends ConsumerWidget {
+  const _HomeKanbanBoardSection();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    ref.watch(appTickerProvider);
-    final elapsed = task.currentElapsedSeconds;
+    final tasksAsync = ref.watch(todayTasksProvider);
     final theme = Theme.of(context);
 
+    return tasksAsync.when(
+      data: (tasks) {
+        final completed = tasks.where((t) => !t.isRunning).toList();
+        if (completed.isEmpty) {
+          return const _EmptyTasksState();
+        }
+
+        // Filter categories that have completed tasks today
+        final activeCategories = kCategories.where((cat) {
+          return completed.any((t) => t.category == cat);
+        }).toList();
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Today\'s Logs by Category',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.onSurface,
+                  ),
+                ),
+                Text(
+                  '${completed.length} tasks',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+
+            // Dynamic layout: Each category card grows dynamically to fit all its tasks!
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final useTwoColumns = constraints.maxWidth > 550;
+
+                if (useTwoColumns) {
+                  final leftCats = <String>[];
+                  final rightCats = <String>[];
+                  for (int i = 0; i < activeCategories.length; i++) {
+                    if (i.isEven) {
+                      leftCats.add(activeCategories[i]);
+                    } else {
+                      rightCats.add(activeCategories[i]);
+                    }
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          children: leftCats
+                              .map((cat) => _buildCategoryCard(context, cat, completed))
+                              .toList(),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          children: rightCats
+                              .map((cat) => _buildCategoryCard(context, cat, completed))
+                              .toList(),
+                        ),
+                      ),
+                    ],
+                  );
+                }
+
+                return Column(
+                  children: activeCategories
+                      .map((cat) => _buildCategoryCard(context, cat, completed))
+                      .toList(),
+                );
+              },
+            ),
+          ],
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Text('Error loading tasks: $e'),
+    );
+  }
+
+  Widget _buildCategoryCard(BuildContext context, String cat, List<TaskEntry> completed) {
+    final theme = Theme.of(context);
+    final catTasks = completed.where((t) => t.category == cat).toList();
+    final catTotalSeconds = catTasks.fold<int>(0, (sum, t) => sum + t.durationSeconds);
+
     return Container(
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.primaryContainer,
-        borderRadius: BorderRadius.circular(16),
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(10),
         border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: task.isPaused ? theme.colorScheme.error : theme.colorScheme.primary,
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    task.isPaused ? 'PAUSED' : 'TRACKING FOCUS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 1.0,
-                      color: theme.colorScheme.onPrimaryContainer.withValues(alpha: 0.8),
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surface.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
-                ),
-                child: Text(
-                  capitalizeCategory(task.category),
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onPrimaryContainer,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Text(
-            task.title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onPrimaryContainer,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
+              NotionTag(label: capitalizeCategory(cat), categoryKey: cat),
               Text(
-                formatTimer(elapsed),
+                '${catTasks.length} • ${formatDuration(catTotalSeconds)}',
                 style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
-                  color: theme.colorScheme.onPrimaryContainer,
-                  fontFeatures: const [FontFeature.tabularFigures()],
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
-              ),
-              Row(
-                children: [
-                  Material(
-                    color: theme.colorScheme.surface,
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      onTap: () {
-                        if (task.isPaused) {
-                          ref.read(activeTaskProvider.notifier).resumeActive();
-                        } else {
-                          ref.read(activeTaskProvider.notifier).pauseActive();
-                        }
-                      },
-                      customBorder: const CircleBorder(),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        child: Icon(
-                          task.isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                          size: 24,
-                          color: theme.colorScheme.primary,
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Material(
-                    color: theme.colorScheme.errorContainer,
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      onTap: () => ref.read(activeTaskProvider.notifier).stopActive(),
-                      customBorder: const CircleBorder(),
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        child: Icon(
-                          Icons.stop_rounded,
-                          size: 24,
-                          color: theme.colorScheme.onErrorContainer,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
               ),
             ],
           ),
+          const SizedBox(height: 10),
+          Column(
+            children: catTasks.map((task) {
+              return Card(
+                margin: const EdgeInsets.only(bottom: 6),
+                child: InkWell(
+                  onTap: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => EditTaskSheet(task: task),
+                  ),
+                  borderRadius: BorderRadius.circular(8),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            task.title,
+                            style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          task.formattedDuration,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ],
       ),
     );
   }
 }
 
-class _IdleActiveTaskCard extends StatelessWidget {
-  const _IdleActiveTaskCard();
+class _EmptyTasksState extends StatelessWidget {
+  const _EmptyTasksState();
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            Icons.rocket_launch_outlined,
-            size: 32,
-            color: theme.colorScheme.primary.withValues(alpha: 0.6),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Ready to focus?',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.onSurface,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Start a task block to begin tracking your work.',
-            style: TextStyle(
-              fontSize: 12,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 16),
-          FilledButton.icon(
-            onPressed: () => showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              builder: (_) => const StartTaskSheet(),
-            ),
-            style: FilledButton.styleFrom(
-              backgroundColor: theme.colorScheme.primary,
-              foregroundColor: theme.colorScheme.onPrimary,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            icon: const Icon(Icons.add_rounded, size: 18),
-            label: const Text('Start Focus Session', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TaskRow extends StatelessWidget {
-  final TaskEntry task;
-  const _TaskRow({required this.task});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      child: Row(
-        children: [
-          Container(
-            width: 8, height: 8,
-            decoration: BoxDecoration(
-              color: categoryColor(task.category),
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(task.title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-                Text(capitalizeCategory(task.category), style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant)),
-              ],
-            ),
-          ),
-          Text(task.formattedDuration, style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant)),
-        ],
-      ),
-    );
-  }
-}
-
-class _EmptyState extends StatelessWidget {
-  const _EmptyState();
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: theme.colorScheme.surface,
         borderRadius: BorderRadius.circular(12),
@@ -601,10 +655,10 @@ class _EmptyState extends StatelessWidget {
           children: [
             Icon(
               Icons.checklist_rounded,
-              size: 36,
+              size: 32,
               color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Text(
               'No completed tasks today',
               style: TextStyle(
@@ -615,96 +669,16 @@ class _EmptyState extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Tracked logs will appear here once completed.',
+              'Tracked logs will appear here categorized once completed.',
               style: TextStyle(
                 fontSize: 12,
                 color: theme.colorScheme.onSurfaceVariant,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
       ),
-    );
-  }
-}
-
-class _TrackedTodayStatBox extends ConsumerWidget {
-  const _TrackedTodayStatBox();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final totalAsync = ref.watch(todayTotalSecondsProvider);
-    final active = ref.watch(activeTaskProvider).valueOrNull;
-
-    if (active != null) {
-      ref.watch(appTickerProvider);
-    }
-
-    final theme = Theme.of(context);
-    final baseSeconds = totalAsync.valueOrNull ?? 0;
-    final activeSeconds = active != null ? active.currentElapsedSeconds : 0;
-    final totalSeconds = baseSeconds + activeSeconds;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                totalAsync.when(
-                  data: (_) => formatDuration(totalSeconds),
-                  loading: () => '--',
-                  error: (_, __) => '--',
-                ),
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                  color: theme.colorScheme.onSurface,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
-              ),
-              Icon(
-                Icons.schedule_rounded,
-                size: 16,
-                color: theme.colorScheme.primary.withValues(alpha: 0.7),
-              ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Tracked Today',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ActiveTaskSection extends ConsumerWidget {
-  const _ActiveTaskSection();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final activeAsync = ref.watch(activeTaskProvider);
-    return activeAsync.when(
-      data: (active) => active != null
-          ? _ActiveTaskBanner(task: active)
-          : const _IdleActiveTaskCard(),
-      loading: () => const SizedBox.shrink(),
-      error: (_, __) => const SizedBox.shrink(),
     );
   }
 }

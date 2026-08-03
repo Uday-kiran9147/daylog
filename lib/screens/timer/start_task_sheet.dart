@@ -76,7 +76,6 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
     final theme = Theme.of(context);
     final recentAsync = ref.watch(recentTasksProvider);
 
-    // Filter recent tasks for quick suggestion matching
     final query = _controller.text.trim().toLowerCase();
     List<TaskEntry> suggestions = [];
     if (recentAsync.hasValue) {
@@ -115,6 +114,7 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
             autofocus: true,
             decoration: const InputDecoration(hintText: 'What are you working on?'),
             textCapitalization: TextCapitalization.sentences,
+            keyboardType: TextInputType.text,
             onSubmitted: (_) => _start(),
           ),
           

@@ -94,23 +94,120 @@ class _Shell extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      body: IndexedStack(index: index, children: _screens),
+      body: SafeArea(child: IndexedStack(index: index, children: _screens)),
       bottomNavigationBar: Container(
+        padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
         decoration: BoxDecoration(
-          border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5)),
+          color: theme.colorScheme.surface,
+          border: Border(top: BorderSide(color: theme.colorScheme.outlineVariant, width: 1.0)),
         ),
-        child: BottomNavigationBar(
-          currentIndex: index,
-          onTap: (i) => ref.read(navigationIndexProvider.notifier).state = i,
-          items: const [
-            BottomNavigationBarItem(icon: Icon(Icons.home_outlined), activeIcon: Icon(Icons.home_rounded), label: 'Home'),
-            BottomNavigationBarItem(icon: Icon(Icons.timer_outlined), activeIcon: Icon(Icons.timer_rounded), label: 'Timer'),
-            BottomNavigationBarItem(icon: Icon(Icons.check_box_outlined), activeIcon: Icon(Icons.check_box_rounded), label: 'Todos'),
-            BottomNavigationBarItem(icon: Icon(Icons.edit_note_outlined), activeIcon: Icon(Icons.edit_note_rounded), label: 'Journal'),
-            BottomNavigationBarItem(icon: Icon(Icons.bar_chart_outlined), activeIcon: Icon(Icons.bar_chart_rounded), label: 'Stats'),
-          ],
+        child: SafeArea(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _NotionNavItem(
+                index: 0,
+                selectedIndex: index,
+                icon: Icons.bolt_rounded,
+                label: 'Today',
+                onTap: () => ref.read(navigationIndexProvider.notifier).state = 0,
+              ),
+              _NotionNavItem(
+                index: 1,
+                selectedIndex: index,
+                icon: Icons.timer_outlined,
+                label: 'Timer',
+                onTap: () => ref.read(navigationIndexProvider.notifier).state = 1,
+              ),
+              _NotionNavItem(
+                index: 2,
+                selectedIndex: index,
+                icon: Icons.task_alt_rounded,
+                label: 'Todos',
+                onTap: () => ref.read(navigationIndexProvider.notifier).state = 2,
+              ),
+              _NotionNavItem(
+                index: 3,
+                selectedIndex: index,
+                icon: Icons.auto_stories_rounded,
+                label: 'Journal',
+                onTap: () => ref.read(navigationIndexProvider.notifier).state = 3,
+              ),
+              _NotionNavItem(
+                index: 4,
+                selectedIndex: index,
+                icon: Icons.insights_rounded,
+                label: 'Stats',
+                onTap: () => ref.read(navigationIndexProvider.notifier).state = 4,
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 }
+
+class _NotionNavItem extends StatelessWidget {
+  final int index;
+  final int selectedIndex;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _NotionNavItem({
+    required this.index,
+    required this.selectedIndex,
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = index == selectedIndex;
+    final theme = Theme.of(context);
+
+    return Flexible(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(6),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          decoration: BoxDecoration(
+            color: selected ? theme.colorScheme.surfaceContainer : Colors.transparent,
+            borderRadius: BorderRadius.circular(6),
+            border: selected
+                ? Border.all(color: theme.colorScheme.outlineVariant, width: 0.5)
+                : Border.all(color: Colors.transparent, width: 0.5),
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  icon,
+                  size: 16,
+                  color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                ),
+                const SizedBox(width: 5),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                    color: selected ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+

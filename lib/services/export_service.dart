@@ -8,6 +8,7 @@ import 'package:share_plus/share_plus.dart';
 import 'db_service.dart';
 import '../models/task_entry.dart';
 import '../models/journal_entry.dart';
+import '../models/todo_entry.dart';
 import 'package:isar/isar.dart';
 
 class ExportService {
@@ -20,6 +21,9 @@ class ExportService {
 
       // Fetch all journals
       final journals = await db.journalEntrys.where().findAll();
+
+      // Fetch all todos
+      final todos = await db.todoEntrys.where().findAll();
 
       // Convert to Map
       final Map<String, dynamic> exportMap = {
@@ -43,6 +47,15 @@ class ExportService {
           'created_at': j.createdAt.toIso8601String(),
           'total_tracked_seconds': j.totalTrackedSeconds,
         }).toList(),
+        'todos': todos.map((td) => {
+          'id': td.id,
+          'title': td.title,
+          'is_completed': td.isCompleted,
+          'is_high_priority': td.isHighPriority,
+          'due_date': td.dueDate?.toIso8601String(),
+          'created_at': td.createdAt.toIso8601String(),
+          'completed_at': td.completedAt?.toIso8601String(),
+        }).toList(),
       };
 
       // Convert to JSON String
@@ -54,7 +67,7 @@ class ExportService {
       final file = File('${tempDir.path}/daylog_backup_$dateStr.json');
       await file.writeAsString(jsonString);
 
-      // Share file
+      // Share file using Share.shareXFiles
       await Share.shareXFiles(
         [XFile(file.path, mimeType: 'application/json')],
         subject: 'DayLog Data Export',
@@ -65,7 +78,7 @@ class ExportService {
     }
   }
 
-  static Future<({int tasks, int journals})?> importData() async {
+  static Future<({int tasks, int journals, int todos})?> importData() async {
     try {
       final result = await FilePicker.pickFiles(
         type: FileType.custom,
@@ -82,9 +95,10 @@ class ExportService {
 
       final List<dynamic>? tasksData = data['tasks'];
       final List<dynamic>? journalsData = data['journals'];
+      final List<dynamic>? todosData = data['todos'];
 
-      if (tasksData == null && journalsData == null) {
-        throw const FormatException('Invalid backup file: missing tasks and journals.');
+      if (tasksData == null && journalsData == null && todosData == null) {
+        throw const FormatException('Invalid backup file: missing tasks, journals, and todos.');
       }
 
       final db = await DbService.db;
@@ -96,7 +110,6 @@ class ExportService {
           final tMap = item as Map<String, dynamic>;
           final startedAt = DateTime.parse(tMap['started_at']);
           
-          // Check if duplicate
           final isDuplicate = await db.taskEntrys
               .filter()
               .titleEqualTo(tMap['title'])
@@ -136,6 +149,32 @@ class ExportService {
         }
       }
 
+      // Parse todos
+      final List<TodoEntry> todosToPut = [];
+      if (todosData != null) {
+        for (final item in todosData) {
+          final tdMap = item as Map<String, dynamic>;
+          final createdAt = DateTime.parse(tdMap['created_at']);
+          
+          final isDuplicate = await db.todoEntrys
+              .filter()
+              .titleEqualTo(tdMap['title'])
+              .createdAtEqualTo(createdAt)
+              .findFirst() != null;
+
+          if (!isDuplicate) {
+            final todo = TodoEntry()
+              ..title = tdMap['title']
+              ..isCompleted = tdMap['is_completed'] ?? false
+              ..isHighPriority = tdMap['is_high_priority'] ?? false
+              ..dueDate = tdMap['due_date'] != null ? DateTime.parse(tdMap['due_date']) : null
+              ..createdAt = createdAt
+              ..completedAt = tdMap['completed_at'] != null ? DateTime.parse(tdMap['completed_at']) : null;
+            todosToPut.add(todo);
+          }
+        }
+      }
+
       await db.writeTxn(() async {
         if (tasksToPut.isNotEmpty) {
           await db.taskEntrys.putAll(tasksToPut);
@@ -143,8 +182,11 @@ class ExportService {
         if (journalsToPut.isNotEmpty) {
           await db.journalEntrys.putAll(journalsToPut);
         }
+        if (todosToPut.isNotEmpty) {
+          await db.todoEntrys.putAll(todosToPut);
+        }
       });
-      return (tasks: tasksToPut.length, journals: journalsToPut.length);
+      return (tasks: tasksToPut.length, journals: journalsToPut.length, todos: todosToPut.length);
     } catch (e, stackTrace) {
       debugPrint('Error importing data: $e\n$stackTrace');
       rethrow;

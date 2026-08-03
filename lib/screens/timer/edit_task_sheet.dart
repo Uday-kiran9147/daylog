@@ -70,6 +70,7 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
             controller: _controller,
             decoration: const InputDecoration(hintText: 'Task Name'),
             textCapitalization: TextCapitalization.sentences,
+            keyboardType: TextInputType.text,
             onSubmitted: (_) => _save(),
           ),
           const SizedBox(height: 12),
