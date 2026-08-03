@@ -99,13 +99,14 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
       }
     }
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-        20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return SingleChildScrollView(
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text('New Task', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
           const SizedBox(height: 16),
@@ -216,6 +217,7 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

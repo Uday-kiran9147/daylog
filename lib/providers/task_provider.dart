@@ -14,7 +14,9 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
   Future<TaskEntry?> build() async {
     try {
       final db = await DbService.db;
-      return await db.taskEntrys.filter().stoppedAtIsNull().findFirst();
+      final task = await db.taskEntrys.filter().stoppedAtIsNull().findFirst();
+      NotificationService.showActiveTaskNotification(task);
+      return task;
     } catch (e) {
       debugPrint('Error fetching active task: $e');
       return null;
@@ -35,7 +37,7 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       await db.writeTxn(() => db.taskEntrys.put(task));
       state = AsyncData(task);
       NotificationService.updateTaskReminders(task);
-      NotificationService.showTestNotification();
+      NotificationService.showActiveTaskNotification(task);
       ref.invalidate(todayTasksProvider);
       ref.invalidate(todayTotalSecondsProvider);
       return task;
@@ -56,6 +58,7 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       await db.writeTxn(() => db.taskEntrys.put(running));
       state = const AsyncData(null);
       NotificationService.updateTaskReminders(null);
+      NotificationService.showActiveTaskNotification(null);
       ref.invalidate(todayTasksProvider);
       ref.invalidate(todayTotalSecondsProvider);
     } catch (e, stackTrace) {
@@ -75,6 +78,7 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       await db.writeTxn(() => db.taskEntrys.put(running));
       state = AsyncData(running);
       NotificationService.updateTaskReminders(running);
+      NotificationService.showActiveTaskNotification(running);
     } catch (e, stackTrace) {
       debugPrint('Error pausing task: $e\n$stackTrace');
       state = AsyncError(e, stackTrace);
@@ -95,6 +99,7 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       await db.writeTxn(() => db.taskEntrys.put(running));
       state = AsyncData(running);
       NotificationService.updateTaskReminders(running);
+      NotificationService.showActiveTaskNotification(running);
     } catch (e, stackTrace) {
       debugPrint('Error resuming task: $e\n$stackTrace');
       state = AsyncError(e, stackTrace);
@@ -104,6 +109,12 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
 
   Future<void> deleteTask(int id) async {
     try {
+      final running = state.valueOrNull;
+      if (running != null && running.id == id) {
+        state = const AsyncData(null);
+        NotificationService.showActiveTaskNotification(null);
+        NotificationService.updateTaskReminders(null);
+      }
       final db = await DbService.db;
       await db.writeTxn(() => db.taskEntrys.delete(id));
       ref.invalidate(todayTasksProvider);
@@ -119,6 +130,12 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
     try {
       final db = await DbService.db;
       await db.writeTxn(() => db.taskEntrys.put(task));
+      final running = state.valueOrNull;
+      if (running != null && running.id == task.id) {
+        state = AsyncData(task);
+        NotificationService.showActiveTaskNotification(task);
+        NotificationService.updateTaskReminders(task);
+      }
       ref.invalidate(todayTasksProvider);
       ref.invalidate(todayTotalSecondsProvider);
       ref.invalidate(recentTasksProvider);

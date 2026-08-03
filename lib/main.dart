@@ -36,6 +36,7 @@ Future<void> _initBackgroundServices(ProviderContainer container) async {
     await NotificationService.scheduleDaily9pmReminder();
     final activeTask = container.read(activeTaskProvider).valueOrNull;
     await NotificationService.updateTaskReminders(activeTask);
+    await NotificationService.showActiveTaskNotification(activeTask);
   } catch (e, stackTrace) {
     debugPrint('Initialization error: $e\n$stackTrace');
     container.read(appInitErrorProvider.notifier).state = e.toString();

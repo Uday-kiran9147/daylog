@@ -8,6 +8,7 @@ import 'package:timezone/data/latest_all.dart' as tz_data;
 import '../app.dart';
 import '../models/task_entry.dart';
 import '../models/todo_entry.dart';
+import '../utils/date_utils.dart';
 
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
@@ -16,6 +17,7 @@ class NotificationService {
   static const _remindersCount = 12; // 12 reminders of 2 hours = 24 hours
   static const _todoReminderBaseId = 200;
   static const _todoRemindersCount = 24; // 24 reminders of 1 hour = 24 hours
+  static const _activeTaskNotificationId = 777;
   static ProviderContainer? container;
   static bool _initialized = false;
 
@@ -72,7 +74,11 @@ class NotificationService {
       settings: const InitializationSettings(android: android, iOS: ios),
       onDidReceiveNotificationResponse: (response) {
         if (container != null) {
-          container!.read(navigationIndexProvider.notifier).state = 2; // Journal screen
+          if (response.payload == 'active_timer') {
+            container!.read(navigationIndexProvider.notifier).state = 1; // Timer screen
+          } else {
+            container!.read(navigationIndexProvider.notifier).state = 3; // Journal screen
+          }
         }
       },
     );
@@ -306,6 +312,106 @@ class NotificationService {
       debugPrint('Scheduled $_todoRemindersCount hourly todo reminders.');
     } catch (e, stack) {
       debugPrint('Failed to update todo reminders: $e\n$stack');
+    }
+  }
+
+  static Future<void> showActiveTaskNotification(TaskEntry? activeTask) async {
+    if (!_initialized) {
+      debugPrint('NotificationService not initialized yet. Skipping active task notification.');
+      return;
+    }
+    try {
+      if (activeTask == null) {
+        await _plugin.cancel(id: _activeTaskNotificationId);
+        return;
+      }
+
+      final categoryStr = activeTask.category.isNotEmpty
+          ? activeTask.category[0].toUpperCase() + activeTask.category.substring(1)
+          : 'Focus';
+
+      if (activeTask.isPaused) {
+        final elapsed = formatTimer(activeTask.durationSeconds);
+        final title = 'Paused: ${activeTask.title}';
+        final body = 'Category: $categoryStr • Elapsed: $elapsed';
+
+        await _plugin.show(
+          id: _activeTaskNotificationId,
+          title: title,
+          body: body,
+          notificationDetails: NotificationDetails(
+            android: AndroidNotificationDetails(
+              'daylog_active_timer',
+              'Active Focus Timer',
+              channelDescription: 'Shows running task timer status in status bar',
+              importance: Importance.low,
+              priority: Priority.low,
+              ongoing: true,
+              autoCancel: false,
+              onlyAlertOnce: true,
+              showWhen: true,
+              usesChronometer: false,
+              playSound: false,
+              enableVibration: false,
+              category: AndroidNotificationCategory.stopwatch,
+              styleInformation: BigTextStyleInformation(
+                body,
+                contentTitle: title,
+              ),
+            ),
+            iOS: const DarwinNotificationDetails(
+              presentAlert: false,
+              presentBadge: false,
+              presentSound: false,
+            ),
+          ),
+          payload: 'active_timer',
+        );
+      } else {
+        final baseTimestamp = activeTask.startedAt
+            .add(Duration(seconds: activeTask.pauseDurationSeconds))
+            .millisecondsSinceEpoch;
+
+        final title = 'Focusing: ${activeTask.title}';
+        final body = 'Category: $categoryStr';
+
+        await _plugin.show(
+          id: _activeTaskNotificationId,
+          title: title,
+          body: body,
+          notificationDetails: NotificationDetails(
+            android: AndroidNotificationDetails(
+              'daylog_active_timer',
+              'Active Focus Timer',
+              channelDescription: 'Shows running task timer status in status bar',
+              importance: Importance.low,
+              priority: Priority.low,
+              ongoing: true,
+              autoCancel: false,
+              onlyAlertOnce: true,
+              showWhen: true,
+              usesChronometer: true,
+              chronometerCountDown: false,
+              when: baseTimestamp,
+              playSound: false,
+              enableVibration: false,
+              category: AndroidNotificationCategory.stopwatch,
+              styleInformation: BigTextStyleInformation(
+                body,
+                contentTitle: title,
+              ),
+            ),
+            iOS: const DarwinNotificationDetails(
+              presentAlert: false,
+              presentBadge: false,
+              presentSound: false,
+            ),
+          ),
+          payload: 'active_timer',
+        );
+      }
+    } catch (e, stack) {
+      debugPrint('Failed to update active task notification: $e\n$stack');
     }
   }
 }

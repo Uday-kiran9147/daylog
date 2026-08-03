@@ -139,13 +139,13 @@ class HomeScreen extends ConsumerWidget {
                 ),
               ),
 
-              Padding(
-                padding: const EdgeInsets.all(16),
+              const Padding(
+                padding: EdgeInsets.all(16),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Quick Summary Stats Row
-                    const Row(
+                    Row(
                       children: [
                         Expanded(child: _TrackedTodayStatBox()),
                         SizedBox(width: 12),
@@ -153,17 +153,17 @@ class HomeScreen extends ConsumerWidget {
                       ],
                     ),
 
-                    const SizedBox(height: 16),
+                    SizedBox(height: 16),
 
                     // Active Focus Card
-                    const _ActiveTaskSection(),
+                    _ActiveTaskSection(),
 
-                    const SizedBox(height: 20),
+                    SizedBox(height: 20),
 
                     // Dynamic non-scrollable category grid board
-                    const _HomeKanbanBoardSection(),
+                    _HomeKanbanBoardSection(),
 
-                    const SizedBox(height: 80),
+                    SizedBox(height: 80),
                   ],
                 ),
               ),
