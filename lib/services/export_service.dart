@@ -67,10 +67,12 @@ class ExportService {
       final file = File('${tempDir.path}/daylog_backup_$dateStr.json');
       await file.writeAsString(jsonString);
 
-      // Share file using Share.shareXFiles
-      await Share.shareXFiles(
-        [XFile(file.path, mimeType: 'application/json')],
-        subject: 'DayLog Data Export',
+      // Share file using SharePlus
+      await SharePlus.instance.share(
+        ShareParams(
+          files: [XFile(file.path, mimeType: 'application/json')],
+          subject: 'DayLog Data Export',
+        ),
       );
     } catch (e, stackTrace) {
       debugPrint('Error exporting data: $e\n$stackTrace');

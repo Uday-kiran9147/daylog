@@ -6,27 +6,6 @@ import '../../providers/todo_provider.dart';
 import '../../utils/date_utils.dart';
 import '../../widgets/notion_widgets.dart';
 
-Future<bool?> _showDeleteConfirmDialog(BuildContext context) {
-  return showDialog<bool>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('Delete Todo?'),
-      content: const Text('Are you sure you want to delete this todo? This action cannot be undone.'),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context, false),
-          child: const Text('Cancel'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(context, true),
-          style: TextButton.styleFrom(foregroundColor: Theme.of(context).colorScheme.error),
-          child: const Text('Delete'),
-        ),
-      ],
-    ),
-  );
-}
-
 class TodosScreen extends ConsumerWidget {
   const TodosScreen({super.key});
 
@@ -45,45 +24,74 @@ class TodosScreen extends ConsumerWidget {
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              // Modern Compact Header
-              const NotionPageHeader(
-                icon: Icons.task_alt_rounded,
-                title: 'Action Items & Todos',
-                subtitle: 'Manage daily focus tasks, high-priority items, and deadlines.',
+              // Compact Header
+              NotionPageHeader(
+                icon: Icons.check_box_rounded,
+                title: 'Action Items',
+                subtitle: 'Manage priorities, deadlines, and quick tasks.',
+                trailingActions: IconButton(
+                  icon: const Icon(Icons.add_rounded, size: 20),
+                  tooltip: 'Add Action Item',
+                  onPressed: () => showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => const _AddTodoSheet(),
+                  ),
+                ),
               ),
 
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: todosAsync.when(
-                  data: (todos) {
-                    final activeTodos = todos.where((t) => !t.isCompleted).toList();
-                    final completedTodos = todos.where((t) => t.isCompleted).toList();
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Dynamic Stats Row
+                    todosAsync.when(
+                      data: (todos) {
+                        final pending = todos.where((t) => !t.isCompleted).length;
+                        final completed = todos.where((t) => t.isCompleted).length;
+                        final highPriority = todos.where((t) => !t.isCompleted && t.isHighPriority).length;
 
-                    if (todos.isEmpty) {
-                      return const _EmptyTodosState();
-                    }
+                        return Row(
+                          children: [
+                            Expanded(
+                              child: _StatCard(
+                                label: 'Pending',
+                                value: '$pending',
+                                icon: Icons.pending_actions_rounded,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _StatCard(
+                                label: 'Completed',
+                                value: '$completed',
+                                icon: Icons.task_alt_rounded,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _StatCard(
+                                label: 'High Priority',
+                                value: '$highPriority',
+                                icon: Icons.priority_high_rounded,
+                                isWarning: highPriority > 0,
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                      loading: () => const SizedBox.shrink(),
+                      error: (_, __) => const SizedBox.shrink(),
+                    ),
 
-                    // Vertical Grid Kanban Board View (To Do vs Done)
-                    return _TodosKanbanBoardSection(
-                      activeTodos: activeTodos,
-                      completedTodos: completedTodos,
-                    );
-                  },
-                  loading: () => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(vertical: 40),
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
-                  error: (err, stack) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Text(
-                        'Failed to load todos: $err',
-                        style: TextStyle(color: theme.colorScheme.error),
-                      ),
-                    ),
-                  ),
+                    const SizedBox(height: 20),
+
+                    // Vertical Action Items Board
+                    const _TodosKanbanBoardSection(),
+
+                    const SizedBox(height: 80),
+                  ],
                 ),
               ),
             ],
@@ -100,107 +108,43 @@ class TodosScreen extends ConsumerWidget {
         foregroundColor: Colors.white,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
         icon: const Icon(Icons.add_rounded, size: 20),
-        label: const Text('Add Todo', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+        label: const Text('Add Task', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
       ),
     );
   }
 }
 
-/// Vertically Scrolling Kanban Columns (To Do vs Done)
-class _TodosKanbanBoardSection extends ConsumerWidget {
-  final List<TodoEntry> activeTodos;
-  final List<TodoEntry> completedTodos;
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final bool isWarning;
 
-  const _TodosKanbanBoardSection({
-    required this.activeTodos,
-    required this.completedTodos,
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    this.isWarning = false,
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final useTwoColumns = constraints.maxWidth > 550;
-
-        if (useTwoColumns) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _buildKanbanColumn(
-                  context,
-                  ref,
-                  title: 'To Do',
-                  tagLabel: 'TO DO',
-                  tagBg: theme.colorScheme.primaryContainer,
-                  tagFg: theme.colorScheme.primary,
-                  items: activeTodos,
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: _buildKanbanColumn(
-                  context,
-                  ref,
-                  title: 'Done',
-                  tagLabel: 'DONE',
-                  tagBg: theme.colorScheme.surfaceContainer,
-                  tagFg: theme.colorScheme.onSurfaceVariant,
-                  items: completedTodos,
-                ),
-              ),
-            ],
-          );
-        }
-
-        return Column(
-          children: [
-            _buildKanbanColumn(
-              context,
-              ref,
-              title: 'To Do',
-              tagLabel: 'TO DO',
-              tagBg: theme.colorScheme.primaryContainer,
-              tagFg: theme.colorScheme.primary,
-              items: activeTodos,
-            ),
-            const SizedBox(height: 16),
-            _buildKanbanColumn(
-              context,
-              ref,
-              title: 'Done',
-              tagLabel: 'DONE',
-              tagBg: theme.colorScheme.surfaceContainer,
-              tagFg: theme.colorScheme.onSurfaceVariant,
-              items: completedTodos,
-            ),
-            const SizedBox(height: 80),
-          ],
-        );
-      },
-    );
-  }
-
-  Widget _buildKanbanColumn(
-    BuildContext context,
-    WidgetRef ref, {
-    required String title,
-    required String tagLabel,
-    required Color tagBg,
-    required Color tagFg,
-    required List<TodoEntry> items,
-  }) {
-    final theme = Theme.of(context);
+    final color = isWarning ? theme.colorScheme.error : theme.colorScheme.primary;
 
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
+        color: isWarning
+            ? theme.colorScheme.errorContainer.withValues(alpha: 0.2)
+            : theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isWarning
+              ? theme.colorScheme.error.withValues(alpha: 0.3)
+              : theme.colorScheme.outlineVariant,
+          width: 0.5,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -208,132 +152,284 @@ class _TodosKanbanBoardSection extends ConsumerWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              NotionTag(label: tagLabel, customBg: tagBg, customText: tagFg),
               Text(
-                '${items.length} items',
-                style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurfaceVariant),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20),
-              child: Center(
-                child: Text(
-                  'No items in $title',
-                  style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
+                value,
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isWarning ? theme.colorScheme.error : theme.colorScheme.onSurface,
                 ),
               ),
-            )
-          else
-            Column(
-              children: items.map((todo) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 8),
-                  child: InkWell(
-                    onTap: () => ref.read(todoProvider.notifier).toggleTodoCompletion(todo.id),
-                    borderRadius: BorderRadius.circular(8),
-                    child: Padding(
-                      padding: const EdgeInsets.all(12),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Icon(
-                                todo.isCompleted ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-                                size: 18,
-                                color: todo.isCompleted ? theme.colorScheme.primary : theme.colorScheme.outline,
-                              ),
-                              const SizedBox(width: 10),
-                              Expanded(
-                                child: Text(
-                                  todo.title,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
-                                    color: todo.isCompleted ? theme.colorScheme.onSurfaceVariant : theme.colorScheme.onSurface,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          if ((todo.isHighPriority && !todo.isCompleted) || todo.dueDate != null) ...[
-                            const SizedBox(height: 8),
-                            Row(
-                              children: [
-                                if (todo.isHighPriority && !todo.isCompleted) ...[
-                                  const NotionTag(
-                                    label: 'HIGH PRIORITY',
-                                    customBg: Color(0xFFFFECEB),
-                                    customText: Color(0xFFEB5757),
-                                    icon: Icons.priority_high_rounded,
-                                  ),
-                                  const SizedBox(width: 8),
-                                ],
-                                if (todo.dueDate != null) ...[
-                                  Icon(
-                                    Icons.calendar_today_rounded,
-                                    size: 11,
-                                    color: dueDateColor(todo.dueDate!, todo.isCompleted, theme.colorScheme),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    formatDueDate(todo.dueDate!),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w500,
-                                      color: dueDateColor(todo.dueDate!, todo.isCompleted, theme.colorScheme),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-              }).toList(),
+              Icon(icon, size: 14, color: color.withValues(alpha: 0.8)),
+            ],
+          ),
+          const SizedBox(height: 2),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w500,
+              color: isWarning ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
             ),
+          ),
         ],
       ),
     );
   }
 }
 
-class _EmptyTodosState extends StatelessWidget {
-  const _EmptyTodosState();
+/// Vertically Scrolling Action Items Kanban Board
+class _TodosKanbanBoardSection extends ConsumerWidget {
+  const _TodosKanbanBoardSection();
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final todosAsync = ref.watch(todoProvider);
+
+    return todosAsync.when(
+      data: (todos) {
+        final pending = todos.where((t) => !t.isCompleted).toList();
+        final completed = todos.where((t) => t.isCompleted).toList();
+
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final isWide = constraints.maxWidth > 600;
+
+            if (isWide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildColumn(
+                      context,
+                      ref,
+                      title: 'To Do',
+                      count: pending.length,
+                      color: Theme.of(context).colorScheme.primary,
+                      items: pending,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: _buildColumn(
+                      context,
+                      ref,
+                      title: 'Done',
+                      count: completed.length,
+                      color: Colors.green,
+                      items: completed,
+                    ),
+                  ),
+                ],
+              );
+            }
+
+            return Column(
+              children: [
+                _buildColumn(
+                  context,
+                  ref,
+                  title: 'To Do',
+                  count: pending.length,
+                  color: Theme.of(context).colorScheme.primary,
+                  items: pending,
+                ),
+                const SizedBox(height: 16),
+                _buildColumn(
+                  context,
+                  ref,
+                  title: 'Done',
+                  count: completed.length,
+                  color: Colors.green,
+                  items: completed,
+                ),
+              ],
+            );
+          },
+        );
+      },
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (e, _) => Center(child: Text('Error loading tasks: $e')),
+    );
+  }
+
+  Widget _buildColumn(
+    BuildContext context,
+    WidgetRef ref, {
+    required String title,
+    required int count,
+    required Color color,
+    required List<TodoEntry> items,
+  }) {
     final theme = Theme.of(context);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.assignment_turned_in_outlined,
-              size: 56,
-              color: theme.colorScheme.outline.withValues(alpha: 0.5),
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.colorScheme.surfaceContainer,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  '$count',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (items.isEmpty)
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Center(
+                child: Text(
+                  title == 'To Do' ? 'No pending tasks!' : 'No completed tasks yet.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+                  ),
+                ),
+              ),
+            )
+          else
+            Column(
+              children: items.map((todo) => _buildTodoCard(context, ref, todo)).toList(),
             ),
-            const SizedBox(height: 16),
-            const Text(
-              'No Action Items Yet',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Add your todos here to track work items and stay organized.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurfaceVariant),
-            ),
-          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildTodoCard(BuildContext context, WidgetRef ref, TodoEntry todo) {
+    final theme = Theme.of(context);
+
+    return Card(
+      margin: const EdgeInsets.only(bottom: 8),
+      elevation: 0,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(
+          color: todo.isHighPriority && !todo.isCompleted
+              ? theme.colorScheme.error.withValues(alpha: 0.5)
+              : theme.colorScheme.outlineVariant,
+          width: todo.isHighPriority && !todo.isCompleted ? 1.0 : 0.5,
+        ),
+      ),
+      child: InkWell(
+        onTap: () => ref.read(todoProvider.notifier).toggleTodoCompletion(todo.id),
+        borderRadius: BorderRadius.circular(8),
+        child: Padding(
+          padding: const EdgeInsets.all(10),
+          child: Row(
+            children: [
+              Checkbox(
+                value: todo.isCompleted,
+                onChanged: (_) => ref.read(todoProvider.notifier).toggleTodoCompletion(todo.id),
+                activeColor: Colors.green,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                visualDensity: VisualDensity.compact,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      todo.title,
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+                        color: todo.isCompleted
+                            ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
+                            : theme.colorScheme.onSurface,
+                      ),
+                    ),
+                    if (todo.dueDate != null) ...[
+                      const SizedBox(height: 2),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.event_outlined,
+                            size: 11,
+                            color: todo.dueDate!.isBefore(DateTime.now()) && !todo.isCompleted
+                                ? theme.colorScheme.error
+                                : theme.colorScheme.onSurfaceVariant,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            friendlyDate(todo.dueDate!),
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: todo.dueDate!.isBefore(DateTime.now()) && !todo.isCompleted
+                                  ? theme.colorScheme.error
+                                  : theme.colorScheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+              if (todo.isHighPriority && !todo.isCompleted)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  margin: const EdgeInsets.only(right: 4),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    'HIGH',
+                    style: TextStyle(
+                      fontSize: 9,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onErrorContainer,
+                    ),
+                  ),
+                ),
+              IconButton(
+                icon: Icon(Icons.delete_outline_rounded, size: 18, color: theme.colorScheme.onSurfaceVariant),
+                onPressed: () => ref.read(todoProvider.notifier).deleteTodo(todo.id),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -358,26 +454,16 @@ class _AddTodoSheetState extends ConsumerState<_AddTodoSheet> {
     super.dispose();
   }
 
-  Future<void> _selectDate() async {
-    final now = DateTime.now();
-    final picked = await showDatePicker(
-      context: context,
-      initialDate: _dueDate ?? now,
-      firstDate: now.subtract(const Duration(days: 365)),
-      lastDate: now.add(const Duration(days: 365 * 5)),
-    );
-
-    if (picked != null) {
-      setState(() {
-        _dueDate = picked;
-      });
-    }
-  }
-
   Future<void> _submit() async {
     final title = _controller.text.trim();
     if (title.isEmpty) return;
-    await ref.read(todoProvider.notifier).addTodo(title, _isHighPriority, _dueDate);
+
+    await ref.read(todoProvider.notifier).addTodo(
+      title,
+      _isHighPriority,
+      _dueDate,
+    );
+
     if (mounted) Navigator.pop(context);
   }
 
@@ -404,7 +490,17 @@ class _AddTodoSheetState extends ConsumerState<_AddTodoSheet> {
             ],
           ),
           const SizedBox(height: 16),
-
+          TextField(
+            controller: _controller,
+            autofocus: true,
+            decoration: const InputDecoration(
+              hintText: 'What needs to be done?',
+              prefixIcon: Icon(Icons.playlist_add_check_rounded),
+            ),
+            textCapitalization: TextCapitalization.sentences,
+            keyboardType: TextInputType.text,
+            onSubmitted: (_) => _submit(),
+          ),
           const SizedBox(height: 16),
           SwitchListTile.adaptive(
             title: Row(
@@ -417,68 +513,43 @@ class _AddTodoSheetState extends ConsumerState<_AddTodoSheet> {
                 const Text('High Priority', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
               ],
             ),
-            subtitle: const Text('Hourly reminder will notify until completed', style: TextStyle(fontSize: 12)),
-            contentPadding: EdgeInsets.zero,
             value: _isHighPriority,
-            activeTrackColor: theme.colorScheme.primary.withValues(alpha: 0.3),
-            onChanged: (val) {
-              setState(() {
-                _isHighPriority = val;
-              });
-            },
+            onChanged: (val) => setState(() => _isHighPriority = val),
+            activeTrackColor: theme.colorScheme.error,
+            contentPadding: EdgeInsets.zero,
           ),
-          const Divider(height: 24, thickness: 0.5),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Icon(Icons.calendar_today_rounded, size: 18, color: theme.colorScheme.onSurfaceVariant),
-                  const SizedBox(width: 8),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text('Due Date', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
-                      Text(
-                        _dueDate == null ? 'No date set' : formatDueDate(_dueDate!),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: _dueDate == null
-                              ? theme.colorScheme.onSurfaceVariant
-                              : theme.colorScheme.primary,
-                          fontWeight: _dueDate == null ? FontWeight.normal : FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
+          const SizedBox(height: 8),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: Icon(
+              Icons.calendar_today_rounded,
+              color: _dueDate != null ? theme.colorScheme.primary : theme.colorScheme.outline,
+            ),
+            title: Text(
+              _dueDate == null ? 'Set Due Date' : friendlyDate(_dueDate!),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: _dueDate != null ? FontWeight.bold : FontWeight.normal,
+                color: _dueDate != null ? theme.colorScheme.primary : theme.colorScheme.onSurface,
               ),
-              Row(
-                children: [
-                  if (_dueDate != null)
-                    TextButton(
-                      onPressed: () {
-                        setState(() {
-                          _dueDate = null;
-                        });
-                      },
-                      child: Text(
-                        'Clear',
-                        style: TextStyle(color: theme.colorScheme.error, fontSize: 13),
-                      ),
-                    ),
-                  OutlinedButton.icon(
-                    onPressed: _selectDate,
-                    icon: const Icon(Icons.date_range_rounded, size: 16),
-                    label: Text(_dueDate == null ? 'Set Date' : 'Change', style: const TextStyle(fontSize: 12)),
-                    style: OutlinedButton.styleFrom(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      side: BorderSide(color: theme.colorScheme.outlineVariant),
-                    ),
-                  ),
-                ],
-              ),
-            ],
+            ),
+            trailing: _dueDate != null
+                ? IconButton(
+                    icon: const Icon(Icons.clear_rounded, size: 18),
+                    onPressed: () => setState(() => _dueDate = null),
+                  )
+                : null,
+            onTap: () async {
+              final picked = await showDatePicker(
+                context: context,
+                initialDate: _dueDate ?? DateTime.now(),
+                firstDate: DateTime.now(),
+                lastDate: DateTime.now().add(const Duration(days: 365)),
+              );
+              if (picked != null) {
+                setState(() => _dueDate = picked);
+              }
+            },
           ),
           const SizedBox(height: 20),
           SizedBox(
@@ -491,11 +562,10 @@ class _AddTodoSheetState extends ConsumerState<_AddTodoSheet> {
                   onPressed: isEnabled ? _submit : null,
                   style: FilledButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: theme.colorScheme.onPrimary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                   ),
-                  child: const Text('Add Todo', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  child: const Text('Add Task', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
                 );
               },
             ),

@@ -211,13 +211,13 @@ class AppTickerNotifier extends StateNotifier<DateTime> with WidgetsBindingObser
   }
 
   @override
-  void didChangeAppLifecycleState(AppLifecycleState lifecycleState) {
-    final isBg = lifecycleState != AppLifecycleState.resumed;
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    final isBg = state != AppLifecycleState.resumed;
     if (isBg != _isBackground) {
       _isBackground = isBg;
       _startTimer();
-      if (lifecycleState == AppLifecycleState.resumed) {
-        state = DateTime.now();
+      if (state == AppLifecycleState.resumed) {
+        this.state = DateTime.now();
       }
     }
   }
