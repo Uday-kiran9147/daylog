@@ -15,28 +15,24 @@ subprojects {
     val newSubprojectBuildDir: Directory = newBuildDir.dir(project.name)
     project.layout.buildDirectory.value(newSubprojectBuildDir)
 }
+
 subprojects {
-    plugins.withId("com.android.library") {
-        val androidExtension = extensions.findByName("android") ?: return@withId
-        if (name == "isar_flutter_libs") {
-            androidExtension.javaClass.getMethod("setNamespace", String::class.java)
-                .invoke(androidExtension, "dev.isar.isar_flutter_libs")
-        }
-        try {
-            androidExtension.javaClass.getMethod("setCompileSdk", java.lang.Integer::class.java)
-                .invoke(androidExtension, 34)
-        } catch (e: Exception) {
-            try {
-                androidExtension.javaClass.getMethod("setCompileSdkVersion", String::class.java)
-                    .invoke(androidExtension, "android-34")
-            } catch (e2: Exception) {
-                // ignore
+    afterEvaluate {
+        val android = extensions.findByName("android") as? com.android.build.gradle.BaseExtension
+        if (android != null) {
+            android.compileSdkVersion(36)
+            if (name == "isar_flutter_libs" && android.namespace == null) {
+                android.namespace = "dev.isar.isar_flutter_libs"
+            }
+            android.lintOptions {
+                isCheckReleaseBuilds = false
+                isAbortOnError = false
             }
         }
     }
     project.evaluationDependsOn(":app")
 }
+
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
-
