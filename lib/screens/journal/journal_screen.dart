@@ -1,13 +1,12 @@
 // lib/screens/journal/journal_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../models/journal_entry.dart';
 import '../../providers/journal_provider.dart';
 import '../../providers/task_provider.dart';
+import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
+import '../../widgets/daylog_widgets.dart';
 import 'journal_history_screen.dart';
-import '../../providers/theme_provider.dart';
-import '../../widgets/notion_widgets.dart';
 
 class JournalScreen extends ConsumerStatefulWidget {
   const JournalScreen({super.key});
@@ -21,17 +20,20 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   final _q2 = TextEditingController();
   final _q3 = TextEditingController();
   final _q4 = TextEditingController();
-  bool _saved = false;
+
+  DateTime? _lastDate;
   bool _initialized = false;
-  DateTime? _lastProcessedDate;
 
   @override
   void dispose() {
-    _q1.dispose(); _q2.dispose(); _q3.dispose(); _q4.dispose();
+    _q1.dispose();
+    _q2.dispose();
+    _q3.dispose();
+    _q4.dispose();
     super.dispose();
   }
 
-  Future<void> _save() async {
+  Future<void> _save(bool isSaved) async {
     if (_q1.text.trim().isEmpty) return;
     try {
       await ref.read(journalNotifierProvider.notifier).save(
@@ -41,15 +43,12 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
         tomorrow: _q4.text.trim(),
       );
       if (mounted) {
-        setState(() => _saved = true);
+        showDaylogToast(context, isSaved ? 'Reflection updated' : 'Reflection saved');
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to save journal: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
+          SnackBar(content: Text('Failed to save journal: $e'), backgroundColor: Colors.redAccent),
         );
       }
     }
@@ -58,16 +57,13 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   @override
   Widget build(BuildContext context) {
     final selectedDate = ref.watch(selectedJournalDateProvider);
-    final themeMode = ref.watch(themeModeProvider);
-    
-    final yesterdayDate = selectedDate.subtract(const Duration(days: 1));
-    final yesterdayJournalAsync = ref.watch(journalForDateProvider(dayKey(yesterdayDate)));
-    final yesterdayPriority = yesterdayJournalAsync.valueOrNull?.tomorrow;
-    
-    if (_lastProcessedDate == null || !DateUtils.isSameDay(_lastProcessedDate!, selectedDate)) {
-      _lastProcessedDate = selectedDate;
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Reset controllers if selected date changed
+    if (_lastDate == null || !DateUtils.isSameDay(_lastDate!, selectedDate)) {
+      _lastDate = selectedDate;
       _initialized = false;
-      _saved = false;
       _q1.clear();
       _q2.clear();
       _q3.clear();
@@ -78,54 +74,88 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
     final totalAsync = ref.watch(todayTotalSecondsProvider);
     final active = ref.watch(activeTaskProvider).valueOrNull;
 
-    final totalSeconds = (totalAsync.valueOrNull ?? 0) + (active != null ? active.currentElapsedSeconds : 0);
+    final isToday = DateUtils.isSameDay(selectedDate, DateTime.now());
+    final isFirstDay = selectedDate.isBefore(DateTime.now().subtract(const Duration(days: 365)));
+
+    final dayLabelStr = isToday
+        ? 'Today · ${friendlyDate(selectedDate)}'
+        : friendlyDate(selectedDate);
+
+    final yesterdayDate = selectedDate.subtract(const Duration(days: 1));
+    final yesterdayJournalAsync = ref.watch(journalForDateProvider(dayKey(yesterdayDate)));
+    final yesterdayPriority = yesterdayJournalAsync.valueOrNull?.tomorrow;
+
+    final trackedSeconds = isToday
+        ? (totalAsync.valueOrNull ?? 0) + (active != null ? active.currentElapsedSeconds : 0)
+        : null;
 
     return Scaffold(
       body: SafeArea(
-        top: false,
         child: Column(
           children: [
-            // Compact Header
-            NotionPageHeader(
-              icon: Icons.auto_stories_rounded,
-              title: 'Reflection Journal',
-              subtitle: 'End-of-day accomplishments and learnings.',
-              trailingActions: Row(
-                mainAxisSize: MainAxisSize.min,
+            // Page Header with History Icon
+            DaylogPageHeader(
+              title: 'Reflection',
+              trailing: IconButton(
+                icon: const Icon(Icons.auto_stories_outlined, size: 22),
+                tooltip: 'Journal History',
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const JournalHistoryScreen()),
+                ),
+              ),
+            ),
+
+            // Day Selector (< Day Label >)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   IconButton(
-                    icon: Icon(
-                      themeMode == ThemeMode.light
-                          ? Icons.dark_mode_outlined
-                          : themeMode == ThemeMode.dark
-                              ? Icons.light_mode_outlined
-                              : Icons.brightness_auto_outlined,
-                      size: 20,
-                    ),
-                    tooltip: 'Switch theme',
-                    onPressed: () {
-                      final next = themeMode == ThemeMode.system
-                          ? ThemeMode.light
-                          : themeMode == ThemeMode.light
-                              ? ThemeMode.dark
-                              : ThemeMode.system;
-                      ref.read(themeModeProvider.notifier).state = next;
+                    icon: const Icon(Icons.chevron_left_rounded, size: 22),
+                    onPressed: isFirstDay
+                        ? null
+                        : () => ref.read(selectedJournalDateProvider.notifier).state =
+                            selectedDate.subtract(const Duration(days: 1)),
+                  ),
+                  InkWell(
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: selectedDate,
+                        firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                        lastDate: DateTime.now(),
+                      );
+                      if (picked != null) {
+                        ref.read(selectedJournalDateProvider.notifier).state = picked;
+                      }
                     },
+                    borderRadius: BorderRadius.circular(999),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      child: Text(
+                        dayLabelStr,
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: theme.colorScheme.onSurface,
+                        ),
+                      ),
+                    ),
                   ),
                   IconButton(
-                    icon: const Icon(Icons.history_rounded, size: 20),
-                    tooltip: 'Journal History',
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const JournalHistoryScreen()),
-                    ),
+                    icon: const Icon(Icons.chevron_right_rounded, size: 22),
+                    onPressed: isToday
+                        ? null
+                        : () => ref.read(selectedJournalDateProvider.notifier).state =
+                            selectedDate.add(const Duration(days: 1)),
                   ),
                 ],
               ),
             ),
 
-            const _DateSelectorHeader(),
-
+            // Journal Form Content
             Expanded(
               child: journalAsync.when(
                 data: (existing) {
@@ -134,98 +164,130 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                     _q2.text = existing.blockers;
                     _q3.text = existing.improved;
                     _q4.text = existing.tomorrow;
-                    _saved = true;
                     _initialized = true;
                   } else if (existing == null && !_initialized) {
                     _initialized = true;
                   }
 
-                  return _saved
-                      ? _SavedView(
-                          entry: existing!,
-                          onEdit: () => setState(() => _saved = false),
-                        )
-                      : ListView(
+                  final isSaved = existing != null && existing.shipped.isNotEmpty;
+                  final displayTrackedSec = isToday
+                      ? (trackedSeconds ?? 0)
+                      : (existing?.totalTrackedSeconds ?? 0);
+
+                  return ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    children: [
+                      // Yesterday's Priority Card
+                      if (yesterdayPriority != null && yesterdayPriority.trim().isNotEmpty) ...[
+                        Container(
                           padding: const EdgeInsets.all(16),
-                          children: [
-                            if (yesterdayPriority != null && yesterdayPriority.trim().isNotEmpty) ...[
-                              NotionCallout(
-                                icon: Icons.star_rounded,
-                                title: "Yesterday's Priority",
-                                subtitle: yesterdayPriority,
+                          decoration: BoxDecoration(
+                            color: isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isDark
+                                  ? DaylogColors.darkAccent.withValues(alpha: 0.3)
+                                  : DaylogColors.accent.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                "Yesterday's priority",
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+                                ),
                               ),
-                              const SizedBox(height: 14),
+                              const SizedBox(height: 4),
+                              Text(
+                                yesterdayPriority,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.onSurface,
+                                ),
+                              ),
                             ],
-                            totalAsync.when(
-                              data: (_) => totalSeconds > 0
-                                  ? Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                                      margin: const EdgeInsets.only(bottom: 14),
-                                      decoration: BoxDecoration(
-                                        color: Theme.of(context).colorScheme.surfaceContainer,
-                                        borderRadius: BorderRadius.circular(8),
-                                        border: Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 0.5),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.timer_outlined, size: 14, color: Theme.of(context).colorScheme.primary),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            '${formatDuration(totalSeconds)} tracked for this day',
-                                            style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Theme.of(context).colorScheme.onSurface),
-                                          ),
-                                        ],
-                                      ),
-                                    )
-                                  : const SizedBox.shrink(),
-                              loading: () => const SizedBox.shrink(),
-                              error: (_, __) => const SizedBox.shrink(),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+
+                      // Tracked That Day Subtitle Row
+                      if (displayTrackedSec > 0) ...[
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.access_time_rounded,
+                              size: 14,
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
                             ),
-                            _QuestionCard(
-                              number: '01',
-                              question: 'What did you accomplish today?',
-                              controller: _q1,
-                              hint: 'Key features, fixes, learnings…',
-                            ),
-                            const SizedBox(height: 12),
-                            _QuestionCard(
-                              number: '02',
-                              question: 'What slowed you down or blocked progress?',
-                              controller: _q2,
-                              hint: 'Blockers, distractions, issues…',
-                            ),
-                            const SizedBox(height: 12),
-                            _QuestionCard(
-                              number: '03',
-                              question: 'What did you improve or learn?',
-                              controller: _q3,
-                              hint: 'Refactoring, habits, insights…',
-                            ),
-                            const SizedBox(height: 12),
-                            _QuestionCard(
-                              number: '04',
-                              question: 'What is your top priority for tomorrow?',
-                              controller: _q4,
-                              hint: 'Top 1-2 priorities to focus on…',
-                            ),
-                            const SizedBox(height: 20),
-                            FilledButton.icon(
-                              onPressed: _save,
-                              style: FilledButton.styleFrom(
-                                backgroundColor: Theme.of(context).colorScheme.primary,
-                                foregroundColor: Colors.white,
-                                padding: const EdgeInsets.symmetric(vertical: 14),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Tracked that day: ${formatDuration(displayTrackedSec)}',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                                fontWeight: FontWeight.w500,
                               ),
-                              icon: const Icon(Icons.check_rounded, size: 18),
-                              label: const Text('Save Reflection', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
                             ),
-                            const SizedBox(height: 40),
                           ],
-                        );
+                        ),
+                        const SizedBox(height: 14),
+                      ],
+
+                      // 4 Reflection Questions
+                      _QuestionField(
+                        label: 'What did you accomplish today?',
+                        placeholder: 'Shipped work',
+                        controller: _q1,
+                      ),
+                      const SizedBox(height: 14),
+
+                      _QuestionField(
+                        label: 'What slowed you down or blocked progress?',
+                        placeholder: 'Blockers',
+                        controller: _q2,
+                      ),
+                      const SizedBox(height: 14),
+
+                      _QuestionField(
+                        label: 'What did you improve or learn?',
+                        placeholder: 'Self-growth',
+                        controller: _q3,
+                      ),
+                      const SizedBox(height: 14),
+
+                      _QuestionField(
+                        label: 'What is your top priority for tomorrow?',
+                        placeholder: 'Next day planning',
+                        controller: _q4,
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Save Button
+                      FilledButton(
+                        onPressed: () => _save(isSaved),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: theme.colorScheme.primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                        ),
+                        child: Text(
+                          isSaved ? 'Update reflection' : 'Save reflection',
+                          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                      const SizedBox(height: 100),
+                    ],
+                  );
                 },
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (e, _) => Center(child: Text('$e')),
+                error: (e, _) => Center(child: Text('Error: $e')),
               ),
             ),
           ],
@@ -235,374 +297,45 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
   }
 }
 
-class _DateSelectorHeader extends ConsumerWidget {
-  const _DateSelectorHeader();
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final selectedDate = ref.watch(selectedJournalDateProvider);
-    final theme = Theme.of(context);
-    
-    final dateStr = DateUtils.isSameDay(selectedDate, DateTime.now())
-        ? 'Today'
-        : DateUtils.isSameDay(selectedDate, DateTime.now().subtract(const Duration(days: 1)))
-            ? 'Yesterday'
-            : friendlyDate(selectedDate);
-
-    final isToday = DateUtils.isSameDay(selectedDate, DateTime.now());
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        border: Border(bottom: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          IconButton(
-            icon: const Icon(Icons.chevron_left_rounded, size: 22),
-            tooltip: 'Previous Day',
-            onPressed: () {
-              ref.read(selectedJournalDateProvider.notifier).state =
-                  selectedDate.subtract(const Duration(days: 1));
-            },
-          ),
-          InkWell(
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: selectedDate,
-                firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                lastDate: DateTime.now(),
-              );
-              if (picked != null) {
-                ref.read(selectedJournalDateProvider.notifier).state = picked;
-              }
-            },
-            borderRadius: BorderRadius.circular(20),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.calendar_today_rounded, size: 14, color: theme.colorScheme.primary),
-                  const SizedBox(width: 6),
-                  Text(
-                    dateStr,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                  const SizedBox(width: 2),
-                  Icon(Icons.arrow_drop_down_rounded, color: theme.colorScheme.primary, size: 20),
-                ],
-              ),
-            ),
-          ),
-          IconButton(
-            icon: const Icon(Icons.chevron_right_rounded, size: 22),
-            tooltip: 'Next Day',
-            onPressed: isToday
-                ? null
-                : () {
-                    ref.read(selectedJournalDateProvider.notifier).state =
-                        selectedDate.add(const Duration(days: 1));
-                  },
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _QuestionCard extends StatelessWidget {
-  final String number;
-  final String question;
+class _QuestionField extends StatelessWidget {
+  final String label;
+  final String placeholder;
   final TextEditingController controller;
-  final String hint;
 
-  const _QuestionCard({
-    required this.number,
-    required this.question,
+  const _QuestionField({
+    required this.label,
+    required this.placeholder,
     required this.controller,
-    required this.hint,
   });
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surface,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Text(
-                  number,
-                  style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  question,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          TextField(
-            controller: controller,
-            maxLines: 3,
-            textCapitalization: TextCapitalization.sentences,
-            keyboardType: TextInputType.multiline,
-            style: const TextStyle(fontSize: 13),
-            decoration: InputDecoration(
-              hintText: hint,
-              hintStyle: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)),
-              fillColor: theme.colorScheme.surfaceContainer,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
-class _SavedView extends ConsumerWidget {
-  final JournalEntry entry;
-  final VoidCallback onEdit;
-
-  const _SavedView({
-    required this.entry,
-    required this.onEdit,
-  });
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    
-    DateTime? selectedDate;
-    try {
-      selectedDate = DateTime.parse(entry.dayKey);
-    } catch (_) {}
-    
-    final yesterdayPriority = selectedDate != null
-        ? ref.watch(journalForDateProvider(dayKey(selectedDate.subtract(const Duration(days: 1)))))
-            .valueOrNull
-            ?.tomorrow
-        : null;
-
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        if (yesterdayPriority != null && yesterdayPriority.trim().isNotEmpty) ...[
-          Container(
-            padding: const EdgeInsets.all(14),
-            margin: const EdgeInsets.only(bottom: 14),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primaryContainer.withValues(alpha: 0.3),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: theme.colorScheme.primary.withValues(alpha: 0.2),
-                width: 0.5,
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.star_rounded,
-                      size: 16,
-                      color: theme.colorScheme.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      "Yesterday's Priority",
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.amber[700],
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  yesterdayPriority,
-                  style: TextStyle(
-                    fontSize: 13,
-                    height: 1.4,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: theme.colorScheme.primaryContainer,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
-          ),
-          child: Row(
-            children: [
-              Icon(Icons.check_circle_rounded, color: theme.colorScheme.primary, size: 22),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Reflection Saved',
-                      style: TextStyle(fontWeight: FontWeight.bold, color: theme.colorScheme.primary, fontSize: 14),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Tap edit below to modify anytime',
-                      style: TextStyle(color: theme.colorScheme.onSurfaceVariant, fontSize: 11),
-                    ),
-                  ],
-                ),
-              ),
-              if (entry.totalTrackedSeconds > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.primary,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.timer_outlined, size: 12, color: theme.colorScheme.onPrimary),
-                      const SizedBox(width: 4),
-                      Text(
-                        formatDuration(entry.totalTrackedSeconds),
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        Card(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10),
-            side: BorderSide(color: theme.colorScheme.outlineVariant, width: 0.5),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildSection(
-                  context,
-                  title: '01 / Accomplished Today',
-                  content: entry.shipped,
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(height: 1),
-                ),
-                _buildSection(
-                  context,
-                  title: '02 / Blockers & Obstacles',
-                  content: entry.blockers.isNotEmpty ? entry.blockers : 'None',
-                  isItalic: entry.blockers.isEmpty,
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(height: 1),
-                ),
-                _buildSection(
-                  context,
-                  title: '03 / Learnings & Improvements',
-                  content: entry.improved.isNotEmpty ? entry.improved : 'None',
-                  isItalic: entry.improved.isEmpty,
-                ),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 12),
-                  child: Divider(height: 1),
-                ),
-                _buildSection(
-                  context,
-                  title: '04 / Priority Tomorrow',
-                  content: entry.tomorrow.isNotEmpty ? entry.tomorrow : 'None',
-                  isItalic: entry.tomorrow.isEmpty,
-                ),
-              ],
-            ),
-          ),
-        ),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: onEdit,
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-          icon: const Icon(Icons.edit_rounded, size: 18),
-          label: const Text('Edit Entry', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSection(BuildContext context, {required String title, required String content, bool isItalic = false}) {
-    final theme = Theme.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          title,
+          label,
           style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.primary,
-            letterSpacing: 0.5,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: theme.colorScheme.onSurface,
           ),
         ),
         const SizedBox(height: 6),
-        Text(
-          content,
-          style: TextStyle(
-            fontSize: 13,
-            height: 1.4,
-            fontStyle: isItalic ? FontStyle.italic : FontStyle.normal,
-            color: isItalic ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6) : theme.colorScheme.onSurface,
+        TextField(
+          controller: controller,
+          maxLines: 2,
+          minLines: 2,
+          textCapitalization: TextCapitalization.sentences,
+          style: TextStyle(fontSize: 14, color: theme.colorScheme.onSurface),
+          decoration: InputDecoration(
+            hintText: placeholder,
+            hintStyle: TextStyle(
+              fontSize: 13,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+            ),
           ),
         ),
       ],

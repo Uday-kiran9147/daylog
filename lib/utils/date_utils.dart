@@ -63,3 +63,16 @@ Color dueDateColor(DateTime date, bool isCompleted, ColorScheme colorScheme) {
   }
   return colorScheme.onSurfaceVariant;
 }
+
+String formatTimeOfDay(DateTime d) {
+  final hour = d.hour % 12 == 0 ? 12 : d.hour % 12;
+  final minute = d.minute.toString().padLeft(2, '0');
+  final period = d.hour >= 12 ? 'PM' : 'AM';
+  return '$hour:$minute $period';
+}
+
+String formatTimeRange(DateTime start, DateTime? stop) {
+  final startStr = formatTimeOfDay(start);
+  if (stop == null) return '$startStr – Now';
+  return '$startStr – ${formatTimeOfDay(stop)}';
+}

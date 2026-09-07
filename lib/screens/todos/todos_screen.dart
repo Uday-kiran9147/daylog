@@ -3,20 +3,49 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/todo_entry.dart';
 import '../../providers/todo_provider.dart';
+import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
-import '../../widgets/notion_widgets.dart';
+import '../../widgets/daylog_widgets.dart';
 
-class TodosScreen extends ConsumerWidget {
+class TodosScreen extends ConsumerStatefulWidget {
   const TodosScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<TodosScreen> createState() => _TodosScreenState();
+}
+
+class _TodosScreenState extends ConsumerState<TodosScreen> {
+  bool _newTodoOpen = false;
+  final _newTodoController = TextEditingController();
+  bool _newTodoPriority = false;
+
+  @override
+  void dispose() {
+    _newTodoController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _addInlineTodo() async {
+    final text = _newTodoController.text.trim();
+    if (text.isEmpty) return;
+    await ref.read(todoProvider.notifier).addTodo(text, _newTodoPriority, null);
+    if (mounted) {
+      setState(() {
+        _newTodoController.clear();
+        _newTodoPriority = false;
+        _newTodoOpen = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final todosAsync = ref.watch(todoProvider);
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
     return Scaffold(
       body: SafeArea(
-        top: false,
         child: RefreshIndicator(
           onRefresh: () async {
             ref.invalidate(todoProvider);
@@ -24,28 +53,22 @@ class TodosScreen extends ConsumerWidget {
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              // Compact Header
-              NotionPageHeader(
-                icon: Icons.check_box_rounded,
+              // Page Header
+              DaylogPageHeader(
                 title: 'Action Items',
-                subtitle: 'Manage priorities, deadlines, and quick tasks.',
-                trailingActions: IconButton(
-                  icon: const Icon(Icons.add_rounded, size: 20),
-                  tooltip: 'Add Action Item',
-                  onPressed: () => showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    builder: (_) => const _AddTodoSheet(),
-                  ),
+                trailing: IconButton(
+                  icon: const Icon(Icons.add_rounded, size: 22),
+                  onPressed: () => _openAddTodoSheet(context),
+                  tooltip: 'Add action item',
                 ),
               ),
 
               Padding(
-                padding: const EdgeInsets.all(16),
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Dynamic Stats Row
+                    // Stats Row: Pending, Done, High Priority
                     todosAsync.when(
                       data: (todos) {
                         final pending = todos.where((t) => !t.isCompleted).length;
@@ -55,42 +78,264 @@ class TodosScreen extends ConsumerWidget {
                         return Row(
                           children: [
                             Expanded(
-                              child: _StatCard(
-                                label: 'Pending',
+                              child: DaylogStatCard(
+                                kicker: 'Pending',
                                 value: '$pending',
-                                icon: Icons.pending_actions_rounded,
+                                isAccent: true,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                               ),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 8),
                             Expanded(
-                              child: _StatCard(
-                                label: 'Completed',
+                              child: DaylogStatCard(
+                                kicker: 'Done',
                                 value: '$completed',
-                                icon: Icons.task_alt_rounded,
+                                isAccent: false,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                               ),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 8),
                             Expanded(
-                              child: _StatCard(
-                                label: 'High Priority',
+                              child: DaylogStatCard(
+                                kicker: 'Priority',
                                 value: '$highPriority',
-                                icon: Icons.priority_high_rounded,
-                                isWarning: highPriority > 0,
+                                isAccent: false,
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
                               ),
                             ),
                           ],
                         );
                       },
-                      loading: () => const SizedBox.shrink(),
+                      loading: () => const SizedBox(height: 70),
                       error: (_, __) => const SizedBox.shrink(),
                     ),
 
                     const SizedBox(height: 20),
 
-                    // Vertical Action Items Board
-                    const _TodosKanbanBoardSection(),
+                    // Todo Columns (Pending & Done)
+                    todosAsync.when(
+                      data: (todos) {
+                        final pendingTodos = todos.where((t) => !t.isCompleted).toList();
+                        final doneTodos = todos.where((t) => t.isCompleted).toList();
 
-                    const SizedBox(height: 80),
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // ── TO DO SECTION ────────────────────────────────
+                            Row(
+                              children: [
+                                Text(
+                                  'To do',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF332D2A) : const Color(0xFFE8DFD3),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    '${pendingTodos.length}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            if (pendingTodos.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Text(
+                                  'All caught up.',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              )
+                            else
+                              ...pendingTodos.map((todo) => _TodoItemCard(todo: todo)),
+
+                            // Inline New Todo Box or "+ Add item" Button
+                            if (_newTodoOpen) ...[
+                              const SizedBox(height: 8),
+                              Container(
+                                padding: const EdgeInsets.all(14),
+                                decoration: BoxDecoration(
+                                  color: theme.cardTheme.color,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
+                                ),
+                                child: Column(
+                                  children: [
+                                    TextField(
+                                      controller: _newTodoController,
+                                      autofocus: true,
+                                      textCapitalization: TextCapitalization.sentences,
+                                      decoration: const InputDecoration(
+                                        hintText: 'New action item',
+                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      ),
+                                      onSubmitted: (_) => _addInlineTodo(),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    InkWell(
+                                      onTap: () => setState(() => _newTodoPriority = !_newTodoPriority),
+                                      borderRadius: BorderRadius.circular(999),
+                                      child: AnimatedContainer(
+                                        duration: const Duration(milliseconds: 150),
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.symmetric(vertical: 8),
+                                        decoration: BoxDecoration(
+                                          color: _newTodoPriority
+                                              ? (isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100)
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.circular(999),
+                                          border: Border.all(
+                                            color: _newTodoPriority
+                                                ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
+                                                : theme.colorScheme.outlineVariant,
+                                            width: 1.0,
+                                          ),
+                                        ),
+                                        alignment: Alignment.center,
+                                        child: Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Icon(
+                                              Icons.flag_rounded,
+                                              size: 14,
+                                              color: _newTodoPriority
+                                                  ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent700)
+                                                  : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              'Flag high priority',
+                                              style: TextStyle(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: _newTodoPriority
+                                                    ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent700)
+                                                    : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    Row(
+                                      children: [
+                                        Expanded(
+                                          child: OutlinedButton(
+                                            onPressed: () => setState(() => _newTodoOpen = false),
+                                            style: OutlinedButton.styleFrom(
+                                              padding: const EdgeInsets.symmetric(vertical: 10),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                                              side: BorderSide(color: theme.colorScheme.outlineVariant),
+                                            ),
+                                            child: const Text('Cancel', style: TextStyle(fontSize: 13)),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                        Expanded(
+                                          child: FilledButton(
+                                            onPressed: _addInlineTodo,
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: theme.colorScheme.primary,
+                                              padding: const EdgeInsets.symmetric(vertical: 10),
+                                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                                            ),
+                                            child: const Text('Add', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold)),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ] else ...[
+                              const SizedBox(height: 6),
+                              OutlinedButton.icon(
+                                onPressed: () => setState(() => _newTodoOpen = true),
+                                style: OutlinedButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(vertical: 12),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                                  side: BorderSide(color: theme.colorScheme.outlineVariant),
+                                  foregroundColor: theme.colorScheme.onSurface,
+                                  backgroundColor: theme.cardTheme.color,
+                                  minimumSize: const Size(double.infinity, 44),
+                                ),
+                                icon: const Icon(Icons.add_rounded, size: 16),
+                                label: const Text('Add item', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                              ),
+                            ],
+
+                            const SizedBox(height: 24),
+
+                            // ── DONE SECTION ─────────────────────────────────
+                            Row(
+                              children: [
+                                Text(
+                                  'Done',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF332D2A) : const Color(0xFFE8DFD3),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                  child: Text(
+                                    '${doneTodos.length}',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+
+                            if (doneTodos.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                child: Text(
+                                  'Nothing finished yet.',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              )
+                            else
+                              ...doneTodos.map((todo) => _TodoItemCard(todo: todo)),
+
+                            const SizedBox(height: 100),
+                          ],
+                        );
+                      },
+                      loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
+                      error: (e, _) => Text('Error loading todos: $e'),
+                    ),
                   ],
                 ),
               ),
@@ -98,344 +343,163 @@ class TodosScreen extends ConsumerWidget {
           ),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => showModalBottomSheet(
-          context: context,
-          isScrollControlled: true,
-          builder: (_) => const _AddTodoSheet(),
-        ),
-        backgroundColor: theme.colorScheme.primary,
-        foregroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-        icon: const Icon(Icons.add_rounded, size: 20),
-        label: const Text('Add Task', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-      ),
+    );
+  }
+
+  void _openAddTodoSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => const _AddTodoSheet(),
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  final String label;
-  final String value;
-  final IconData icon;
-  final bool isWarning;
+/// Single Todo Card (Pending or Completed)
+class _TodoItemCard extends ConsumerWidget {
+  final TodoEntry todo;
 
-  const _StatCard({
-    required this.label,
-    required this.value,
-    required this.icon,
-    this.isWarning = false,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final color = isWarning ? theme.colorScheme.error : theme.colorScheme.primary;
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: isWarning
-            ? theme.colorScheme.errorContainer.withValues(alpha: 0.2)
-            : theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: isWarning
-              ? theme.colorScheme.error.withValues(alpha: 0.3)
-              : theme.colorScheme.outlineVariant,
-          width: 0.5,
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isWarning ? theme.colorScheme.error : theme.colorScheme.onSurface,
-                ),
-              ),
-              Icon(icon, size: 14, color: color.withValues(alpha: 0.8)),
-            ],
-          ),
-          const SizedBox(height: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: isWarning ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Vertically Scrolling Action Items Kanban Board
-class _TodosKanbanBoardSection extends ConsumerWidget {
-  const _TodosKanbanBoardSection();
+  const _TodoItemCard({required this.todo});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final todosAsync = ref.watch(todoProvider);
-
-    return todosAsync.when(
-      data: (todos) {
-        final pending = todos.where((t) => !t.isCompleted).toList();
-        final completed = todos.where((t) => t.isCompleted).toList();
-
-        return LayoutBuilder(
-          builder: (context, constraints) {
-            final isWide = constraints.maxWidth > 600;
-
-            if (isWide) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: _buildColumn(
-                      context,
-                      ref,
-                      title: 'To Do',
-                      count: pending.length,
-                      color: Theme.of(context).colorScheme.primary,
-                      items: pending,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: _buildColumn(
-                      context,
-                      ref,
-                      title: 'Done',
-                      count: completed.length,
-                      color: Colors.green,
-                      items: completed,
-                    ),
-                  ),
-                ],
-              );
-            }
-
-            return Column(
-              children: [
-                _buildColumn(
-                  context,
-                  ref,
-                  title: 'To Do',
-                  count: pending.length,
-                  color: Theme.of(context).colorScheme.primary,
-                  items: pending,
-                ),
-                const SizedBox(height: 16),
-                _buildColumn(
-                  context,
-                  ref,
-                  title: 'Done',
-                  count: completed.length,
-                  color: Colors.green,
-                  items: completed,
-                ),
-              ],
-            );
-          },
-        );
-      },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (e, _) => Center(child: Text('Error loading tasks: $e')),
-    );
-  }
-
-  Widget _buildColumn(
-    BuildContext context,
-    WidgetRef ref, {
-    required String title,
-    required int count,
-    required Color color,
-    required List<TodoEntry> items,
-  }) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final isOverdue = todo.dueDate != null &&
+        todo.dueDate!.isBefore(DateTime.now()) &&
+        !todo.isCompleted;
 
     return Container(
-      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
+        color: theme.cardTheme.color,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onSurface,
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '$count',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
+          // Checkbox toggle
+          InkWell(
+            onTap: () => ref.read(todoProvider.notifier).toggleTodoCompletion(todo.id),
+            borderRadius: BorderRadius.circular(6),
+            child: Container(
+              width: 20,
+              height: 20,
+              margin: const EdgeInsets.only(top: 2, right: 10),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(6),
+                color: todo.isCompleted ? DaylogColors.sage : Colors.transparent,
+                border: Border.all(
+                  color: todo.isCompleted ? DaylogColors.sage : theme.colorScheme.outlineVariant,
+                  width: 1.5,
                 ),
               ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          if (items.isEmpty)
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Center(
-                child: Text(
-                  title == 'To Do' ? 'No pending tasks!' : 'No completed tasks yet.',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-                  ),
-                ),
-              ),
-            )
-          else
-            Column(
-              children: items.map((todo) => _buildTodoCard(context, ref, todo)).toList(),
+              child: todo.isCompleted
+                  ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                  : null,
             ),
-        ],
-      ),
-    );
-  }
+          ),
 
-  Widget _buildTodoCard(BuildContext context, WidgetRef ref, TodoEntry todo) {
-    final theme = Theme.of(context);
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(8),
-        side: BorderSide(
-          color: todo.isHighPriority && !todo.isCompleted
-              ? theme.colorScheme.error.withValues(alpha: 0.5)
-              : theme.colorScheme.outlineVariant,
-          width: todo.isHighPriority && !todo.isCompleted ? 1.0 : 0.5,
-        ),
-      ),
-      child: InkWell(
-        onTap: () => ref.read(todoProvider.notifier).toggleTodoCompletion(todo.id),
-        borderRadius: BorderRadius.circular(8),
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Row(
-            children: [
-              Checkbox(
-                value: todo.isCompleted,
-                onChanged: (_) => ref.read(todoProvider.notifier).toggleTodoCompletion(todo.id),
-                activeColor: Colors.green,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                visualDensity: VisualDensity.compact,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      todo.title,
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                        decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
-                        color: todo.isCompleted
-                            ? theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6)
-                            : theme.colorScheme.onSurface,
-                      ),
-                    ),
-                    if (todo.dueDate != null) ...[
-                      const SizedBox(height: 2),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.event_outlined,
-                            size: 11,
-                            color: todo.dueDate!.isBefore(DateTime.now()) && !todo.isCompleted
-                                ? theme.colorScheme.error
-                                : theme.colorScheme.onSurfaceVariant,
+          // Title and tags
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  todo.title,
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w500,
+                    decoration: todo.isCompleted ? TextDecoration.lineThrough : null,
+                    color: todo.isCompleted
+                        ? theme.colorScheme.onSurface.withValues(alpha: 0.55)
+                        : theme.colorScheme.onSurface,
+                  ),
+                ),
+                if (!todo.isCompleted && (todo.isHighPriority || todo.dueDate != null)) ...[
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    children: [
+                      if (todo.isHighPriority)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100,
+                            borderRadius: BorderRadius.circular(999),
                           ),
-                          const SizedBox(width: 4),
-                          Text(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.flag_rounded,
+                                size: 10,
+                                color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'High priority',
+                                style: TextStyle(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (todo.dueDate != null)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isOverdue
+                                ? (isDark ? const Color(0xFF4D1707) : DaylogColors.accent200)
+                                : (isDark ? const Color(0xFF332D2A) : const Color(0xFFE8DFD3)),
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
                             friendlyDate(todo.dueDate!),
                             style: TextStyle(
-                              fontSize: 10,
-                              color: todo.dueDate!.isBefore(DateTime.now()) && !todo.isCompleted
-                                  ? theme.colorScheme.error
-                                  : theme.colorScheme.onSurfaceVariant,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w600,
+                              color: isOverdue
+                                  ? (isDark ? DaylogColors.accent200 : DaylogColors.accent800)
+                                  : theme.colorScheme.onSurface.withValues(alpha: 0.7),
                             ),
                           ),
-                        ],
-                      ),
+                        ),
                     ],
-                  ],
-                ),
-              ),
-              if (todo.isHighPriority && !todo.isCompleted)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  margin: const EdgeInsets.only(right: 4),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.errorContainer,
-                    borderRadius: BorderRadius.circular(4),
                   ),
-                  child: Text(
-                    'HIGH',
-                    style: TextStyle(
-                      fontSize: 9,
-                      fontWeight: FontWeight.bold,
-                      color: theme.colorScheme.onErrorContainer,
-                    ),
-                  ),
-                ),
-              IconButton(
-                icon: Icon(Icons.delete_outline_rounded, size: 18, color: theme.colorScheme.onSurfaceVariant),
-                onPressed: () => ref.read(todoProvider.notifier).deleteTodo(todo.id),
-              ),
-            ],
+                ],
+              ],
+            ),
           ),
-        ),
+
+          // Delete Action
+          InkWell(
+            onTap: () => ref.read(todoProvider.notifier).deleteTodo(todo.id),
+            borderRadius: BorderRadius.circular(999),
+            child: Padding(
+              padding: const EdgeInsets.all(4.0),
+              child: Icon(
+                Icons.delete_outline_rounded,
+                size: 16,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
+/// Modal Sheet to Add Action Item
 class _AddTodoSheet extends ConsumerStatefulWidget {
   const _AddTodoSheet();
 
@@ -457,118 +521,170 @@ class _AddTodoSheetState extends ConsumerState<_AddTodoSheet> {
   Future<void> _submit() async {
     final title = _controller.text.trim();
     if (title.isEmpty) return;
-
-    await ref.read(todoProvider.notifier).addTodo(
-      title,
-      _isHighPriority,
-      _dueDate,
-    );
-
-    if (mounted) Navigator.pop(context);
+    await ref.read(todoProvider.notifier).addTodo(title, _isHighPriority, _dueDate);
+    if (mounted) Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
 
-    return Padding(
+    return Container(
+      decoration: BoxDecoration(
+        color: theme.scaffoldBackgroundColor,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        boxShadow: const [
+          BoxShadow(color: Color(0x33000000), blurRadius: 20, offset: Offset(0, -4)),
+        ],
+      ),
       padding: EdgeInsets.fromLTRB(
-        20, 20, 20, MediaQuery.of(context).viewInsets.bottom + 24,
+        20,
+        14,
+        20,
+        MediaQuery.of(context).viewInsets.bottom + 24,
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text('Add Action Item', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-              IconButton(
-                icon: const Icon(Icons.close_rounded),
-                onPressed: () => Navigator.pop(context),
+          Center(
+            child: Container(
+              width: 38,
+              height: 4,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
               ),
-            ],
+            ),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 14),
+          Text(
+            'New action item',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 14),
           TextField(
             controller: _controller,
             autofocus: true,
-            decoration: const InputDecoration(
-              hintText: 'What needs to be done?',
-              prefixIcon: Icon(Icons.playlist_add_check_rounded),
-            ),
             textCapitalization: TextCapitalization.sentences,
-            keyboardType: TextInputType.text,
+            decoration: const InputDecoration(hintText: 'What needs to be done?'),
             onSubmitted: (_) => _submit(),
           ),
-          const SizedBox(height: 16),
-          SwitchListTile.adaptive(
-            title: Row(
-              children: [
-                Icon(
-                  Icons.priority_high_rounded,
-                  color: _isHighPriority ? theme.colorScheme.error : theme.colorScheme.outline,
+          const SizedBox(height: 12),
+          InkWell(
+            onTap: () => setState(() => _isHighPriority = !_isHighPriority),
+            borderRadius: BorderRadius.circular(999),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 10),
+              decoration: BoxDecoration(
+                color: _isHighPriority
+                    ? (isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(999),
+                border: Border.all(
+                  color: _isHighPriority
+                      ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
+                      : theme.colorScheme.outlineVariant,
+                  width: 1.0,
                 ),
-                const SizedBox(width: 8),
-                const Text('High Priority', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w500)),
-              ],
-            ),
-            value: _isHighPriority,
-            onChanged: (val) => setState(() => _isHighPriority = val),
-            activeTrackColor: theme.colorScheme.error,
-            contentPadding: EdgeInsets.zero,
-          ),
-          const SizedBox(height: 8),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              Icons.calendar_today_rounded,
-              color: _dueDate != null ? theme.colorScheme.primary : theme.colorScheme.outline,
-            ),
-            title: Text(
-              _dueDate == null ? 'Set Due Date' : friendlyDate(_dueDate!),
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: _dueDate != null ? FontWeight.bold : FontWeight.normal,
-                color: _dueDate != null ? theme.colorScheme.primary : theme.colorScheme.onSurface,
+              ),
+              alignment: Alignment.center,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.flag_rounded,
+                    size: 16,
+                    color: _isHighPriority
+                        ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent700)
+                        : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Flag high priority',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: _isHighPriority
+                          ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent700)
+                          : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ],
               ),
             ),
-            trailing: _dueDate != null
-                ? IconButton(
-                    icon: const Icon(Icons.clear_rounded, size: 18),
-                    onPressed: () => setState(() => _dueDate = null),
-                  )
-                : null,
+          ),
+          const SizedBox(height: 12),
+          InkWell(
             onTap: () async {
               final picked = await showDatePicker(
                 context: context,
                 initialDate: _dueDate ?? DateTime.now(),
-                firstDate: DateTime.now(),
+                firstDate: DateTime.now().subtract(const Duration(days: 30)),
                 lastDate: DateTime.now().add(const Duration(days: 365)),
               );
-              if (picked != null) {
-                setState(() => _dueDate = picked);
-              }
+              if (picked != null) setState(() => _dueDate = picked);
             },
+            borderRadius: BorderRadius.circular(12),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: theme.cardTheme.color,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
+              ),
+              child: Row(
+                children: [
+                  Icon(Icons.calendar_today_rounded, size: 16, color: theme.colorScheme.primary),
+                  const SizedBox(width: 8),
+                  Text(
+                    _dueDate == null ? 'Set due date' : friendlyDate(_dueDate!),
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500, color: theme.colorScheme.onSurface),
+                  ),
+                  const Spacer(),
+                  if (_dueDate != null)
+                    InkWell(
+                      onTap: () => setState(() => _dueDate = null),
+                      child: const Icon(Icons.clear_rounded, size: 16),
+                    ),
+                ],
+              ),
+            ),
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ValueListenableBuilder<TextEditingValue>(
-              valueListenable: _controller,
-              builder: (context, value, _) {
-                final isEnabled = value.text.trim().isNotEmpty;
-                return FilledButton(
-                  onPressed: isEnabled ? _submit : null,
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                    side: BorderSide(color: theme.colorScheme.outlineVariant),
+                  ),
+                  child: const Text('Cancel', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _submit,
                   style: FilledButton.styleFrom(
                     backgroundColor: theme.colorScheme.primary,
                     padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                   ),
-                  child: const Text('Add Task', style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
-                );
-              },
-            ),
+                  child: const Text('Add', style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -1,116 +1,113 @@
 // lib/screens/journal/journal_history_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../app.dart';
 import '../../models/journal_entry.dart';
 import '../../providers/journal_provider.dart';
 import '../../utils/date_utils.dart';
+import '../../widgets/daylog_widgets.dart';
 
 class JournalHistoryScreen extends ConsumerWidget {
   const JournalHistoryScreen({super.key});
 
   void _showEntryDetail(BuildContext context, WidgetRef ref, JournalEntry entry) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    DateTime? entryDate;
+    try {
+      entryDate = DateTime.parse(entry.dayKey);
+    } catch (_) {
+      entryDate = entry.createdAt;
+    }
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        backgroundColor: theme.cardTheme.color,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
         title: Text(
-          friendlyDate(entry.createdAt),
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          friendlyDate(entryDate!),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+          ),
         ),
         content: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _sectionHeader(theme, 'What did you do today?'),
-              const SizedBox(height: 6),
-              Text(entry.shipped, style: const TextStyle(fontSize: 14)),
-              const SizedBox(height: 16),
-              _sectionHeader(theme, 'What slowed you down?'),
-              const SizedBox(height: 6),
-              Text(
-                entry.blockers.isNotEmpty ? entry.blockers : 'None',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: entry.blockers.isNotEmpty ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                  fontStyle: entry.blockers.isNotEmpty ? FontStyle.normal : FontStyle.italic,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _sectionHeader(theme, 'What did you improve today?'),
-              const SizedBox(height: 6),
-              Text(
-                entry.improved.isNotEmpty ? entry.improved : 'None',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: entry.improved.isNotEmpty ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                  fontStyle: entry.improved.isNotEmpty ? FontStyle.normal : FontStyle.italic,
-                ),
-              ),
-              const SizedBox(height: 16),
-              _sectionHeader(theme, 'What\'s the priority tomorrow?'),
-              const SizedBox(height: 6),
-              Text(
-                entry.tomorrow.isNotEmpty ? entry.tomorrow : 'None',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: entry.tomorrow.isNotEmpty ? theme.colorScheme.onSurface : theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.6),
-                  fontStyle: entry.tomorrow.isNotEmpty ? FontStyle.normal : FontStyle.italic,
-                ),
-              ),
               if (entry.totalTrackedSeconds > 0) ...[
-                const SizedBox(height: 20),
-                const Divider(),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Icon(Icons.timer_outlined, size: 16, color: theme.colorScheme.primary),
-                    const SizedBox(width: 6),
-                    Text(
-                      '${formatDuration(entry.totalTrackedSeconds)} tracked',
-                      style: TextStyle(fontSize: 13, color: theme.colorScheme.primary, fontWeight: FontWeight.w500),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF332D2A) : const Color(0xFFE8DFD3),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    formatDuration(entry.totalTrackedSeconds),
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
                     ),
-                  ],
+                  ),
                 ),
+                const SizedBox(height: 12),
               ],
+              _buildModalSection(theme, 'Shipped', entry.shipped),
+              const SizedBox(height: 12),
+              _buildModalSection(theme, 'Blockers', entry.blockers.isNotEmpty ? entry.blockers : '—'),
+              const SizedBox(height: 12),
+              _buildModalSection(theme, 'Improved', entry.improved.isNotEmpty ? entry.improved : '—'),
+              const SizedBox(height: 12),
+              _buildModalSection(theme, 'Tomorrow', entry.tomorrow.isNotEmpty ? entry.tomorrow : '—'),
             ],
           ),
         ),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.of(context).pop(),
             child: const Text('Close'),
           ),
-          TextButton.icon(
+          FilledButton(
             onPressed: () {
-              try {
-                final parsedDate = DateTime.parse(entry.dayKey);
-                ref.read(selectedJournalDateProvider.notifier).state = parsedDate;
-              } catch (_) {
-                ref.read(selectedJournalDateProvider.notifier).state = entry.createdAt;
-              }
-              ref.read(navigationIndexProvider.notifier).state = 2;
-              Navigator.pop(context); // Close dialog
-              Navigator.pop(context); // Close history screen
+              ref.read(selectedJournalDateProvider.notifier).state = entryDate!;
+              Navigator.of(context).pop(); // Close dialog
+              Navigator.of(context).pop(); // Go back to journal screen
             },
-            icon: const Icon(Icons.open_in_new_rounded, size: 16),
-            label: const Text('View/Edit'),
+            style: FilledButton.styleFrom(
+              backgroundColor: theme.colorScheme.primary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+            ),
+            child: const Text('Edit entry', style: TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
     );
   }
 
-  Widget _sectionHeader(ThemeData theme, String title) {
-    return Text(
-      title,
-      style: TextStyle(
-        fontSize: 12,
-        fontWeight: FontWeight.bold,
-        color: theme.colorScheme.primary,
-        letterSpacing: 0.5,
-      ),
+  Widget _buildModalSection(ThemeData theme, String title, String content) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          content,
+          style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface),
+        ),
+      ],
     );
   }
 
@@ -120,93 +117,102 @@ class JournalHistoryScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Journal History'),
-      ),
-      body: journalsAsync.when(
-        data: (journals) {
-          if (journals.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.history_edu_outlined, size: 48, color: theme.colorScheme.outline),
-                  const SizedBox(height: 12),
-                  Text(
-                    'No journals logged yet',
-                    style: TextStyle(fontSize: 16, color: theme.colorScheme.onSurfaceVariant),
-                  ),
-                ],
-              ),
-            );
-          }
+      body: SafeArea(
+        child: Column(
+          children: [
+            DaylogPageHeader(
+              title: 'Journal History',
+              showBackButton: true,
+              onBack: () => Navigator.of(context).pop(),
+            ),
+            Expanded(
+              child: journalsAsync.when(
+                data: (journals) {
+                  final withContent = journals.where((j) => j.shipped.isNotEmpty).toList();
 
-          return ListView.builder(
-            padding: const EdgeInsets.all(16),
-            itemCount: journals.length,
-            itemBuilder: (context, index) {
-              final entry = journals[index];
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () => _showEntryDetail(context, ref, entry),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                friendlyDate(entry.createdAt),
-                                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
-                              ),
-                              if (entry.totalTrackedSeconds > 0)
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: theme.colorScheme.primaryContainer,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    formatDuration(entry.totalTrackedSeconds),
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: theme.colorScheme.onPrimaryContainer,
+                  if (withContent.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No reflections logged yet.',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    itemCount: withContent.length,
+                    itemBuilder: (context, index) {
+                      final entry = withContent[index];
+                      DateTime? entryDate;
+                      try {
+                        entryDate = DateTime.parse(entry.dayKey);
+                      } catch (_) {
+                        entryDate = entry.createdAt;
+                      }
+
+                      return Container(
+                        margin: const EdgeInsets.only(bottom: 10),
+                        child: InkWell(
+                          onTap: () => _showEntryDetail(context, ref, entry),
+                          borderRadius: BorderRadius.circular(18),
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: theme.cardTheme.color,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      friendlyDate(entryDate),
+                                      style: TextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.bold,
+                                        color: theme.colorScheme.onSurface,
+                                      ),
                                     ),
+                                    if (entry.totalTrackedSeconds > 0)
+                                      Text(
+                                        formatDuration(entry.totalTrackedSeconds),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                        ),
+                                      ),
+                                  ],
+                                ),
+                                const SizedBox(height: 6),
+                                Text(
+                                  entry.shipped,
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
                                   ),
                                 ),
-                            ],
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 10),
-                          Text(
-                            entry.shipped,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          );
-        },
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (e, _) => Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Text(
-              'failed to load journals: $e',
-              style: TextStyle(color: theme.colorScheme.error),
+                        ),
+                      );
+                    },
+                  );
+                },
+                loading: () => const Center(child: CircularProgressIndicator()),
+                error: (e, _) => Center(child: Text('Error: $e')),
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

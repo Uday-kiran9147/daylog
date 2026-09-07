@@ -1,3 +1,4 @@
+// lib/screens/stats/stats_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/stats_provider.dart';
@@ -5,7 +6,7 @@ import '../../providers/journal_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
-import '../../widgets/notion_widgets.dart';
+import '../../widgets/daylog_widgets.dart';
 
 class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
@@ -13,9 +14,9 @@ class StatsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final statsAsync = ref.watch(weekStatsProvider);
     final journalsAsync = ref.watch(weekJournalsProvider);
-    final todayTasksAsync = ref.watch(todayTasksProvider);
     final activeTaskAsync = ref.watch(activeTaskProvider);
 
     final activeTask = activeTaskAsync.valueOrNull;
@@ -23,27 +24,17 @@ class StatsScreen extends ConsumerWidget {
       ref.watch(appTickerProvider);
     }
 
-    // ── TODAY STATS CALCULATIONS ─────────────────────────────────────────────
-    final todayTasks = todayTasksAsync.valueOrNull ?? [];
-    final todayCategoryTotals = <String, int>{};
-    int todayTotalSeconds = 0;
-    int todayTasksLoggedCount = 0;
-
-    for (final t in todayTasks) {
-      final duration = t.isRunning ? t.currentElapsedSeconds : t.durationSeconds;
-      todayCategoryTotals[t.category] = (todayCategoryTotals[t.category] ?? 0) + duration;
-      todayTotalSeconds += duration;
-      if (!t.isRunning) {
-        todayTasksLoggedCount++;
-      }
-    }
+    // Compute date subtitle for the current week
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final endOfWeek = startOfWeek.add(const Duration(days: 6));
+    final weekSubtitle = 'Week of ${startOfWeek.day}–${endOfWeek.day} ${friendlyDate(startOfWeek).split(', ').last.split(' ').last}';
 
     return Scaffold(
       body: SafeArea(
-        top: false,
         child: statsAsync.when(
           data: (stats) {
-            final todayKeyStr = dayKey(DateTime.now());
+            final todayKeyStr = dayKey(now);
             final processedStats = stats.map((s) {
               if (s.dayKey == todayKeyStr && activeTask != null && !activeTask.isPaused) {
                 final activeSeconds = activeTask.currentElapsedSeconds;
@@ -60,159 +51,116 @@ class StatsScreen extends ConsumerWidget {
 
             final maxSeconds = processedStats.fold<int>(1, (m, s) => s.totalSeconds > m ? s.totalSeconds : m);
 
+            // Weekly category totals
             final categoryTotals = <String, int>{};
             for (final s in processedStats) {
               for (final e in s.byCategory.entries) {
                 categoryTotals[e.key] = (categoryTotals[e.key] ?? 0) + e.value;
               }
             }
-            final topCategory = categoryTotals.isEmpty
-                ? null
-                : categoryTotals.entries.reduce((a, b) => a.value > b.value ? a : b).key;
 
             final totalWeekSeconds = processedStats.fold<int>(0, (sum, s) => sum + s.totalSeconds);
-            final percentage = totalWeekSeconds > 0 && topCategory != null
-                ? ((categoryTotals[topCategory]! / totalWeekSeconds) * 100).round()
+            final totalWeekHours = (totalWeekSeconds / 3600.0).toStringAsFixed(1);
+
+            final sortedCategories = categoryTotals.entries.toList()
+              ..sort((a, b) => b.value.compareTo(a.value));
+
+            final topCategory = sortedCategories.isNotEmpty ? sortedCategories.first : null;
+            final topCategoryHours = topCategory != null
+                ? (topCategory.value / 3600.0).toStringAsFixed(1)
+                : '0.0';
+            final topCategoryPct = (totalWeekSeconds > 0 && topCategory != null)
+                ? ((topCategory.value / totalWeekSeconds) * 100).round()
                 : 0;
 
-            return ListView(
-              padding: EdgeInsets.zero,
-              children: [
-                // Compact Header
-                const NotionPageHeader(
-                  icon: Icons.insights_rounded,
-                  title: 'Focus Analytics',
-                  subtitle: 'Focus time, category distribution, and weekly habit consistency.',
-                ),
+            final insightText = topCategory != null && totalWeekSeconds > 0
+                ? '${capitalizeCategory(topCategory.key)} took up the biggest share of your week — ${topCategoryHours}h of ${totalWeekHours}h ($topCategoryPct%).'
+                : 'Start tracking tasks this week to unlock personalized focus insights.';
 
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // ── TODAY SECTION ────────────────────────────────────────────────
-                      Text(
-                        'TODAY',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _StatBox(
-                              label: 'Tracked Today',
-                              value: formatDuration(todayTotalSeconds),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _StatBox(
-                              label: 'Tasks Logged',
-                              value: todayTasksLoggedCount.toString(),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      if (todayCategoryTotals.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            'No tasks logged today yet.',
-                            style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
-                          ),
-                        )
-                      else
-                        ...todayCategoryTotals.entries.map((e) => CategoryProgressBar(
-                              category: e.key,
-                              seconds: e.value,
-                              totalSeconds: todayTotalSeconds,
-                            )),
+            final weekDayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
-                      const SizedBox(height: 18),
-                      Divider(color: theme.colorScheme.outlineVariant, thickness: 0.5),
-                      const SizedBox(height: 14),
+            return RefreshIndicator(
+              onRefresh: () async {
+                ref.invalidate(weekStatsProvider);
+                ref.invalidate(weekJournalsProvider);
+              },
+              child: ListView(
+                padding: EdgeInsets.zero,
+                children: [
+                  // Page Header
+                  DaylogPageHeader(
+                    title: 'Insights',
+                    subtitle: weekSubtitle,
+                  ),
 
-                      // ── THIS WEEK SECTION ────────────────────────────────────────────
-                      Text(
-                        'THIS WEEK',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.primary,
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _StatBox(
-                              label: 'Total Tracked',
-                              value: formatDuration(totalWeekSeconds),
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _StatBox(
-                              label: 'Days Journaled',
-                              value: journalsAsync.when(
-                                data: (journals) => '${journals.length} / 7',
-                                loading: () => '--',
-                                error: (_, __) => '--',
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Stat Cards: This Week (Hours) + Days Journaled
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DaylogStatCard(
+                                kicker: 'This week',
+                                value: '${totalWeekHours}h',
+                                isAccent: true,
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 18),
-
-                      // Bar Chart Box with Non-Clipping FittedBox Duration Labels
-                      Text('Daily Hours', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color: theme.colorScheme.surfaceContainer,
-                          borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: DaylogStatCard(
+                                kicker: 'Days journaled',
+                                value: journalsAsync.when(
+                                  data: (j) => '${j.where((e) => e.shipped.isNotEmpty).length}/7',
+                                  loading: () => '--/7',
+                                  error: (_, __) => '--/7',
+                                ),
+                                isAccent: false,
+                              ),
+                            ),
+                          ],
                         ),
-                        child: SizedBox(
-                          height: 150,
+
+                        const SizedBox(height: 24),
+
+                        // Focus Hours by Day Section
+                        Text(
+                          'Focus hours by day',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+
+                        // Vertical Bar Chart
+                        Container(
+                          height: 160,
+                          padding: const EdgeInsets.only(top: 8, bottom: 4),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.end,
-                            children: processedStats.map((s) {
+                            children: List.generate(processedStats.length, (i) {
+                              final s = processedStats[i];
+                              final isToday = s.dayKey == todayKeyStr;
                               final ratio = maxSeconds > 0 ? (s.totalSeconds / maxSeconds) : 0.0;
-                              final dayLabel = s.dayKey.split('-').last;
-                              final isToday = s.dayKey == dayKey(DateTime.now());
+                              final hours = (s.totalSeconds / 3600.0).toStringAsFixed(1);
+                              final dayName = i < weekDayLabels.length ? weekDayLabels[i] : '';
+
                               return Expanded(
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                                  padding: const EdgeInsets.symmetric(horizontal: 3),
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
-                                      SizedBox(
-                                        height: 18,
-                                        child: s.totalSeconds > 0
-                                            ? FittedBox(
-                                                fit: BoxFit.scaleDown,
-                                                alignment: Alignment.bottomCenter,
-                                                child: Text(
-                                                  formatDuration(s.totalSeconds),
-                                                  style: TextStyle(
-                                                    fontSize: 10,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: theme.colorScheme.onSurfaceVariant,
-                                                  ),
-                                                ),
-                                              )
-                                            : null,
+                                      Text(
+                                        '${hours}h',
+                                        style: TextStyle(
+                                          fontSize: 10,
+                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                        ),
                                       ),
                                       const SizedBox(height: 4),
                                       Expanded(
@@ -220,194 +168,160 @@ class StatsScreen extends ConsumerWidget {
                                           alignment: Alignment.bottomCenter,
                                           child: AnimatedContainer(
                                             duration: const Duration(milliseconds: 400),
-                                            height: ratio == 0 ? 4.0 : (80.0 * ratio),
+                                            height: ratio == 0 ? 4.0 : (85.0 * ratio),
                                             decoration: BoxDecoration(
-                                              color: ratio == 0
-                                                  ? theme.colorScheme.outlineVariant
-                                                  : theme.colorScheme.primary,
-                                              borderRadius: const BorderRadius.only(
-                                                topLeft: Radius.circular(3),
-                                                topRight: Radius.circular(3),
-                                              ),
+                                              color: isToday
+                                                  ? theme.colorScheme.primary
+                                                  : (isDark ? DaylogColors.darkAccent100 : DaylogColors.accent200),
+                                              borderRadius: const BorderRadius.vertical(top: Radius.circular(8), bottom: Radius.circular(3)),
                                             ),
                                           ),
                                         ),
                                       ),
                                       const SizedBox(height: 6),
                                       Text(
-                                        dayLabel,
+                                        dayName,
                                         style: TextStyle(
                                           fontSize: 11,
-                                          fontWeight: isToday ? FontWeight.bold : FontWeight.w400,
-                                          color: isToday ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                                          fontWeight: isToday ? FontWeight.bold : FontWeight.w500,
+                                          color: isToday
+                                              ? theme.colorScheme.onSurface
+                                              : theme.colorScheme.onSurface.withValues(alpha: 0.55),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ),
                               );
-                            }).toList(),
+                            }),
                           ),
                         ),
-                      ),
 
-                      const SizedBox(height: 20),
-                      Text('Weekly Category Breakdown', style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: theme.colorScheme.onSurface)),
-                      const SizedBox(height: 10),
-                      if (categoryTotals.isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          child: Text(
-                            'No tasks tracked this week.',
-                            style: TextStyle(fontSize: 12, color: theme.colorScheme.onSurfaceVariant),
+                        const SizedBox(height: 24),
+
+                        // Category Distribution Progress Bars
+                        Text(
+                          'By category this week',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                           ),
-                        )
-                      else
-                        ...categoryTotals.entries.map((e) => CategoryProgressBar(
-                              category: e.key,
-                              seconds: e.value,
-                              totalSeconds: totalWeekSeconds,
-                            )),
+                        ),
+                        const SizedBox(height: 12),
 
-                      if (topCategory != null) ...[
+                        if (sortedCategories.isEmpty)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Text(
+                              'No focus logs tracked this week.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          )
+                        else
+                          ...sortedCategories.take(5).map((e) {
+                            final hoursStr = (e.value / 3600.0).toStringAsFixed(1);
+                            final pct = totalWeekSeconds > 0
+                                ? ((e.value / totalWeekSeconds) * 100).round()
+                                : 0;
+                            final ratio = totalWeekSeconds > 0 ? (e.value / totalWeekSeconds) : 0.0;
+
+                            return Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      CategoryTag(category: e.key, isDark: isDark),
+                                      Text(
+                                        '${hoursStr}h · $pct%',
+                                        style: TextStyle(
+                                          fontSize: 12,
+                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    height: 8,
+                                    width: double.infinity,
+                                    decoration: BoxDecoration(
+                                      color: isDark ? const Color(0xFF332D2A) : const Color(0xFFE8DFD3),
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    alignment: Alignment.centerLeft,
+                                    child: FractionallySizedBox(
+                                      widthFactor: ratio.clamp(0.0, 1.0),
+                                      child: Container(
+                                        decoration: BoxDecoration(
+                                          color: theme.colorScheme.primary,
+                                          borderRadius: BorderRadius.circular(999),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }),
+
                         const SizedBox(height: 16),
-                        NotionCallout(
-                          icon: Icons.lightbulb_outline_rounded,
-                          title: 'Weekly Insight',
-                          subtitle: totalWeekSeconds == 0
-                              ? 'Start tracking to see insights'
-                              : '${capitalizeCategory(topCategory)} work takes up $percentage% of your tracked focus this week.',
+
+                        // Insight Callout Card
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                              color: isDark
+                                  ? DaylogColors.darkAccent.withValues(alpha: 0.3)
+                                  : DaylogColors.accent.withValues(alpha: 0.2),
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Insight',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                insightText,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.onSurface,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
+
+                        const SizedBox(height: 100),
                       ],
-                      const SizedBox(height: 80),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (e, _) => Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Text('Failed to load stats: $e', style: TextStyle(color: theme.colorScheme.error)),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class CategoryProgressBar extends StatelessWidget {
-  final String category;
-  final int seconds;
-  final int totalSeconds;
-
-  const CategoryProgressBar({
-    super.key,
-    required this.category,
-    required this.seconds,
-    required this.totalSeconds,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final percent = totalSeconds > 0 ? seconds / totalSeconds : 0.0;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 6),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: BoxDecoration(
-                      color: categoryColor(category),
-                      shape: BoxShape.circle,
                     ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    capitalizeCategory(category),
-                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
                   ),
                 ],
               ),
-              Text(
-                '${formatDuration(seconds)} (${(percent * 100).round()}%)',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: percent,
-              backgroundColor: theme.colorScheme.outlineVariant.withValues(alpha: 0.3),
-              valueColor: AlwaysStoppedAnimation<Color>(categoryColor(category)),
-              minHeight: 6,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StatBox extends StatelessWidget {
-  final String label;
-  final String value;
-  const _StatBox({required this.label, required this.value});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: theme.colorScheme.surfaceContainer,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: theme.colorScheme.outlineVariant, width: 0.5),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            alignment: Alignment.centerLeft,
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.onSurface,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w500,
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+            );
+          },
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (e, _) => Center(child: Text('Error: $e')),
+        ),
       ),
     );
   }

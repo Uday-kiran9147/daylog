@@ -1,144 +1,483 @@
 // lib/utils/constants.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-// ── categories ───────────────────────────────────────────────────────────────
+// ── Organic Warm Color Tokens ────────────────────────────────────────────────
 
-const kCategories = ['learning', 'dsa', 'system design', 'content', 'play time', 'job hunt', 'other'];
+class DaylogColors {
+  // Light Mode Canvas & Surfaces
+  static const lightBg = Color(0xFFF5EAD8); // Warm cream canvas
+  static const lightSurface = Color(0xFFEBDDC5); // Warm parchment surface
+  static const lightCard = Color(0xFFFFF9F0); // Card container
+  static const lightText = Color(0xFF201E1D); // Warm espresso text
+  static const lightDivider = Color(0x29201E1D); // ~16% opacity divider
 
-const kCategoryColors = <String, Color>{
-  'learning': Color(0xFF2383E2),
-  'dsa': Color(0xFF00A3A6),
-  'system design': Color(0xFFD9534F),
-  'content': Color(0xFFD97706),
-  'play time': Color(0xFF0F7B6C),
-  'job hunt': Color(0xFFC026D3),
-  'other': Color(0xFF6B7280),
-};
+  // Accent Terracotta (Primary)
+  static const accent = Color(0xFFC85A32); // Vibrant terracotta
+  static const accent100 = Color(0xFFF8E4DC); // Soft peach wash
+  static const accent200 = Color(0xFFEDBFA8);
+  static const accent300 = Color(0xFFE09A7A);
+  static const accent400 = Color(0xFFD47551);
+  static const accent500 = Color(0xFFC85A32);
+  static const accent600 = Color(0xFFB04823);
+  static const accent700 = Color(0xFFA83B19); // Deep terracotta
+  static const accent800 = Color(0xFF7A280F); // Very deep rust
+  static const accent900 = Color(0xFF4D1707);
 
-// Notion Pastel Tag Color Tokens (Background & Text)
-class NotionCategoryStyle {
-  final Color bgLight;
-  final Color textLight;
-  final Color bgDark;
-  final Color textDark;
+  // Accent Sage Green (Secondary / Accent-2)
+  static const sage = Color(0xFF4A7C59);
+  static const sage100 = Color(0xFFE2ECE5);
+  static const sage200 = Color(0xFFC2D9C8);
+  static const sage300 = Color(0xFFA2C6AC);
+  static const sage400 = Color(0xFF82B38F);
+  static const sage500 = Color(0xFF4A7C59);
+  static const sage600 = Color(0xFF3B6748);
+  static const sage700 = Color(0xFF2E593B);
+  static const sage800 = Color(0xFF1E3D27);
+  static const sage900 = Color(0xFF102618);
 
-  const NotionCategoryStyle({
-    required this.bgLight,
-    required this.textLight,
-    required this.bgDark,
-    required this.textDark,
+  // Dark Mode Canvas & Surfaces
+  static const darkBg = Color(0xFF181615); // Deep charcoal
+  static const darkSurface = Color(0xFF252220); // Warm dark surface
+  static const darkCard = Color(0xFF2E2A28); // Dark card container
+  static const darkText = Color(0xFFF5EAD8); // Warm light text
+  static const darkDivider = Color(0x2EF5EAD8); // ~18% opacity divider
+  static const darkAccent = Color(0xFFE07A5F); // Warm terracotta in dark mode
+  static const darkAccent100 = Color(0xFF3D251C);
+  static const darkAccent700 = Color(0xFFC85A32);
+  static const darkAccent800 = Color(0xFFEDBFA8);
+}
+
+// ── Categories & Metadata ────────────────────────────────────────────────────
+
+const kDefaultUserCategories = [
+  'Development',
+  'Deep Work',
+  'Design',
+  'Writing',
+  'Learning',
+  'Admin',
+];
+
+const kCategories = [
+  'Development',
+  'DSA',
+  'System Design',
+  'DevOps',
+  'AI & Data',
+  'Deep Work',
+  'Design',
+  'Product Planning',
+  'Research',
+  'Writing',
+  'Content',
+  'Audio & Video',
+  'Creative',
+  'Job Hunt',
+  'Client Work',
+  'Marketing',
+  'Admin',
+  'Learning',
+  'Reading',
+  'Health & Fitness',
+  'Side Projects',
+  'Breaks',
+];
+
+class CategoryDomain {
+  final String title;
+  final IconData icon;
+  final List<String> categories;
+
+  const CategoryDomain({
+    required this.title,
+    required this.icon,
+    required this.categories,
   });
 }
 
-const kNotionCategoryStyles = <String, NotionCategoryStyle>{
-  'learning': NotionCategoryStyle(
-    bgLight: Color(0xFFE8F0FE), textLight: Color(0xFF1D4ED8),
-    bgDark: Color(0xFF1E293B), textDark: Color(0xFF93C5FD),
+const kCategoryDomains = [
+  CategoryDomain(
+    title: 'Software & Tech',
+    icon: Icons.code_rounded,
+    categories: ['Development', 'DSA', 'System Design', 'DevOps', 'AI & Data'],
   ),
-  'dsa': NotionCategoryStyle(
-    bgLight: Color(0xFFE0F2FE), textLight: Color(0xFF0369A1),
-    bgDark: Color(0xFF132E35), textDark: Color(0xFF7DD3FC),
+  CategoryDomain(
+    title: 'Design & Product',
+    icon: Icons.palette_outlined,
+    categories: ['Design', 'Product Planning', 'Research'],
   ),
-  'system design': NotionCategoryStyle(
-    bgLight: Color(0xFFFFEDD5), textLight: Color(0xFFC2410C),
-    bgDark: Color(0xFF3C2415), textDark: Color(0xFFFDBA74),
+  CategoryDomain(
+    title: 'Writing & Media',
+    icon: Icons.edit_note_rounded,
+    categories: ['Writing', 'Content', 'Audio & Video', 'Creative'],
   ),
-  'content': NotionCategoryStyle(
-    bgLight: Color(0xFFFEF3C7), textLight: Color(0xFFB45309),
-    bgDark: Color(0xFF382B14), textDark: Color(0xFFFDE68A),
+  CategoryDomain(
+    title: 'Business & Ops',
+    icon: Icons.business_center_outlined,
+    categories: ['Job Hunt', 'Client Work', 'Marketing', 'Admin'],
   ),
-  'play time': NotionCategoryStyle(
-    bgLight: Color(0xFFEDF3EC), textLight: Color(0xFF15803D),
-    bgDark: Color(0xFF143823), textDark: Color(0xFF86EFAC),
+  CategoryDomain(
+    title: 'Focus & Growth',
+    icon: Icons.spa_outlined,
+    categories: ['Deep Work', 'Learning', 'Reading', 'Health & Fitness', 'Side Projects', 'Breaks'],
   ),
-  'job hunt': NotionCategoryStyle(
-    bgLight: Color(0xFFFCE7F3), textLight: Color(0xFFBE185D),
-    bgDark: Color(0xFF381928), textDark: Color(0xFFF472B6),
+];
+
+class CategoryInfo {
+  final String name;
+  final List<String> keywords;
+  final IconData icon;
+  final Color tileColor;
+  final Color lightBg;
+  final Color lightFg;
+  final Color darkBg;
+  final Color darkFg;
+
+  const CategoryInfo({
+    required this.name,
+    required this.keywords,
+    required this.icon,
+    required this.tileColor,
+    required this.lightBg,
+    required this.lightFg,
+    required this.darkBg,
+    required this.darkFg,
+  });
+}
+
+const kCategoryData = <String, CategoryInfo>{
+  'Development': CategoryInfo(
+    name: 'Development',
+    keywords: ['code', 'debug', 'api', 'flutter', 'sql', 'react', 'bug', 'app', 'server', 'git', 'frontend', 'backend'],
+    icon: Icons.code_rounded,
+    tileColor: Color(0xFFC85A32),
+    lightBg: Color(0xFFF8E4DC),
+    lightFg: Color(0xFF7A280F),
+    darkBg: Color(0xFF5A2210),
+    darkFg: Color(0xFFF8E4DC),
   ),
-  'other': NotionCategoryStyle(
-    bgLight: Color(0xFFF1F1EF), textLight: Color(0xFF5A5A5A),
-    bgDark: Color(0xFF2C2C2C), textDark: Color(0xFFA0A0A0),
+  'DSA': CategoryInfo(
+    name: 'DSA',
+    keywords: ['dsa', 'algo', 'leetcode', 'tree', 'graph', 'array', 'sort', 'dp', 'algorithm', 'problem'],
+    icon: Icons.hub_rounded,
+    tileColor: Color(0xFF4A7C59),
+    lightBg: Color(0xFFE2ECE5),
+    lightFg: Color(0xFF1E3D27),
+    darkBg: Color(0xFF1D4528),
+    darkFg: Color(0xFFE2ECE5),
+  ),
+  'System Design': CategoryInfo(
+    name: 'System Design',
+    keywords: ['architecture', 'scaling', 'redis', 'kafka', 'system design', 'scale', 'microservice', 'database'],
+    icon: Icons.layers_rounded,
+    tileColor: Color(0xFF5E5854),
+    lightBg: Color(0xFFE5DFD9),
+    lightFg: Color(0xFF2C2825),
+    darkBg: Color(0xFF3B3632),
+    darkFg: Color(0xFFF0EBE6),
+  ),
+  'DevOps': CategoryInfo(
+    name: 'DevOps',
+    keywords: ['docker', 'kubernetes', 'aws', 'ci/cd', 'cloud', 'deploy', 'terraform', 'pipeline', 'devops'],
+    icon: Icons.cloud_queue_rounded,
+    tileColor: Color(0xFF386B8C),
+    lightBg: Color(0xFFDFEAF0),
+    lightFg: Color(0xFF143B52),
+    darkBg: Color(0xFF123447),
+    darkFg: Color(0xFFD4E6F0),
+  ),
+  'AI & Data': CategoryInfo(
+    name: 'AI & Data',
+    keywords: ['ai', 'ml', 'data', 'prompt', 'llm', 'model', 'python', 'pytorch', 'machine learning', 'analytics'],
+    icon: Icons.auto_awesome_rounded,
+    tileColor: Color(0xFF7A4E8C),
+    lightBg: Color(0xFFEFE4F5),
+    lightFg: Color(0xFF482057),
+    darkBg: Color(0xFF3D164D),
+    darkFg: Color(0xFFEADBFA),
+  ),
+  'Deep Work': CategoryInfo(
+    name: 'Deep Work',
+    keywords: ['focus', 'deep work', 'flow', 'core', 'priority', 'strategy', 'thinking', 'session'],
+    icon: Icons.bolt_rounded,
+    tileColor: Color(0xFFC85A32),
+    lightBg: Color(0xFFFBE8E0),
+    lightFg: Color(0xFF8A3015),
+    darkBg: Color(0xFF5E200E),
+    darkFg: Color(0xFFFDECE5),
+  ),
+  'Design': CategoryInfo(
+    name: 'Design',
+    keywords: ['figma', 'ui/ux', 'ui', 'ux', 'wireframe', 'mockup', 'design', 'style', 'typography', 'prototype'],
+    icon: Icons.palette_outlined,
+    tileColor: Color(0xFFE07A5F),
+    lightBg: Color(0xFFFCEBE6),
+    lightFg: Color(0xFFA83B19),
+    darkBg: Color(0xFF4D1707),
+    darkFg: Color(0xFFEDBFA8),
+  ),
+  'Product Planning': CategoryInfo(
+    name: 'Product Planning',
+    keywords: ['roadmap', 'spec', 'prd', 'scrum', 'sprint', 'feature', 'planning', 'product'],
+    icon: Icons.alt_route_rounded,
+    tileColor: Color(0xFF4A7C59),
+    lightBg: Color(0xFFE2ECE5),
+    lightFg: Color(0xFF1E3D27),
+    darkBg: Color(0xFF1D4528),
+    darkFg: Color(0xFFE2ECE5),
+  ),
+  'Research': CategoryInfo(
+    name: 'Research',
+    keywords: ['research', 'benchmark', 'survey', 'user test', 'interview', 'whitepaper', 'competitor'],
+    icon: Icons.travel_explore_rounded,
+    tileColor: Color(0xFF5E5854),
+    lightBg: Color(0xFFE5DFD9),
+    lightFg: Color(0xFF2C2825),
+    darkBg: Color(0xFF3B3632),
+    darkFg: Color(0xFFF0EBE6),
+  ),
+  'Writing': CategoryInfo(
+    name: 'Writing',
+    keywords: ['write', 'draft', 'article', 'essay', 'documentation', 'copy', 'journal', 'doc', 'readme'],
+    icon: Icons.drive_file_rename_outline_rounded,
+    tileColor: Color(0xFFD48344),
+    lightBg: Color(0xFFFBEAD8),
+    lightFg: Color(0xFF6B3308),
+    darkBg: Color(0xFF4A2003),
+    darkFg: Color(0xFFF8E4DC),
+  ),
+  'Content': CategoryInfo(
+    name: 'Content',
+    keywords: ['blog', 'video', 'content', 'post', 'script', 'youtube', 'podcast', 'social', 'x', 'tweet'],
+    icon: Icons.edit_note_rounded,
+    tileColor: Color(0xFFD48344),
+    lightBg: Color(0xFFFBEAD8),
+    lightFg: Color(0xFF6B3308),
+    darkBg: Color(0xFF4A2003),
+    darkFg: Color(0xFFF8E4DC),
+  ),
+  'Audio & Video': CategoryInfo(
+    name: 'Audio & Video',
+    keywords: ['audio', 'video', 'edit', 'record', 'mic', 'camera', 'premiere', 'youtube', 'record'],
+    icon: Icons.movie_outlined,
+    tileColor: Color(0xFF944B36),
+    lightBg: Color(0xFFF5E4E0),
+    lightFg: Color(0xFF5E1E10),
+    darkBg: Color(0xFF471308),
+    darkFg: Color(0xFFFCEBE8),
+  ),
+  'Creative': CategoryInfo(
+    name: 'Creative',
+    keywords: ['art', 'draw', 'illustration', '3d', 'blender', 'photo', 'creative', 'music'],
+    icon: Icons.brush_outlined,
+    tileColor: Color(0xFF9E654A),
+    lightBg: Color(0xFFF5EAE4),
+    lightFg: Color(0xFF542C18),
+    darkBg: Color(0xFF3D1B0B),
+    darkFg: Color(0xFFFAEEE8),
+  ),
+  'Job Hunt': CategoryInfo(
+    name: 'Job Hunt',
+    keywords: ['interview', 'resume', 'application', 'job', 'career', 'hr', 'recruiter', 'linkedin'],
+    icon: Icons.work_outline_rounded,
+    tileColor: Color(0xFF7D7570),
+    lightBg: Color(0xFFEDE8E3),
+    lightFg: Color(0xFF3D3734),
+    darkBg: Color(0xFF332D2A),
+    darkFg: Color(0xFFE5DFD9),
+  ),
+  'Client Work': CategoryInfo(
+    name: 'Client Work',
+    keywords: ['client', 'freelance', 'proposal', 'consulting', 'contract', 'customer', 'deliverable'],
+    icon: Icons.handshake_outlined,
+    tileColor: Color(0xFF3B6748),
+    lightBg: Color(0xFFDFF0E4),
+    lightFg: Color(0xFF143D1F),
+    darkBg: Color(0xFF103319),
+    darkFg: Color(0xFFDCF2E2),
+  ),
+  'Marketing': CategoryInfo(
+    name: 'Marketing',
+    keywords: ['growth', 'marketing', 'seo', 'ads', 'launch', 'traffic', 'conversion', 'campaign'],
+    icon: Icons.trending_up_rounded,
+    tileColor: Color(0xFFC85A32),
+    lightBg: Color(0xFFF8E4DC),
+    lightFg: Color(0xFF7A280F),
+    darkBg: Color(0xFF5A2210),
+    darkFg: Color(0xFFF8E4DC),
+  ),
+  'Admin': CategoryInfo(
+    name: 'Admin',
+    keywords: ['email', 'admin', 'meeting', 'invoice', 'paperwork', 'taxes', 'sync', 'bills', 'organize'],
+    icon: Icons.mail_outline_rounded,
+    tileColor: Color(0xFF3D8B6E),
+    lightBg: Color(0xFFE0F0E9),
+    lightFg: Color(0xFF134833),
+    darkBg: Color(0xFF0F3B29),
+    darkFg: Color(0xFFD4EFE3),
+  ),
+  'Learning': CategoryInfo(
+    name: 'Learning',
+    keywords: ['study', 'course', 'research', 'learn', 'tutorial', 'book', 'paper', 'lecture'],
+    icon: Icons.menu_book_rounded,
+    tileColor: Color(0xFF6B9E7C),
+    lightBg: Color(0xFFEAF3ED),
+    lightFg: Color(0xFF2E593B),
+    darkBg: Color(0xFF183D24),
+    darkFg: Color(0xFFC2D9C8),
+  ),
+  'Reading': CategoryInfo(
+    name: 'Reading',
+    keywords: ['reading', 'kindle', 'novel', 'newsletter', 'audiobook', 'read'],
+    icon: Icons.auto_stories_outlined,
+    tileColor: Color(0xFF6B9E7C),
+    lightBg: Color(0xFFEAF3ED),
+    lightFg: Color(0xFF2E593B),
+    darkBg: Color(0xFF183D24),
+    darkFg: Color(0xFFC2D9C8),
+  ),
+  'Health & Fitness': CategoryInfo(
+    name: 'Health & Fitness',
+    keywords: ['gym', 'workout', 'run', 'walk', 'yoga', 'meditate', 'stretch', 'fitness', 'exercise'],
+    icon: Icons.fitness_center_rounded,
+    tileColor: Color(0xFF4A7C59),
+    lightBg: Color(0xFFE2ECE5),
+    lightFg: Color(0xFF1E3D27),
+    darkBg: Color(0xFF1D4528),
+    darkFg: Color(0xFFE2ECE5),
+  ),
+  'Side Projects': CategoryInfo(
+    name: 'Side Projects',
+    keywords: ['indie', 'startup', 'build', 'mvp', 'hackathon', 'side project', 'experiment'],
+    icon: Icons.rocket_launch_outlined,
+    tileColor: Color(0xFFC85A32),
+    lightBg: Color(0xFFFBE8E0),
+    lightFg: Color(0xFF8A3015),
+    darkBg: Color(0xFF5E200E),
+    darkFg: Color(0xFFFDECE5),
+  ),
+  'Breaks': CategoryInfo(
+    name: 'Breaks',
+    keywords: ['break', 'relax', 'netflix', 'chill', 'coffee', 'tea', 'rest', 'play'],
+    icon: Icons.coffee_rounded,
+    tileColor: Color(0xFF423C38),
+    lightBg: Color(0xFFE3DDD7),
+    lightFg: Color(0xFF24201D),
+    darkBg: Color(0xFF2A2522),
+    darkFg: Color(0xFFEAE5E0),
   ),
 };
 
-Color categoryColor(String cat) =>
-    kCategoryColors[cat] ?? const Color(0xFF6B7280);
+const _defaultCategory = CategoryInfo(
+  name: 'General',
+  keywords: [],
+  icon: Icons.circle_outlined,
+  tileColor: Color(0xFF5E5854),
+  lightBg: Color(0xFFE5DFD9),
+  lightFg: Color(0xFF2C2825),
+  darkBg: Color(0xFF3B3632),
+  darkFg: Color(0xFFF0EBE6),
+);
 
-NotionCategoryStyle getNotionCategoryStyle(String cat) =>
-    kNotionCategoryStyles[cat] ?? kNotionCategoryStyles['other']!;
+CategoryInfo getCategoryInfo(String? cat) {
+  if (cat == null || cat.isEmpty) return _defaultCategory;
+  final normalized = cat.toLowerCase().trim();
+  for (final entry in kCategoryData.entries) {
+    if (entry.key.toLowerCase() == normalized) return entry.value;
+  }
+  // Dynamic info for custom categories
+  return CategoryInfo(
+    name: cat,
+    keywords: [],
+    icon: Icons.label_outline_rounded,
+    tileColor: DaylogColors.accent,
+    lightBg: DaylogColors.accent100,
+    lightFg: DaylogColors.accent800,
+    darkBg: DaylogColors.darkAccent100,
+    darkFg: DaylogColors.darkAccent800,
+  );
+}
+
+Color categoryColor(String cat) => getCategoryInfo(cat).tileColor;
 
 String capitalizeCategory(String cat) {
-  if (cat == 'dsa') return 'DSA';
+  if (cat.toLowerCase() == 'dsa') return 'DSA';
+  if (cat.toLowerCase() == 'ai & data') return 'AI & Data';
   return cat.split(' ').map((word) {
     if (word.isEmpty) return '';
     return '${word[0].toUpperCase()}${word.substring(1)}';
   }).join(' ');
 }
 
-// ── theme ────────────────────────────────────────────────────────────────────
+// ── Theme Definitions ────────────────────────────────────────────────────────
 
 final kLightTheme = ThemeData(
   useMaterial3: true,
   brightness: Brightness.light,
   colorScheme: const ColorScheme.light(
-    primary: Color(0xFF0F7B6C), // Notion Teal / Forest
-    primaryContainer: Color(0xFFEDF3EC),
-    onPrimaryContainer: Color(0xFF15803D),
-    surface: Color(0xFFFFFFFF),
-    surfaceContainer: Color(0xFFF7F6F3),
-    outlineVariant: Color(0xFFE9E9E7), // Notion hairline border
-    onSurface: Color(0xFF37352F), // Notion Primary Dark Text
-    onSurfaceVariant: Color(0xFF787774), // Notion Muted Text
-    outline: Color(0xFF9B9A97),
-    error: Color(0xFFEB5757),
+    primary: DaylogColors.accent,
+    onPrimary: Colors.white,
+    primaryContainer: DaylogColors.accent100,
+    onPrimaryContainer: DaylogColors.accent800,
+    secondary: DaylogColors.sage,
+    onSecondary: Colors.white,
+    secondaryContainer: DaylogColors.sage100,
+    onSecondaryContainer: DaylogColors.sage800,
+    surface: DaylogColors.lightSurface,
+    surfaceContainer: DaylogColors.lightCard,
+    outlineVariant: DaylogColors.lightDivider,
+    onSurface: DaylogColors.lightText,
+    onSurfaceVariant: Color(0xFF6B6560),
+    outline: Color(0xFF9E958E),
+    error: Color(0xFFC0392B),
   ),
-  fontFamily: 'Inter',
-  scaffoldBackgroundColor: const Color(0xFFFBFBFA),
+  scaffoldBackgroundColor: DaylogColors.lightBg,
   appBarTheme: const AppBarTheme(
     centerTitle: false,
     elevation: 0,
     scrolledUnderElevation: 0,
-    backgroundColor: Color(0xFFFBFBFA),
-    foregroundColor: Color(0xFF37352F),
+    backgroundColor: DaylogColors.lightBg,
+    foregroundColor: DaylogColors.lightText,
+    systemOverlayStyle: SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.dark,
+      statusBarBrightness: Brightness.light,
+      systemNavigationBarColor: DaylogColors.lightBg,
+      systemNavigationBarIconBrightness: Brightness.dark,
+    ),
     titleTextStyle: TextStyle(
-      fontSize: 18,
-      fontWeight: FontWeight.w600,
-      color: Color(0xFF37352F),
-      letterSpacing: -0.2,
+      fontSize: 21,
+      fontWeight: FontWeight.bold,
+      color: DaylogColors.lightText,
+      letterSpacing: -0.3,
     ),
   ),
   cardTheme: CardThemeData(
     elevation: 0,
-    color: const Color(0xFFFFFFFF),
+    color: DaylogColors.lightCard,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
-      side: const BorderSide(color: Color(0xFFE9E9E7), width: 1.0),
+      borderRadius: BorderRadius.circular(18),
+      side: const BorderSide(color: DaylogColors.lightDivider, width: 1.0),
     ),
     margin: EdgeInsets.zero,
   ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-    fillColor: const Color(0xFFF7F6F3),
+    fillColor: DaylogColors.lightSurface,
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: const BorderSide(color: Color(0xFFE9E9E7), width: 1.0),
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: DaylogColors.lightDivider, width: 1.0),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: const BorderSide(color: Color(0xFFE9E9E7), width: 1.0),
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: DaylogColors.lightDivider, width: 1.0),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: const BorderSide(color: Color(0xFF0F7B6C), width: 1.5),
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: DaylogColors.accent, width: 1.5),
     ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-  ),
-  bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-    backgroundColor: Color(0xFFFBFBFA),
-    selectedItemColor: Color(0xFF0F7B6C),
-    unselectedItemColor: Color(0xFF787774),
-    type: BottomNavigationBarType.fixed,
-    elevation: 0,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
   ),
 );
 
@@ -146,63 +485,67 @@ final kDarkTheme = ThemeData(
   useMaterial3: true,
   brightness: Brightness.dark,
   colorScheme: const ColorScheme.dark(
-    primary: Color(0xFF2EAADC), // Notion Blue Accent in Dark Mode
-    primaryContainer: Color(0xFF1E293B),
-    onPrimaryContainer: Color(0xFF93C5FD),
-    surface: Color(0xFF202020), // Notion Card Surface Dark
-    surfaceContainer: Color(0xFF282828),
-    outlineVariant: Color(0xFF2F2F2F), // Notion Hairline Border Dark
-    onSurface: Color(0xFFD4D4D4), // Notion Primary Light Text
-    onSurfaceVariant: Color(0xFF9B9B9B), // Notion Muted Text
-    outline: Color(0xFF6B6B71),
-    error: Color(0xFFEB5757),
+    primary: DaylogColors.darkAccent,
+    onPrimary: Colors.black,
+    primaryContainer: DaylogColors.darkAccent100,
+    onPrimaryContainer: DaylogColors.darkAccent800,
+    secondary: DaylogColors.sage,
+    onSecondary: Colors.white,
+    secondaryContainer: DaylogColors.sage900,
+    onSecondaryContainer: DaylogColors.sage200,
+    surface: DaylogColors.darkSurface,
+    surfaceContainer: DaylogColors.darkCard,
+    outlineVariant: DaylogColors.darkDivider,
+    onSurface: DaylogColors.darkText,
+    onSurfaceVariant: Color(0xFFB0A8A0),
+    outline: Color(0xFF6B6560),
+    error: Color(0xFFE74C3C),
   ),
-  fontFamily: 'Inter',
-  scaffoldBackgroundColor: const Color(0xFF191919),
+  scaffoldBackgroundColor: DaylogColors.darkBg,
   appBarTheme: const AppBarTheme(
     centerTitle: false,
     elevation: 0,
     scrolledUnderElevation: 0,
-    backgroundColor: Color(0xFF191919),
-    foregroundColor: Color(0xFFD4D4D4),
+    backgroundColor: DaylogColors.darkBg,
+    foregroundColor: DaylogColors.darkText,
+    systemOverlayStyle: SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      statusBarBrightness: Brightness.dark,
+      systemNavigationBarColor: DaylogColors.darkBg,
+      systemNavigationBarIconBrightness: Brightness.light,
+    ),
     titleTextStyle: TextStyle(
-      fontSize: 18,
-      fontWeight: FontWeight.w600,
-      color: Color(0xFFD4D4D4),
-      letterSpacing: -0.2,
+      fontSize: 21,
+      fontWeight: FontWeight.bold,
+      color: DaylogColors.darkText,
+      letterSpacing: -0.3,
     ),
   ),
   cardTheme: CardThemeData(
     elevation: 0,
-    color: const Color(0xFF202020),
+    color: DaylogColors.darkCard,
     shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
-      side: const BorderSide(color: Color(0xFF2F2F2F), width: 1.0),
+      borderRadius: BorderRadius.circular(18),
+      side: const BorderSide(color: DaylogColors.darkDivider, width: 1.0),
     ),
     margin: EdgeInsets.zero,
   ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-    fillColor: const Color(0xFF282828),
+    fillColor: DaylogColors.darkSurface,
     border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: const BorderSide(color: Color(0xFF2F2F2F), width: 1.0),
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: DaylogColors.darkDivider, width: 1.0),
     ),
     enabledBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: const BorderSide(color: Color(0xFF2F2F2F), width: 1.0),
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: DaylogColors.darkDivider, width: 1.0),
     ),
     focusedBorder: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(6),
-      borderSide: const BorderSide(color: Color(0xFF2EAADC), width: 1.5),
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: DaylogColors.darkAccent, width: 1.5),
     ),
-    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-  ),
-  bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-    backgroundColor: Color(0xFF191919),
-    selectedItemColor: Color(0xFF2EAADC),
-    unselectedItemColor: Color(0xFF9B9B9B),
-    type: BottomNavigationBarType.fixed,
-    elevation: 0,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
   ),
 );
