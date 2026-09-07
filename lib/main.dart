@@ -1,6 +1,7 @@
 // lib/main.dart
 import 'package:daylog/models/todo_entry.dart';
 import 'package:daylog/providers/task_provider.dart';
+import 'package:daylog/utils/marketing_seed_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
@@ -37,6 +38,7 @@ Future<void> _initBackgroundServices(ProviderContainer container) async {
     final activeTask = container.read(activeTaskProvider).valueOrNull;
     await NotificationService.updateTaskReminders(activeTask);
     await NotificationService.showActiveTaskNotification(activeTask);
+    // await MarketingDataSeeder.seedIndieHackerData();
   } catch (e, stackTrace) {
     debugPrint('Initialization error: $e\n$stackTrace');
     container.read(appInitErrorProvider.notifier).state = e.toString();

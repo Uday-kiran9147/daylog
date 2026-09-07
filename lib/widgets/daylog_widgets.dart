@@ -339,27 +339,28 @@ class DashedStartSessionCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(28),
-      child: CustomPaint(
-        painter: _DashedBorderPainter(
-          color: isDark
-              ? Colors.white.withValues(alpha: 0.18)
-              : DaylogColors.accent.withValues(alpha: 0.35),
-          strokeWidth: 1.5,
-          gap: 6.0,
-          dash: 6.0,
-          radius: 28.0,
-        ),
-        child: Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: (isDark ? DaylogColors.darkSurface : DaylogColors.lightCard)
-                .withValues(alpha: isDark ? 0.45 : 0.6),
-            borderRadius: BorderRadius.circular(28),
+    return RepaintBoundary(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(28),
+        child: CustomPaint(
+          painter: _DashedBorderPainter(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.18)
+                : DaylogColors.accent.withValues(alpha: 0.35),
+            strokeWidth: 1.5,
+            gap: 6.0,
+            dash: 6.0,
+            radius: 28.0,
           ),
-          child: Row(
+          child: Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: (isDark ? DaylogColors.darkSurface : DaylogColors.lightCard)
+                  .withValues(alpha: isDark ? 0.45 : 0.6),
+              borderRadius: BorderRadius.circular(28),
+            ),
+            child: Row(
             children: [
               Container(
                 width: 44,
@@ -407,7 +408,8 @@ class DashedStartSessionCard extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 }
 
@@ -517,14 +519,16 @@ class _PulsingDotState extends State<PulsingDot> with SingleTickerProviderStateM
         decoration: BoxDecoration(color: widget.color, shape: BoxShape.circle),
       );
     }
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, _) => Container(
-        width: widget.size * _animation.value,
-        height: widget.size * _animation.value,
-        decoration: BoxDecoration(
-          color: widget.color.withValues(alpha: 0.4 + (0.6 * (_animation.value - 0.5) / 0.75)),
-          shape: BoxShape.circle,
+    return RepaintBoundary(
+      child: AnimatedBuilder(
+        animation: _animation,
+        builder: (context, _) => Container(
+          width: widget.size * _animation.value,
+          height: widget.size * _animation.value,
+          decoration: BoxDecoration(
+            color: widget.color.withValues(alpha: 0.4 + (0.6 * (_animation.value - 0.5) / 0.75)),
+            shape: BoxShape.circle,
+          ),
         ),
       ),
     );

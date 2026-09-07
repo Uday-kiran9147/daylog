@@ -1,5 +1,6 @@
 // lib/screens/onboarding/onboarding_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/user_settings_provider.dart';
 import '../../utils/constants.dart';
@@ -389,7 +390,7 @@ class _FeatureCard extends StatelessWidget {
   }
 }
 
-/// ── Page 2: Category Customization ──────────────────────────────────────────
+/// ── Page 2: Category Customization with Frosted Selectable Chips ──────────────
 class _CategoryPickerPage extends ConsumerStatefulWidget {
   final Set<String> selectedCategories;
   final ValueChanged<String> onToggleCategory;
@@ -417,12 +418,13 @@ class _CategoryPickerPageState extends ConsumerState<_CategoryPickerPage> {
     final isDark = theme.brightness == Brightness.dark;
     final allCategories = ref.watch(allAvailableCategoriesProvider);
 
+    final isSearching = _searchQuery.isNotEmpty;
     final filteredCategories = allCategories.where((cat) {
-      if (_searchQuery.isNotEmpty && !cat.toLowerCase().contains(_searchQuery.toLowerCase())) {
+      if (isSearching && !cat.toLowerCase().contains(_searchQuery.toLowerCase())) {
         return false;
       }
       if (_selectedDomain != 'All') {
-        final domain = kCategoryDomains.firstWhere((d) => d.title == _selectedDomain);
+        final domain = kCategoryDomains.firstWhere((d) => d.title == _selectedDomain, orElse: () => kCategoryDomains.first);
         if (!domain.categories.contains(cat)) return false;
       }
       return true;
@@ -442,7 +444,7 @@ class _CategoryPickerPageState extends ConsumerState<_CategoryPickerPage> {
         ),
         const SizedBox(height: 6),
         Text(
-          'Select the work & focus domains you want in your daylog. You can add or change these anytime.',
+          'Choose your core productivity categories. You can tap chips to toggle them or pick a quick starter preset.',
           style: TextStyle(
             fontSize: 13,
             color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
@@ -451,29 +453,81 @@ class _CategoryPickerPageState extends ConsumerState<_CategoryPickerPage> {
         ),
         const SizedBox(height: 14),
 
-        // Quick Presets Row
+        // ── Quick Starter Presets Bar ─────────────────────────────────────────
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
           child: Row(
             children: [
               _PresetChip(
                 label: '💻 Developer',
-                onTap: () => widget.onApplyPreset(['Development', 'DSA', 'System Design', 'DevOps', 'Deep Work']),
+                onTap: () => widget.onApplyPreset([
+                  'Development',
+                  'System Design',
+                  'DSA & Algorithms',
+                  'DevOps & Cloud',
+                  'Deep Work',
+                  'Code Review & QA',
+                ]),
               ),
               const SizedBox(width: 8),
               _PresetChip(
                 label: '🎨 Designer',
-                onTap: () => widget.onApplyPreset(['Design', 'Product Planning', 'Research', 'Deep Work', 'Client Work']),
+                onTap: () => widget.onApplyPreset([
+                  'UI/UX Design',
+                  'Product Planning',
+                  'User Research',
+                  'Graphic & Brand',
+                  'Deep Work',
+                  'Client Work',
+                ]),
               ),
               const SizedBox(width: 8),
               _PresetChip(
                 label: '✍️ Creator / Writer',
-                onTap: () => widget.onApplyPreset(['Writing', 'Content', 'Audio & Video', 'Deep Work', 'Marketing']),
+                onTap: () => widget.onApplyPreset([
+                  'Writing & Docs',
+                  'Content Creation',
+                  'Video Editing',
+                  'Audio & Podcasting',
+                  'Deep Work',
+                  'Marketing & Growth',
+                ]),
               ),
               const SizedBox(width: 8),
               _PresetChip(
-                label: '📚 Student',
-                onTap: () => widget.onApplyPreset(['Learning', 'Reading', 'Deep Work', 'Side Projects', 'Health & Fitness']),
+                label: '💼 Founder / Ops',
+                onTap: () => widget.onApplyPreset([
+                  'Side Projects',
+                  'Client Work',
+                  'Product Planning',
+                  'Marketing & Growth',
+                  'Sales & Outreach',
+                  'Admin & Ops',
+                ]),
+              ),
+              const SizedBox(width: 8),
+              _PresetChip(
+                label: '📚 Student / Scholar',
+                onTap: () => widget.onApplyPreset([
+                  'Studying & Courses',
+                  'Reading & Books',
+                  'Academic Research',
+                  'Deep Work',
+                  'Language Learning',
+                ]),
+              ),
+              const SizedBox(width: 8),
+              _PresetChip(
+                label: '🌿 Balanced Flow',
+                onTap: () => widget.onApplyPreset([
+                  'Deep Work',
+                  'Writing & Docs',
+                  'Fitness & Workout',
+                  'Meditation & Mind',
+                  'Reading & Books',
+                  'Side Projects',
+                ]),
               ),
             ],
           ),
@@ -481,7 +535,7 @@ class _CategoryPickerPageState extends ConsumerState<_CategoryPickerPage> {
 
         const SizedBox(height: 14),
 
-        // Search Bar & Add Custom Button
+        // ── Search Field & Custom Category Button ─────────────────────────────
         Row(
           children: [
             Expanded(
@@ -489,8 +543,9 @@ class _CategoryPickerPageState extends ConsumerState<_CategoryPickerPage> {
                 height: 42,
                 child: TextField(
                   onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                  style: TextStyle(fontSize: 13.5, color: theme.colorScheme.onSurface),
                   decoration: InputDecoration(
-                    hintText: 'Search categories...',
+                    hintText: 'Search categories or keywords...',
                     prefixIcon: const Icon(Icons.search_rounded, size: 18),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     isDense: true,
@@ -510,7 +565,13 @@ class _CategoryPickerPageState extends ConsumerState<_CategoryPickerPage> {
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                side: BorderSide(color: theme.colorScheme.outlineVariant),
+                side: BorderSide(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.16)
+                      : theme.colorScheme.outlineVariant,
+                ),
+                backgroundColor: theme.cardTheme.color,
+                foregroundColor: theme.colorScheme.onSurface,
               ),
               icon: const Icon(Icons.add_rounded, size: 16),
               label: const Text('Custom', style: TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600)),
@@ -520,18 +581,20 @@ class _CategoryPickerPageState extends ConsumerState<_CategoryPickerPage> {
 
         const SizedBox(height: 12),
 
-        // Domain Filter Tabs
+        // ── Domain Filter Tabs ────────────────────────────────────────────────
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
+          clipBehavior: Clip.none,
           child: Row(
             children: [
               _DomainTab(
-                label: 'All',
+                label: 'All Domains',
                 isSelected: _selectedDomain == 'All',
                 onTap: () => setState(() => _selectedDomain = 'All'),
               ),
               ...kCategoryDomains.map((d) => _DomainTab(
                     label: d.title,
+                    icon: d.icon,
                     isSelected: _selectedDomain == d.title,
                     onTap: () => setState(() => _selectedDomain = d.title),
                   )),
@@ -539,143 +602,328 @@ class _CategoryPickerPageState extends ConsumerState<_CategoryPickerPage> {
           ),
         ),
 
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
 
-        // Selected count indicator
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '${widget.selectedCategories.length} selected',
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: theme.colorScheme.primary,
-              ),
+        // ── Active Counter & Hint ─────────────────────────────────────────────
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.25)
+                : Colors.black.withValues(alpha: 0.03),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.06)
+                  : Colors.black.withValues(alpha: 0.04),
             ),
-            Text(
-              'Tap to select or deselect',
-              style: TextStyle(
-                fontSize: 11,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 7,
+                    height: 7,
+                    decoration: BoxDecoration(
+                      color: widget.selectedCategories.isNotEmpty
+                          ? theme.colorScheme.primary
+                          : Colors.grey,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    '${widget.selectedCategories.length} categories active',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
+              Text(
+                'Tap chip to toggle',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                ),
+              ),
+            ],
+          ),
         ),
 
-        const SizedBox(height: 10),
+        const SizedBox(height: 14),
 
-        // Category Cards Grid (Vertical layout with childAspectRatio: 1.3)
-        GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: 1.3,
-          ),
-          itemCount: filteredCategories.length,
-          itemBuilder: (context, index) {
-            final cat = filteredCategories[index];
-            final isSelected = widget.selectedCategories.contains(cat);
-            final info = getCategoryInfo(cat);
-
-            return InkWell(
-              onTap: () => widget.onToggleCategory(cat),
-              borderRadius: BorderRadius.circular(18),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 150),
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? (isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100)
-                      : theme.cardTheme.color,
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: isSelected
-                        ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
-                        : theme.colorScheme.outlineVariant,
-                    width: isSelected ? 1.5 : 1.0,
+        // ── CATEGORY CHIPS RENDERING ──────────────────────────────────────────
+        if (isSearching || _selectedDomain != 'All') ...[
+          if (filteredCategories.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(24),
+              alignment: Alignment.center,
+              child: Column(
+                children: [
+                  Icon(Icons.search_off_rounded, size: 36, color: theme.colorScheme.onSurface.withValues(alpha: 0.4)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'No category found matching "$_searchQuery"',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                    ),
                   ),
-                  boxShadow: isSelected
-                      ? [
-                          BoxShadow(
-                            color: (isDark ? DaylogColors.darkAccent : DaylogColors.accent).withValues(alpha: 0.12),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Top Row: Category Icon + Check indicator
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  const SizedBox(height: 10),
+                  FilledButton.icon(
+                    onPressed: widget.onAddCustom,
+                    style: FilledButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                    ),
+                    icon: const Icon(Icons.add_rounded, size: 16),
+                    label: Text('Create "$_searchQuery"', style: const TextStyle(fontSize: 12.5)),
+                  ),
+                ],
+              ),
+            )
+          else
+            Wrap(
+              spacing: 8,
+              runSpacing: 10,
+              children: filteredCategories.map((cat) {
+                final isSelected = widget.selectedCategories.contains(cat);
+                return _SelectableCategoryChip(
+                  category: cat,
+                  isSelected: isSelected,
+                  onTap: () => widget.onToggleCategory(cat),
+                );
+              }).toList(),
+            ),
+        ] else ...[
+          // Grouped by Domain Sections for effortless discovery
+          ...kCategoryDomains.map((domain) {
+            final domainCats = domain.categories.where((c) => allCategories.contains(c)).toList();
+            if (domainCats.isEmpty) return const SizedBox.shrink();
+
+            final selectedCountInDomain = domainCats.where((c) => widget.selectedCategories.contains(c)).length;
+
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Domain Section Header
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8, left: 2),
+                    child: Row(
                       children: [
-                        Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: isDark ? info.darkBg : info.lightBg,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(
-                            info.icon,
-                            size: 18,
-                            color: isDark ? info.darkFg : info.lightFg,
+                        Icon(
+                          domain.icon,
+                          size: 15,
+                          color: theme.colorScheme.primary.withValues(alpha: 0.85),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          domain.title,
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.2,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
                           ),
                         ),
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          width: 22,
-                          height: 22,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: isSelected
-                                ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
-                                : Colors.transparent,
-                            border: Border.all(
-                              color: isSelected
-                                  ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
-                                  : theme.colorScheme.outlineVariant,
-                              width: 1.5,
+                        const SizedBox(width: 8),
+                        if (selectedCountInDomain > 0)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100,
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Text(
+                              '$selectedCountInDomain/${domainCats.length}',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+                              ),
                             ),
                           ),
-                          child: isSelected
-                              ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
-                              : null,
+                      ],
+                    ),
+                  ),
+
+                  // Domain Chips Wrap
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 10,
+                    children: domainCats.map((cat) {
+                      final isSelected = widget.selectedCategories.contains(cat);
+                      return _SelectableCategoryChip(
+                        category: cat,
+                        isSelected: isSelected,
+                        onTap: () => widget.onToggleCategory(cat),
+                      );
+                    }).toList(),
+                  ),
+                ],
+              ),
+            );
+          }),
+
+          // User-created Custom Categories (if any)
+          if (allCategories.any((c) => !kCategories.contains(c))) ...[
+            Padding(
+              padding: const EdgeInsets.only(bottom: 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8, left: 2),
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.label_outline_rounded,
+                          size: 15,
+                          color: theme.colorScheme.primary,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Custom Categories',
+                          style: TextStyle(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+                          ),
                         ),
                       ],
                     ),
-
-                    const SizedBox(height: 6),
-
-                    // Category Title (100% visible, up to 2 lines)
-                    Text(
-                      capitalizeCategory(cat),
-                      style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                        color: theme.colorScheme.onSurface,
-                        height: 1.2,
-                      ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 10,
+                    children: allCategories.where((c) => !kCategories.contains(c)).map((cat) {
+                      final isSelected = widget.selectedCategories.contains(cat);
+                      return _SelectableCategoryChip(
+                        category: cat,
+                        isSelected: isSelected,
+                        onTap: () => widget.onToggleCategory(cat),
+                      );
+                    }).toList(),
+                  ),
+                ],
               ),
-            );
-          },
-        ),
+            ),
+          ],
+        ],
 
         const SizedBox(height: 20),
       ],
+    );
+  }
+}
+
+/// Frosted Specular Selectable Category Chip
+class _SelectableCategoryChip extends StatelessWidget {
+  final String category;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SelectableCategoryChip({
+    required this.category,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final info = getCategoryInfo(category);
+
+    final selectedBg = isDark ? info.darkBg : info.lightBg;
+    final selectedFg = isDark ? info.darkFg : info.lightFg;
+    final selectedBorder = isDark
+        ? Colors.white.withValues(alpha: 0.28)
+        : info.tileColor.withValues(alpha: 0.45);
+
+    final unselectedBg = theme.cardTheme.color ?? (isDark ? DaylogColors.darkCard : DaylogColors.lightCard);
+    final unselectedBorder = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.white.withValues(alpha: 0.85);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(999),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? selectedBg : unselectedBg,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isSelected ? selectedBorder : unselectedBorder,
+              width: isSelected ? 1.2 : 1.0,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: info.tileColor.withValues(alpha: isDark ? 0.35 : 0.18),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Category Icon
+              Icon(
+                info.icon,
+                size: 15,
+                color: isSelected
+                    ? selectedFg
+                    : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+              const SizedBox(width: 7),
+
+              // Category Label
+              Text(
+                capitalizeCategory(category),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? selectedFg : theme.colorScheme.onSurface,
+                  letterSpacing: -0.1,
+                ),
+              ),
+
+              if (isSelected) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.check_rounded,
+                  size: 14,
+                  color: selectedFg,
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -689,15 +937,32 @@ class _PresetChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
       borderRadius: BorderRadius.circular(999),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
         decoration: BoxDecoration(
-          color: theme.cardTheme.color,
+          color: isDark ? const Color(0xFF2C2825) : Colors.white,
           borderRadius: BorderRadius.circular(999),
-          border: Border.all(color: theme.colorScheme.outlineVariant),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.16)
+                : theme.colorScheme.outlineVariant,
+            width: 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.30 : 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Text(
           label,
@@ -714,11 +979,13 @@ class _PresetChip extends StatelessWidget {
 
 class _DomainTab extends StatelessWidget {
   final String label;
+  final IconData? icon;
   final bool isSelected;
   final VoidCallback onTap;
 
   const _DomainTab({
     required this.label,
+    this.icon,
     required this.isSelected,
     required this.onTap,
   });
@@ -726,25 +993,56 @@ class _DomainTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
         borderRadius: BorderRadius.circular(999),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+            color: isSelected
+                ? (isDark ? DaylogColors.darkAccent : theme.colorScheme.primary)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            border: Border.all(
+              color: isSelected
+                  ? Colors.transparent
+                  : (isDark
+                      ? Colors.white.withValues(alpha: 0.10)
+                      : Colors.black.withValues(alpha: 0.06)),
             ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 13,
+                  color: isSelected
+                      ? Colors.white
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                ),
+                const SizedBox(width: 5),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected
+                      ? Colors.white
+                      : theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                ),
+              ),
+            ],
           ),
         ),
       ),

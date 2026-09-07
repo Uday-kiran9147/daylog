@@ -102,10 +102,6 @@ class _Shell extends ConsumerWidget {
     final showTimerFull = ref.watch(showTimerFullProvider);
     final activeTask = ref.watch(activeTaskProvider).valueOrNull;
 
-    if (activeTask != null && !activeTask.isPaused) {
-      ref.watch(appTickerProvider);
-    }
-
     // If fullscreen timer is active and there is an active task, display it as an overlay
     if (showTimerFull && activeTask != null) {
       return TimerFullscreenModal(
@@ -132,26 +128,28 @@ class _Shell extends ConsumerWidget {
           IndexedStack(index: index, children: screens),
         ],
       ),
-      bottomNavigationBar: _GlassDock(
-        selectedIndex: index,
-        activeTask: activeTask,
-        onTabSelected: (i) => ref.read(navigationIndexProvider.notifier).state = i,
-        onActionTap: () {
-          if (activeTask != null) {
-            ref.read(showTimerFullProvider.notifier).state = true;
-          } else {
-            showModalBottomSheet(
-              context: context,
-              isScrollControlled: true,
-              backgroundColor: Colors.transparent,
-              builder: (_) => StartTaskSheet(
-                onTaskStarted: (_) {
-                  ref.read(showTimerFullProvider.notifier).state = true;
-                },
-              ),
-            );
-          }
-        },
+      bottomNavigationBar: RepaintBoundary(
+        child: _GlassDock(
+          selectedIndex: index,
+          activeTask: activeTask,
+          onTabSelected: (i) => ref.read(navigationIndexProvider.notifier).state = i,
+          onActionTap: () {
+            if (activeTask != null) {
+              ref.read(showTimerFullProvider.notifier).state = true;
+            } else {
+              showModalBottomSheet(
+                context: context,
+                isScrollControlled: true,
+                backgroundColor: Colors.transparent,
+                builder: (_) => StartTaskSheet(
+                  onTaskStarted: (_) {
+                    ref.read(showTimerFullProvider.notifier).state = true;
+                  },
+                ),
+              );
+            }
+          },
+        ),
       ),
     );
   }
@@ -200,10 +198,10 @@ class _GlassDock extends StatelessWidget {
                   borderRadius: BorderRadius.circular(999),
                   boxShadow: [
                     BoxShadow(
-                      color: glowColor.withValues(alpha: isDark ? 0.38 : 0.22),
-                      blurRadius: 36,
-                      spreadRadius: 8,
-                      offset: const Offset(0, 10),
+                      color: glowColor.withValues(alpha: isDark ? 0.32 : 0.18),
+                      blurRadius: 18,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -214,7 +212,7 @@ class _GlassDock extends StatelessWidget {
             Container(
               decoration: BoxDecoration(
                 color: (isDark ? const Color(0xFF1E1C1A) : const Color(0xFFFFF9F0))
-                    .withValues(alpha: isDark ? 0.88 : 0.92),
+                    .withValues(alpha: isDark ? 0.90 : 0.94),
                 borderRadius: BorderRadius.circular(32),
                 border: Border.all(
                   color: isDark
@@ -224,13 +222,13 @@ class _GlassDock extends StatelessWidget {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
+                    color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.07),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
                   ),
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
-                    blurRadius: 6,
+                    color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.02),
+                    blurRadius: 4,
                     offset: const Offset(0, 2),
                   ),
                 ],
@@ -238,7 +236,7 @@ class _GlassDock extends StatelessWidget {
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(32),
                 child: BackdropFilter(
-                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(6, 7, 6, 6),
                     child: Column(
@@ -339,10 +337,7 @@ class _TopActionPill extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-
     final isRunning = activeTask != null;
-    final elapsedSec = isRunning ? activeTask!.currentElapsedSeconds : 0;
-    final timerText = formatTimer(elapsedSec);
 
     return Material(
       color: Colors.transparent,
@@ -370,47 +365,72 @@ class _TopActionPill extends StatelessWidget {
               width: 1.0,
             ),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isRunning) ...[
-                PulsingDot(
-                  color: isDark ? DaylogColors.darkAccent : DaylogColors.accent,
-                  size: 6,
-                  isPaused: activeTask!.isPaused,
+          child: isRunning
+              ? _TickingTopActionContent(task: activeTask!, isDark: isDark)
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.timelapse_outlined,
+                      size: 13,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      'Capture focus',
+                      style: TextStyle(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  '$timerText · ${activeTask!.title}',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.bold,
-                    color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                  ),
-                ),
-              ] else ...[
-                Icon(
-                  Icons.camera_alt_outlined,
-                  size: 13,
-                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  'Capture focus',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
-                  ),
-                ),
-              ],
-            ],
-          ),
         ),
       ),
+    );
+  }
+}
+
+/// Isolated Leaf for Top Pill Timer Display
+class _TickingTopActionContent extends ConsumerWidget {
+  final TaskEntry task;
+  final bool isDark;
+
+  const _TickingTopActionContent({
+    required this.task,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!task.isPaused) {
+      ref.watch(appTickerProvider);
+    }
+    final elapsedSec = task.currentElapsedSeconds;
+    final timerText = formatTimer(elapsedSec);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        PulsingDot(
+          color: isDark ? DaylogColors.darkAccent : DaylogColors.accent,
+          size: 6,
+          isPaused: task.isPaused,
+        ),
+        const SizedBox(width: 6),
+        Text(
+          '$timerText · ${task.title}',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontSize: 11.5,
+            fontWeight: FontWeight.bold,
+            color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+            fontFeatures: const [FontFeature.tabularFigures()],
+          ),
+        ),
+      ],
     );
   }
 }

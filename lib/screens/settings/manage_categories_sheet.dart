@@ -1,5 +1,6 @@
 // lib/screens/settings/manage_categories_sheet.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/user_settings_provider.dart';
 import '../../utils/constants.dart';
@@ -149,15 +150,17 @@ class _ManageCategoriesSheetState extends ConsumerState<ManageCategoriesSheet> {
           // Domain Filter Tabs
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
+            clipBehavior: Clip.none,
             child: Row(
               children: [
                 _DomainTab(
-                  label: 'All',
+                  label: 'All Domains',
                   isSelected: _selectedDomain == 'All',
                   onTap: () => setState(() => _selectedDomain = 'All'),
                 ),
                 ...kCategoryDomains.map((d) => _DomainTab(
                       label: d.title,
+                      icon: d.icon,
                       isSelected: _selectedDomain == d.title,
                       onTap: () => setState(() => _selectedDomain = d.title),
                     )),
@@ -167,133 +170,208 @@ class _ManageCategoriesSheetState extends ConsumerState<ManageCategoriesSheet> {
           const SizedBox(height: 12),
 
           // Selected counter
-          Text(
-            '${userCategories.length} active categories',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.bold,
-              color: theme.colorScheme.primary,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: isDark
+                  ? Colors.black.withValues(alpha: 0.25)
+                  : Colors.black.withValues(alpha: 0.03),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.06)
+                    : Colors.black.withValues(alpha: 0.04),
+              ),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  '${userCategories.length} active categories',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
+                  ),
+                ),
+                Text(
+                  'Tap chip to toggle',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
 
-          // Grid of Categories (Vertical layout with childAspectRatio: 1.3)
+          // Chips List / Domain Sections
           Expanded(
-            child: GridView.builder(
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 1.3,
-              ),
-              itemCount: filteredCategories.length,
-              itemBuilder: (context, index) {
-                final cat = filteredCategories[index];
-                final isSelected = userCategories.contains(cat);
-                final info = getCategoryInfo(cat);
-
-                return InkWell(
-                  onTap: () {
-                    final current = [...userCategories];
-                    if (isSelected) {
-                      if (current.length > 1) {
-                        current.remove(cat);
-                        ref.read(userSettingsProvider.notifier).updateSelectedCategories(current);
-                      }
-                    } else {
-                      current.add(cat);
-                      ref.read(userSettingsProvider.notifier).updateSelectedCategories(current);
-                    }
-                  },
-                  borderRadius: BorderRadius.circular(18),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? (isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100)
-                          : theme.cardTheme.color,
-                      borderRadius: BorderRadius.circular(18),
-                      border: Border.all(
-                        color: isSelected
-                            ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
-                            : theme.colorScheme.outlineVariant,
-                        width: isSelected ? 1.5 : 1.0,
+            child: ListView(
+              padding: EdgeInsets.zero,
+              children: [
+                if (_searchQuery.isNotEmpty || _selectedDomain != 'All') ...[
+                  if (filteredCategories.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Center(
+                        child: Text(
+                          'No category found matching "$_searchQuery"',
+                          style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface.withValues(alpha: 0.6)),
+                        ),
                       ),
-                      boxShadow: isSelected
-                          ? [
-                              BoxShadow(
-                                color: (isDark ? DaylogColors.darkAccent : DaylogColors.accent).withValues(alpha: 0.12),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ]
-                          : null,
+                    )
+                  else
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 10,
+                      children: filteredCategories.map((cat) {
+                        final isSelected = userCategories.contains(cat);
+                        return _ManageCategoryChip(
+                          category: cat,
+                          isSelected: isSelected,
+                          onTap: () {
+                            final current = [...userCategories];
+                            if (isSelected) {
+                              if (current.length > 1) {
+                                current.remove(cat);
+                                ref.read(userSettingsProvider.notifier).updateSelectedCategories(current);
+                              }
+                            } else {
+                              current.add(cat);
+                              ref.read(userSettingsProvider.notifier).updateSelectedCategories(current);
+                            }
+                          },
+                        );
+                      }).toList(),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        // Top Row: Category Icon + Check indicator
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 38,
-                              height: 38,
-                              decoration: BoxDecoration(
-                                color: isDark ? info.darkBg : info.lightBg,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                info.icon,
-                                size: 18,
-                                color: isDark ? info.darkFg : info.lightFg,
-                              ),
-                            ),
-                            AnimatedContainer(
-                              duration: const Duration(milliseconds: 150),
-                              width: 22,
-                              height: 22,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: isSelected
-                                    ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
-                                    : Colors.transparent,
-                                border: Border.all(
-                                  color: isSelected
-                                      ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
-                                      : theme.colorScheme.outlineVariant,
-                                  width: 1.5,
+                ] else ...[
+                  ...kCategoryDomains.map((domain) {
+                    final domainCats = domain.categories.where((c) => allCategories.contains(c)).toList();
+                    if (domainCats.isEmpty) return const SizedBox.shrink();
+
+                    final selectedCountInDomain = domainCats.where((c) => userCategories.contains(c)).length;
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8, left: 2),
+                            child: Row(
+                              children: [
+                                Icon(domain.icon, size: 15, color: theme.colorScheme.primary.withValues(alpha: 0.85)),
+                                const SizedBox(width: 6),
+                                Text(
+                                  domain.title,
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+                                  ),
                                 ),
-                              ),
-                              child: isSelected
-                                  ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
-                                  : null,
+                                const SizedBox(width: 8),
+                                if (selectedCountInDomain > 0)
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100,
+                                      borderRadius: BorderRadius.circular(999),
+                                    ),
+                                    child: Text(
+                                      '$selectedCountInDomain/${domainCats.length}',
+                                      style: TextStyle(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+                                      ),
+                                    ),
+                                  ),
+                              ],
                             ),
-                          ],
-                        ),
-
-                        const SizedBox(height: 6),
-
-                        // Category Title (100% visible, up to 2 lines)
-                        Text(
-                          capitalizeCategory(cat),
-                          style: TextStyle(
-                            fontSize: 13.5,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
-                            color: theme.colorScheme.onSurface,
-                            height: 1.2,
                           ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 10,
+                            children: domainCats.map((cat) {
+                              final isSelected = userCategories.contains(cat);
+                              return _ManageCategoryChip(
+                                category: cat,
+                                isSelected: isSelected,
+                                onTap: () {
+                                  final current = [...userCategories];
+                                  if (isSelected) {
+                                    if (current.length > 1) {
+                                      current.remove(cat);
+                                      ref.read(userSettingsProvider.notifier).updateSelectedCategories(current);
+                                    }
+                                  } else {
+                                    current.add(cat);
+                                    ref.read(userSettingsProvider.notifier).updateSelectedCategories(current);
+                                  }
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+
+                  if (allCategories.any((c) => !kCategories.contains(c))) ...[
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8, left: 2),
+                            child: Row(
+                              children: [
+                                Icon(Icons.label_outline_rounded, size: 15, color: theme.colorScheme.primary),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Custom Categories',
+                                  style: TextStyle(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 10,
+                            children: allCategories.where((c) => !kCategories.contains(c)).map((cat) {
+                              final isSelected = userCategories.contains(cat);
+                              return _ManageCategoryChip(
+                                category: cat,
+                                isSelected: isSelected,
+                                onTap: () {
+                                  final current = [...userCategories];
+                                  if (isSelected) {
+                                    if (current.length > 1) {
+                                      current.remove(cat);
+                                      ref.read(userSettingsProvider.notifier).updateSelectedCategories(current);
+                                    }
+                                  } else {
+                                    current.add(cat);
+                                    ref.read(userSettingsProvider.notifier).updateSelectedCategories(current);
+                                  }
+                                },
+                              );
+                            }).toList(),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  ],
+                ],
+              ],
             ),
           ),
         ],
@@ -302,13 +380,13 @@ class _ManageCategoriesSheetState extends ConsumerState<ManageCategoriesSheet> {
   }
 }
 
-class _DomainTab extends StatelessWidget {
-  final String label;
+class _ManageCategoryChip extends StatelessWidget {
+  final String category;
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _DomainTab({
-    required this.label,
+  const _ManageCategoryChip({
+    required this.category,
     required this.isSelected,
     required this.onTap,
   });
@@ -316,25 +394,147 @@ class _DomainTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final info = getCategoryInfo(category);
+
+    final selectedBg = isDark ? info.darkBg : info.lightBg;
+    final selectedFg = isDark ? info.darkFg : info.lightFg;
+    final selectedBorder = isDark
+        ? Colors.white.withValues(alpha: 0.28)
+        : info.tileColor.withValues(alpha: 0.45);
+
+    final unselectedBg = theme.cardTheme.color ?? (isDark ? DaylogColors.darkCard : DaylogColors.lightCard);
+    final unselectedBorder = isDark
+        ? Colors.white.withValues(alpha: 0.12)
+        : Colors.white.withValues(alpha: 0.85);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(999),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? selectedBg : unselectedBg,
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isSelected ? selectedBorder : unselectedBorder,
+              width: isSelected ? 1.2 : 1.0,
+            ),
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: info.tileColor.withValues(alpha: isDark ? 0.35 : 0.18),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                      blurRadius: 6,
+                      offset: const Offset(0, 1),
+                    ),
+                  ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                info.icon,
+                size: 15,
+                color: isSelected ? selectedFg : theme.colorScheme.onSurface.withValues(alpha: 0.7),
+              ),
+              const SizedBox(width: 7),
+              Text(
+                capitalizeCategory(category),
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? selectedFg : theme.colorScheme.onSurface,
+                  letterSpacing: -0.1,
+                ),
+              ),
+              if (isSelected) ...[
+                const SizedBox(width: 6),
+                Icon(Icons.check_rounded, size: 14, color: selectedFg),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DomainTab extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _DomainTab({
+    required this.label,
+    this.icon,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Padding(
       padding: const EdgeInsets.only(right: 6),
       child: InkWell(
-        onTap: onTap,
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
         borderRadius: BorderRadius.circular(999),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
           decoration: BoxDecoration(
-            color: isSelected ? theme.colorScheme.primary : Colors.transparent,
+            color: isSelected
+                ? (isDark ? DaylogColors.darkAccent : theme.colorScheme.primary)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(999),
-          ),
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 11.5,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            border: Border.all(
+              color: isSelected
+                  ? Colors.transparent
+                  : (isDark
+                      ? Colors.white.withValues(alpha: 0.10)
+                      : Colors.black.withValues(alpha: 0.06)),
             ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (icon != null) ...[
+                Icon(
+                  icon,
+                  size: 13,
+                  color: isSelected ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.65),
+                ),
+                const SizedBox(width: 5),
+              ],
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 11.5,
+                  fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                  color: isSelected ? Colors.white : theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                ),
+              ),
+            ],
           ),
         ),
       ),

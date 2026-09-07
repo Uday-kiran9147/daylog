@@ -147,6 +147,7 @@ class JournalHistoryScreen extends ConsumerWidget {
                     itemCount: withContent.length,
                     itemBuilder: (context, index) {
                       final entry = withContent[index];
+                      final isDark = theme.brightness == Brightness.dark;
                       DateTime? entryDate;
                       try {
                         entryDate = DateTime.parse(entry.dayKey);
@@ -158,13 +159,25 @@ class JournalHistoryScreen extends ConsumerWidget {
                         margin: const EdgeInsets.only(bottom: 10),
                         child: InkWell(
                           onTap: () => _showEntryDetail(context, ref, entry),
-                          borderRadius: BorderRadius.circular(18),
+                          borderRadius: BorderRadius.circular(20),
                           child: Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
                               color: theme.cardTheme.color,
-                              borderRadius: BorderRadius.circular(18),
-                              border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                color: isDark
+                                    ? Colors.white.withValues(alpha: 0.12)
+                                    : Colors.white.withValues(alpha: 0.85),
+                                width: 1.1,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,22 +188,31 @@ class JournalHistoryScreen extends ConsumerWidget {
                                     Text(
                                       friendlyDate(entryDate),
                                       style: TextStyle(
-                                        fontSize: 15,
+                                        fontSize: 14.5,
                                         fontWeight: FontWeight.bold,
                                         color: theme.colorScheme.onSurface,
                                       ),
                                     ),
                                     if (entry.totalTrackedSeconds > 0)
-                                      Text(
-                                        formatDuration(entry.totalTrackedSeconds),
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? const Color(0xFF332D2A) : const Color(0xFFE8DFD3),
+                                          borderRadius: BorderRadius.circular(999),
+                                        ),
+                                        child: Text(
+                                          formatDuration(entry.totalTrackedSeconds),
+                                          style: TextStyle(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold,
+                                            color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                                            fontFeatures: const [FontFeature.tabularFigures()],
+                                          ),
                                         ),
                                       ),
                                   ],
                                 ),
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 8),
                                 Text(
                                   entry.shipped,
                                   maxLines: 2,

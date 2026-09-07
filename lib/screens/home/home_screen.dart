@@ -35,7 +35,7 @@ class HomeScreen extends ConsumerWidget {
             children: [
               // Page Header
               DaylogPageHeader(
-                title: 'Daylog',
+                title: 'DayLog',
                 subtitle: todayStr,
               ),
 
@@ -265,7 +265,7 @@ class HomeScreen extends ConsumerWidget {
 }
 
 /// Detailed Task Log Item Card on Home Screen
-class _TaskDetailLogCard extends ConsumerWidget {
+class _TaskDetailLogCard extends StatelessWidget {
   final TaskEntry task;
   final VoidCallback onTap;
   final VoidCallback onRestart;
@@ -277,22 +277,14 @@ class _TaskDetailLogCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    if (task.isRunning && !task.isPaused) {
-      ref.watch(appTickerProvider);
-    }
-
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final catInfo = getCategoryInfo(task.category);
-
-    final durationSec = task.isRunning ? task.currentElapsedSeconds : task.durationSeconds;
-    final durationText = formatDuration(durationSec);
     final timeRangeText = formatTimeRange(task.startedAt, task.stoppedAt);
-
     final isHighlighted = task.isRunning;
 
-    return Container(
+    final card = Container(
       margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
         color: isHighlighted
@@ -390,32 +382,10 @@ class _TaskDetailLogCard extends ConsumerWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (task.isRunning)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          PulsingDot(color: Colors.white, size: 6, isPaused: task.isPaused),
-                          const SizedBox(width: 6),
-                          Text(
-                            durationText,
-                            style: const TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                              fontFeatures: [FontFeature.tabularFigures()],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
+                    _TickingCardActiveBadge(task: task, isDark: isDark)
                   else
                     Text(
-                      durationText,
+                      formatDuration(task.durationSeconds),
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -459,6 +429,52 @@ class _TaskDetailLogCard extends ConsumerWidget {
         ),
       ),
     );
+
+    return isHighlighted ? RepaintBoundary(child: card) : card;
+  }
+}
+
+/// Isolated Leaf for Active Running Task Card Duration Badge
+class _TickingCardActiveBadge extends ConsumerWidget {
+  final TaskEntry task;
+  final bool isDark;
+
+  const _TickingCardActiveBadge({
+    required this.task,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    if (!task.isPaused) {
+      ref.watch(appTickerProvider);
+    }
+    final durationSec = task.currentElapsedSeconds;
+    final durationText = formatDuration(durationSec);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PulsingDot(color: Colors.white, size: 6, isPaused: task.isPaused),
+          const SizedBox(width: 6),
+          Text(
+            durationText,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+              fontFeatures: [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -471,167 +487,182 @@ class _ActiveSessionHero extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final heroColor = isDark ? DaylogColors.darkAccent : theme.colorScheme.primary;
+
+    return RepaintBoundary(
+      child: InkWell(
+        onTap: onOpenModal,
+        borderRadius: BorderRadius.circular(28),
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: heroColor,
+            borderRadius: BorderRadius.circular(28),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.32),
+              width: 1.2,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: heroColor.withValues(alpha: isDark ? 0.45 : 0.30),
+                blurRadius: 28,
+                spreadRadius: 2,
+                offset: const Offset(0, 10),
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.08),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top indicator row: Pulsing dot + LIVE/PAUSED + Category Tag
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.18),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.32),
+                        width: 0.9,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        PulsingDot(color: Colors.white, size: 7, isPaused: task.isPaused),
+                        const SizedBox(width: 7),
+                        Text(
+                          task.isPaused ? 'PAUSED' : 'FOCUSING',
+                          style: const TextStyle(
+                            fontSize: 10.5,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  CategoryTag(category: task.category, isDark: false),
+                ],
+              ),
+              const SizedBox(height: 14),
+
+              // Task Name
+              Text(
+                task.title,
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: 4),
+
+              // Elapsed Clock (Isolated ticking leaf)
+              _HeroTickingClock(task: task),
+              const SizedBox(height: 14),
+
+              // Action Buttons
+              Row(
+                children: [
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        if (task.isPaused) {
+                          ref.read(activeTaskProvider.notifier).resumeActive();
+                        } else {
+                          ref.read(activeTaskProvider.notifier).pauseActive();
+                        }
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white.withValues(alpha: 0.22),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(999),
+                          side: BorderSide(
+                            color: Colors.white.withValues(alpha: 0.35),
+                            width: 1.0,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: Icon(
+                        task.isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                        size: 18,
+                      ),
+                      label: Text(
+                        task.isPaused ? 'Resume' : 'Pause',
+                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FilledButton.icon(
+                      onPressed: () {
+                        HapticFeedback.selectionClick();
+                        ref.read(activeTaskProvider.notifier).stopActive();
+                      },
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        foregroundColor: DaylogColors.accent700,
+                        elevation: 4,
+                        shadowColor: Colors.black.withValues(alpha: 0.25),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      icon: const Icon(Icons.stop_rounded, size: 18),
+                      label: const Text(
+                        'Stop',
+                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Isolated Leaf for Hero Big Clock
+class _HeroTickingClock extends ConsumerWidget {
+  final TaskEntry task;
+
+  const _HeroTickingClock({required this.task});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
     if (!task.isPaused) {
       ref.watch(appTickerProvider);
     }
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
     final elapsed = task.currentElapsedSeconds;
-    final heroColor = isDark ? DaylogColors.darkAccent : theme.colorScheme.primary;
 
-    return InkWell(
-      onTap: onOpenModal,
-      borderRadius: BorderRadius.circular(28),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: heroColor,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.32),
-            width: 1.2,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: heroColor.withValues(alpha: isDark ? 0.45 : 0.30),
-              blurRadius: 28,
-              spreadRadius: 2,
-              offset: const Offset(0, 10),
-            ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.08),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Top indicator row: Pulsing dot + LIVE/PAUSED + Category Tag
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.32),
-                      width: 0.9,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      PulsingDot(color: Colors.white, size: 7, isPaused: task.isPaused),
-                      const SizedBox(width: 7),
-                      Text(
-                        task.isPaused ? 'PAUSED' : 'FOCUSING',
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                CategoryTag(category: task.category, isDark: false),
-              ],
-            ),
-            const SizedBox(height: 14),
-
-            // Task Name
-            Text(
-              task.title,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: -0.2,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-
-            // Elapsed Clock
-            Text(
-              formatTimer(elapsed),
-              style: const TextStyle(
-                fontSize: 46,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                letterSpacing: 0.5,
-                fontFeatures: [FontFeature.tabularFigures()],
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            // Action Buttons
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      HapticFeedback.selectionClick();
-                      if (task.isPaused) {
-                        ref.read(activeTaskProvider.notifier).resumeActive();
-                      } else {
-                        ref.read(activeTaskProvider.notifier).pauseActive();
-                      }
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.white.withValues(alpha: 0.22),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(999),
-                        side: BorderSide(
-                          color: Colors.white.withValues(alpha: 0.35),
-                          width: 1.0,
-                        ),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    icon: Icon(
-                      task.isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
-                      size: 18,
-                    ),
-                    label: Text(
-                      task.isPaused ? 'Resume' : 'Pause',
-                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: () {
-                      HapticFeedback.selectionClick();
-                      ref.read(activeTaskProvider.notifier).stopActive();
-                    },
-                    style: FilledButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: DaylogColors.accent700,
-                      elevation: 4,
-                      shadowColor: Colors.black.withValues(alpha: 0.25),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    icon: const Icon(Icons.stop_rounded, size: 18),
-                    label: const Text(
-                      'Stop',
-                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+    return Text(
+      formatTimer(elapsed),
+      style: const TextStyle(
+        fontSize: 46,
+        fontWeight: FontWeight.bold,
+        color: Colors.white,
+        letterSpacing: 0.5,
+        fontFeatures: [FontFeature.tabularFigures()],
       ),
     );
   }
@@ -643,17 +674,8 @@ class _TodayStatsRow extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final totalAsync = ref.watch(todayTotalSecondsProvider);
     final tasksAsync = ref.watch(todayTasksProvider);
     final active = ref.watch(activeTaskProvider).valueOrNull;
-
-    if (active != null && !active.isPaused) {
-      ref.watch(appTickerProvider);
-    }
-
-    final baseSeconds = totalAsync.valueOrNull ?? 0;
-    final activeSeconds = active != null ? active.currentElapsedSeconds : 0;
-    final totalSec = baseSeconds + activeSeconds;
 
     final taskCount = tasksAsync.when(
       data: (t) => (t.length + (active != null && !t.any((x) => x.id == active.id) ? 1 : 0)).toString(),
@@ -663,13 +685,8 @@ class _TodayStatsRow extends ConsumerWidget {
 
     return Row(
       children: [
-        Expanded(
-          child: DaylogStatCard(
-            kicker: 'Tracked today',
-            value: formatDuration(totalSec),
-            icon: Icons.access_time_rounded,
-            isAccent: true,
-          ),
+        const Expanded(
+          child: _TickingTrackedTodayCard(),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -681,6 +698,31 @@ class _TodayStatsRow extends ConsumerWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Isolated Leaf for Tracked Today Stat Card
+class _TickingTrackedTodayCard extends ConsumerWidget {
+  const _TickingTrackedTodayCard();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final active = ref.watch(activeTaskProvider).valueOrNull;
+    if (active != null && !active.isPaused) {
+      ref.watch(appTickerProvider);
+    }
+
+    final totalAsync = ref.watch(todayTotalSecondsProvider);
+    final baseSeconds = totalAsync.valueOrNull ?? 0;
+    final activeSeconds = active != null ? active.currentElapsedSeconds : 0;
+    final totalSec = baseSeconds + activeSeconds;
+
+    return DaylogStatCard(
+      kicker: 'Tracked today',
+      value: formatDuration(totalSec),
+      icon: Icons.access_time_rounded,
+      isAccent: true,
     );
   }
 }

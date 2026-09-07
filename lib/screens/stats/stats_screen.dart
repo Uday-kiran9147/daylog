@@ -20,9 +20,6 @@ class StatsScreen extends ConsumerWidget {
     final activeTaskAsync = ref.watch(activeTaskProvider);
 
     final activeTask = activeTaskAsync.valueOrNull;
-    if (activeTask != null && !activeTask.isPaused) {
-      ref.watch(appTickerProvider);
-    }
 
     // Compute date subtitle for the current week
     final now = DateTime.now();

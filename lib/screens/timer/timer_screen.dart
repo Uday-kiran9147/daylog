@@ -50,7 +50,19 @@ class TimerScreen extends ConsumerWidget {
                           decoration: BoxDecoration(
                             color: theme.cardTheme.color,
                             borderRadius: BorderRadius.circular(24),
-                            border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.12)
+                                  : Colors.white.withValues(alpha: 0.85),
+                              width: 1.1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+                                blurRadius: 16,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: Column(
                             children: [
@@ -194,7 +206,12 @@ class TimerScreen extends ConsumerWidget {
                                   decoration: BoxDecoration(
                                     color: theme.cardTheme.color,
                                     borderRadius: BorderRadius.circular(999),
-                                    border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
+                                    border: Border.all(
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.12)
+                                          : Colors.white.withValues(alpha: 0.85),
+                                      width: 1.0,
+                                    ),
                                   ),
                                   child: Text(
                                     t.title,
