@@ -1,11 +1,12 @@
-// lib/screens/settings/settings_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/todo_provider.dart';
 import '../../services/export_service.dart';
 import '../../services/notification_service.dart';
+import '../../utils/constants.dart';
 import '../../widgets/daylog_widgets.dart';
 import 'manage_categories_sheet.dart';
 
@@ -20,6 +21,7 @@ class SettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final themeMode = ref.watch(themeModeProvider);
 
     final wrapUp = ref.watch(wrapUpNotifProvider);
@@ -50,13 +52,20 @@ class SettingsScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 10),
 
-                  // Segmented control (Light, Dark, System)
+                  // Segmented control (Light, Dark, System) matching glass pill dock
                   Container(
                     padding: const EdgeInsets.all(4),
                     decoration: BoxDecoration(
-                      color: theme.cardTheme.color,
-                      borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
+                      color: isDark
+                          ? Colors.black.withValues(alpha: 0.28)
+                          : Colors.black.withValues(alpha: 0.04),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.10)
+                            : Colors.white.withValues(alpha: 0.85),
+                        width: 1.0,
+                      ),
                     ),
                     child: Row(
                       children: [
@@ -296,30 +305,62 @@ class _SegmentItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final activeBg = isDark ? const Color(0xFF2C2825) : Colors.white;
+    final activeBorder = isDark
+        ? Colors.white.withValues(alpha: 0.22)
+        : DaylogColors.accent.withValues(alpha: 0.25);
+    final activeShadow = isDark
+        ? [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.45),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ]
+        : [
+            BoxShadow(
+              color: DaylogColors.accent.withValues(alpha: 0.12),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ];
+
+    final activeTextColor = isDark ? Colors.white : DaylogColors.lightText;
+    final inactiveTextColor = isDark
+        ? Colors.white.withValues(alpha: 0.55)
+        : theme.colorScheme.onSurface.withValues(alpha: 0.55);
 
     return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(10),
+      onTap: () {
+        HapticFeedback.selectionClick();
+        onTap();
+      },
+      borderRadius: BorderRadius.circular(999),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
         padding: const EdgeInsets.symmetric(vertical: 9),
         decoration: BoxDecoration(
-          color: isSelected ? theme.colorScheme.surface : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-          boxShadow: isSelected
-              ? [const BoxShadow(color: Color(0x14000000), blurRadius: 4, offset: Offset(0, 1))]
-              : null,
+          color: isSelected ? activeBg : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: isSelected ? activeBorder : Colors.transparent,
+            width: 1.0,
+          ),
+          boxShadow: isSelected ? activeShadow : null,
         ),
         alignment: Alignment.center,
-        child: Text(
-          label,
+        child: AnimatedDefaultTextStyle(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
           style: TextStyle(
             fontSize: 13,
             fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected
-                ? theme.colorScheme.onSurface
-                : theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            color: isSelected ? activeTextColor : inactiveTextColor,
           ),
+          child: Text(label),
         ),
       ),
     );

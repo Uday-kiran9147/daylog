@@ -119,10 +119,25 @@ class DaylogStatCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
           color: isAccent
-              ? (isDark ? DaylogColors.darkAccent.withValues(alpha: 0.3) : DaylogColors.accent.withValues(alpha: 0.2))
-              : theme.colorScheme.outlineVariant,
-          width: 1.0,
+              ? (isDark
+                  ? DaylogColors.darkAccent.withValues(alpha: 0.45)
+                  : DaylogColors.accent.withValues(alpha: 0.35))
+              : (isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.white.withValues(alpha: 0.85)),
+          width: 1.1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isAccent
+                ? (isDark
+                    ? DaylogColors.darkAccent.withValues(alpha: 0.22)
+                    : DaylogColors.accent.withValues(alpha: 0.12))
+                : Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -200,6 +215,12 @@ class CategoryTag extends StatelessWidget {
       decoration: BoxDecoration(
         color: bg,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.16)
+              : Colors.black.withValues(alpha: 0.06),
+          width: 0.8,
+        ),
       ),
       child: Text(
         capitalizeCategory(category),
@@ -231,17 +252,30 @@ class CategoryTileCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final info = getCategoryInfo(category);
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
+      borderRadius: BorderRadius.circular(20),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         decoration: BoxDecoration(
           color: theme.cardTheme.color,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: isDark
+                ? Colors.white.withValues(alpha: 0.12)
+                : Colors.white.withValues(alpha: 0.85),
+            width: 1.1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -254,10 +288,17 @@ class CategoryTileCard extends StatelessWidget {
               decoration: BoxDecoration(
                 color: info.tileColor,
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: info.tileColor.withValues(alpha: isDark ? 0.45 : 0.3),
+                    blurRadius: 10,
+                    offset: const Offset(0, 3),
+                  ),
+                ],
               ),
               child: Icon(info.icon, size: 22, color: Colors.white),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 9),
             Text(
               capitalizeCategory(category),
               style: TextStyle(
@@ -269,7 +310,7 @@ class CategoryTileCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             Text(
               '$durationLabel · $countLabel',
               style: TextStyle(
@@ -287,7 +328,7 @@ class CategoryTileCard extends StatelessWidget {
   }
 }
 
-/// Dashed Inactive Focus Session Card
+/// Dashed Inactive Focus Session Card with Frosted Translucent Fill
 class DashedStartSessionCard extends StatelessWidget {
   final VoidCallback onTap;
 
@@ -303,7 +344,9 @@ class DashedStartSessionCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(28),
       child: CustomPaint(
         painter: _DashedBorderPainter(
-          color: theme.colorScheme.outlineVariant,
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.18)
+              : DaylogColors.accent.withValues(alpha: 0.35),
           strokeWidth: 1.5,
           gap: 6.0,
           dash: 6.0,
@@ -312,7 +355,8 @@ class DashedStartSessionCard extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: Colors.transparent,
+            color: (isDark ? DaylogColors.darkSurface : DaylogColors.lightCard)
+                .withValues(alpha: isDark ? 0.45 : 0.6),
             borderRadius: BorderRadius.circular(28),
           ),
           child: Row(
@@ -323,6 +367,11 @@ class DashedStartSessionCard extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100,
                   shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDark
+                        ? DaylogColors.darkAccent.withValues(alpha: 0.35)
+                        : DaylogColors.accent.withValues(alpha: 0.25),
+                  ),
                 ),
                 child: Icon(
                   Icons.add_rounded,
@@ -612,7 +661,7 @@ class _PulsingRingFabState extends State<PulsingRingFab> with SingleTickerProvid
   }
 }
 
-/// Floating Toast Pill
+/// Floating Glass Toast Pill
 void showDaylogToast(BuildContext context, String message) {
   ScaffoldMessenger.of(context).removeCurrentSnackBar();
   ScaffoldMessenger.of(context).showSnackBar(
@@ -620,13 +669,24 @@ void showDaylogToast(BuildContext context, String message) {
       content: Text(
         message,
         textAlign: TextAlign.center,
-        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.white),
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w600,
+          color: Colors.white,
+          letterSpacing: -0.2,
+        ),
       ),
       behavior: SnackBarBehavior.floating,
-      backgroundColor: const Color(0xFF201E1D),
-      elevation: 6,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-      margin: const EdgeInsets.only(left: 32, right: 32, bottom: 92),
+      backgroundColor: const Color(0xFF1E1C1A).withValues(alpha: 0.92),
+      elevation: 8,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(999),
+        side: BorderSide(
+          color: Colors.white.withValues(alpha: 0.18),
+          width: 1.0,
+        ),
+      ),
+      margin: const EdgeInsets.only(left: 32, right: 32, bottom: 104),
       duration: const Duration(milliseconds: 2200),
     ),
   );

@@ -279,12 +279,21 @@ class StatsScreen extends ConsumerWidget {
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100,
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isDark
-                                  ? DaylogColors.darkAccent.withValues(alpha: 0.3)
-                                  : DaylogColors.accent.withValues(alpha: 0.2),
+                                  ? DaylogColors.darkAccent.withValues(alpha: 0.45)
+                                  : DaylogColors.accent.withValues(alpha: 0.35),
+                              width: 1.1,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
+                                    .withValues(alpha: isDark ? 0.20 : 0.10),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

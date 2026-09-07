@@ -1,5 +1,5 @@
-// lib/screens/todos/todos_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/todo_entry.dart';
 import '../../providers/todo_provider.dart';
@@ -376,30 +376,49 @@ class _TodoItemCard extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
         color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.12)
+              : Colors.white.withValues(alpha: 0.85),
+          width: 1.1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Checkbox toggle
           InkWell(
-            onTap: () => ref.read(todoProvider.notifier).toggleTodoCompletion(todo.id),
-            borderRadius: BorderRadius.circular(6),
-            child: Container(
-              width: 20,
-              height: 20,
-              margin: const EdgeInsets.only(top: 2, right: 10),
+            onTap: () {
+              HapticFeedback.selectionClick();
+              ref.read(todoProvider.notifier).toggleTodoCompletion(todo.id);
+            },
+            borderRadius: BorderRadius.circular(8),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              curve: Curves.easeOutCubic,
+              width: 22,
+              height: 22,
+              margin: const EdgeInsets.only(top: 1, right: 10),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(6),
+                borderRadius: BorderRadius.circular(8),
                 color: todo.isCompleted ? DaylogColors.sage : Colors.transparent,
                 border: Border.all(
-                  color: todo.isCompleted ? DaylogColors.sage : theme.colorScheme.outlineVariant,
+                  color: todo.isCompleted
+                      ? DaylogColors.sage
+                      : (isDark ? Colors.white.withValues(alpha: 0.25) : theme.colorScheme.outline),
                   width: 1.5,
                 ),
               ),
               child: todo.isCompleted
-                  ? const Icon(Icons.check_rounded, size: 14, color: Colors.white)
+                  ? const Icon(Icons.check_rounded, size: 15, color: Colors.white)
                   : null,
             ),
           ),

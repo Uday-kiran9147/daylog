@@ -1,5 +1,5 @@
-// lib/screens/journal/journal_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/journal_provider.dart';
 import '../../providers/task_provider.dart';
@@ -106,52 +106,73 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
               ),
             ),
 
-            // Day Selector (< Day Label >)
+            // Day Selector Floating Pill Bar (< Day Label >)
             Padding(
               padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.chevron_left_rounded, size: 22),
-                    onPressed: isFirstDay
-                        ? null
-                        : () => ref.read(selectedJournalDateProvider.notifier).state =
-                            selectedDate.subtract(const Duration(days: 1)),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isDark
+                      ? Colors.black.withValues(alpha: 0.28)
+                      : Colors.black.withValues(alpha: 0.04),
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.10)
+                        : Colors.white.withValues(alpha: 0.85),
+                    width: 1.0,
                   ),
-                  InkWell(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: context,
-                        initialDate: selectedDate,
-                        firstDate: DateTime.now().subtract(const Duration(days: 365)),
-                        lastDate: DateTime.now(),
-                      );
-                      if (picked != null) {
-                        ref.read(selectedJournalDateProvider.notifier).state = picked;
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(999),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      child: Text(
-                        dayLabelStr,
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: theme.colorScheme.onSurface,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.chevron_left_rounded, size: 22),
+                      onPressed: isFirstDay
+                          ? null
+                          : () {
+                              HapticFeedback.selectionClick();
+                              ref.read(selectedJournalDateProvider.notifier).state =
+                                  selectedDate.subtract(const Duration(days: 1));
+                            },
+                    ),
+                    InkWell(
+                      onTap: () async {
+                        final picked = await showDatePicker(
+                          context: context,
+                          initialDate: selectedDate,
+                          firstDate: DateTime.now().subtract(const Duration(days: 365)),
+                          lastDate: DateTime.now(),
+                        );
+                        if (picked != null) {
+                          ref.read(selectedJournalDateProvider.notifier).state = picked;
+                        }
+                      },
+                      borderRadius: BorderRadius.circular(999),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                        child: Text(
+                          dayLabelStr,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                            color: theme.colorScheme.onSurface,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.chevron_right_rounded, size: 22),
-                    onPressed: isToday
-                        ? null
-                        : () => ref.read(selectedJournalDateProvider.notifier).state =
-                            selectedDate.add(const Duration(days: 1)),
-                  ),
-                ],
+                    IconButton(
+                      icon: const Icon(Icons.chevron_right_rounded, size: 22),
+                      onPressed: isToday
+                          ? null
+                          : () {
+                              HapticFeedback.selectionClick();
+                              ref.read(selectedJournalDateProvider.notifier).state =
+                                  selectedDate.add(const Duration(days: 1));
+                            },
+                    ),
+                  ],
+                ),
               ),
             ),
 
@@ -183,12 +204,21 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
                             color: isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100,
-                            borderRadius: BorderRadius.circular(18),
+                            borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: isDark
-                                  ? DaylogColors.darkAccent.withValues(alpha: 0.3)
-                                  : DaylogColors.accent.withValues(alpha: 0.2),
+                                  ? DaylogColors.darkAccent.withValues(alpha: 0.45)
+                                  : DaylogColors.accent.withValues(alpha: 0.35),
+                              width: 1.1,
                             ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
+                                    .withValues(alpha: isDark ? 0.20 : 0.10),
+                                blurRadius: 14,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -266,16 +296,28 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                         placeholder: 'Next day planning',
                         controller: _q4,
                       ),
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 22),
 
                       // Save Button
                       FilledButton(
-                        onPressed: () => _save(isSaved),
+                        onPressed: () {
+                          HapticFeedback.selectionClick();
+                          _save(isSaved);
+                        },
                         style: FilledButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
+                          backgroundColor: isDark ? DaylogColors.darkAccent : theme.colorScheme.primary,
                           foregroundColor: Colors.white,
+                          elevation: 4,
+                          shadowColor: (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
+                              .withValues(alpha: 0.35),
                           padding: const EdgeInsets.symmetric(vertical: 16),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999),
+                            side: BorderSide(
+                              color: Colors.white.withValues(alpha: 0.25),
+                              width: 1.0,
+                            ),
+                          ),
                         ),
                         child: Text(
                           isSaved ? 'Update reflection' : 'Save reflection',

@@ -1,7 +1,8 @@
-// lib/app.dart
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'models/task_entry.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/todos/todos_screen.dart';
 import 'screens/journal/journal_screen.dart';
@@ -14,6 +15,7 @@ import 'providers/task_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_settings_provider.dart';
 import 'utils/constants.dart';
+import 'utils/date_utils.dart';
 import 'widgets/daylog_widgets.dart';
 
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
@@ -99,7 +101,10 @@ class _Shell extends ConsumerWidget {
     final index = ref.watch(navigationIndexProvider);
     final showTimerFull = ref.watch(showTimerFullProvider);
     final activeTask = ref.watch(activeTaskProvider).valueOrNull;
-    final theme = Theme.of(context);
+
+    if (activeTask != null && !activeTask.isPaused) {
+      ref.watch(appTickerProvider);
+    }
 
     // If fullscreen timer is active and there is an active task, display it as an overlay
     if (showTimerFull && activeTask != null) {
@@ -120,81 +125,288 @@ class _Shell extends ConsumerWidget {
     ];
 
     return Scaffold(
+      extendBody: true,
       body: Stack(
         children: [
           // Screen views
           IndexedStack(index: index, children: screens),
-
-          // Pulsing Ring FAB (Displayed on Today screen when no active session is running)
-          if (index == 0 && activeTask == null)
-            Positioned(
-              right: 20,
-              bottom: 86,
-              child: PulsingRingFab(
-                onPressed: () {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => StartTaskSheet(
-                      onTaskStarted: (_) {
-                        ref.read(showTimerFullProvider.notifier).state = true;
-                      },
-                    ),
-                  );
-                },
-              ),
-            ),
         ],
       ),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surface,
-          border: Border(
-            top: BorderSide(color: theme.colorScheme.outlineVariant, width: 1.0),
-          ),
+      bottomNavigationBar: _GlassDock(
+        selectedIndex: index,
+        activeTask: activeTask,
+        onTabSelected: (i) => ref.read(navigationIndexProvider.notifier).state = i,
+        onActionTap: () {
+          if (activeTask != null) {
+            ref.read(showTimerFullProvider.notifier).state = true;
+          } else {
+            showModalBottomSheet(
+              context: context,
+              isScrollControlled: true,
+              backgroundColor: Colors.transparent,
+              builder: (_) => StartTaskSheet(
+                onTaskStarted: (_) {
+                  ref.read(showTimerFullProvider.notifier).state = true;
+                },
+              ),
+            );
+          }
+        },
+      ),
+    );
+  }
+}
+
+/// Floating Frosted Glass Navigation Dock inspired by the sleek design reference
+class _GlassDock extends StatelessWidget {
+  final int selectedIndex;
+  final TaskEntry? activeTask;
+  final ValueChanged<int> onTabSelected;
+  final VoidCallback onActionTap;
+
+  const _GlassDock({
+    required this.selectedIndex,
+    required this.activeTask,
+    required this.onTabSelected,
+    required this.onActionTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Ambient glow color: category color if active task is running, otherwise theme primary
+    final glowColor = activeTask != null
+        ? getCategoryInfo(activeTask!.category).tileColor
+        : (isDark ? DaylogColors.darkAccent : DaylogColors.accent);
+
+    return SafeArea(
+      top: false,
+      bottom: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(14, 0, 14, 10),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            // Ambient atmospheric glow behind the dock (matching reference image)
+            Positioned(
+              bottom: 4,
+              child: Container(
+                width: 220,
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: glowColor.withValues(alpha: isDark ? 0.38 : 0.22),
+                      blurRadius: 36,
+                      spreadRadius: 8,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Main Frosted Glass Dock Container
+            Container(
+              decoration: BoxDecoration(
+                color: (isDark ? const Color(0xFF1E1C1A) : const Color(0xFFFFF9F0))
+                    .withValues(alpha: isDark ? 0.88 : 0.92),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.14)
+                      : Colors.white.withValues(alpha: 0.85),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(6, 7, 6, 6),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Top Pill Action Button (matching "Capture" in reference image)
+                        _TopActionPill(
+                          activeTask: activeTask,
+                          onTap: onActionTap,
+                        ),
+
+                        const SizedBox(height: 5),
+
+                        // Bottom Navigation Deck with Inset Container
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.black.withValues(alpha: 0.28)
+                                : Colors.black.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.06)
+                                  : Colors.black.withValues(alpha: 0.04),
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              _DockNavItem(
+                                index: 0,
+                                selectedIndex: selectedIndex,
+                                icon: Icons.home_outlined,
+                                activeIcon: Icons.home_rounded,
+                                label: 'Home',
+                                onTap: () => onTabSelected(0),
+                              ),
+                              _DockNavItem(
+                                index: 1,
+                                selectedIndex: selectedIndex,
+                                icon: Icons.grid_view_outlined,
+                                activeIcon: Icons.grid_view_rounded,
+                                label: 'Todos',
+                                onTap: () => onTabSelected(1),
+                              ),
+                              _DockNavItem(
+                                index: 2,
+                                selectedIndex: selectedIndex,
+                                icon: Icons.auto_stories_outlined,
+                                activeIcon: Icons.auto_stories_rounded,
+                                label: 'Journal',
+                                onTap: () => onTabSelected(2),
+                              ),
+                              _DockNavItem(
+                                index: 3,
+                                selectedIndex: selectedIndex,
+                                icon: Icons.bar_chart_outlined,
+                                activeIcon: Icons.bar_chart_rounded,
+                                label: 'Stats',
+                                onTap: () => onTabSelected(3),
+                              ),
+                              _DockNavItem(
+                                index: 4,
+                                selectedIndex: selectedIndex,
+                                icon: Icons.tune_rounded,
+                                activeIcon: Icons.tune_rounded,
+                                label: 'Settings',
+                                onTap: () => onTabSelected(4),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
-        padding: const EdgeInsets.fromLTRB(8, 8, 8, 14),
-        child: SafeArea(
-          top: false,
+      ),
+    );
+  }
+}
+
+/// Centered Top Pill Action Button
+class _TopActionPill extends StatelessWidget {
+  final TaskEntry? activeTask;
+  final VoidCallback onTap;
+
+  const _TopActionPill({
+    required this.activeTask,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final isRunning = activeTask != null;
+    final elapsedSec = isRunning ? activeTask!.currentElapsedSeconds : 0;
+    final timerText = formatTimer(elapsedSec);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () {
+          HapticFeedback.selectionClick();
+          onTap();
+        },
+        borderRadius: BorderRadius.circular(999),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4.5),
+          decoration: BoxDecoration(
+            color: isRunning
+                ? (isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100)
+                : (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.65)),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isRunning
+                  ? (isDark
+                      ? DaylogColors.darkAccent.withValues(alpha: 0.5)
+                      : DaylogColors.accent.withValues(alpha: 0.35))
+                  : (isDark
+                      ? Colors.white.withValues(alpha: 0.16)
+                      : DaylogColors.lightDivider),
+              width: 1.0,
+            ),
+          ),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              _BottomNavItem(
-                index: 0,
-                selectedIndex: index,
-                icon: Icons.home_rounded,
-                label: 'Today',
-                onTap: () => ref.read(navigationIndexProvider.notifier).state = 0,
-              ),
-              _BottomNavItem(
-                index: 1,
-                selectedIndex: index,
-                icon: Icons.grid_view_rounded,
-                label: 'Todos',
-                onTap: () => ref.read(navigationIndexProvider.notifier).state = 1,
-              ),
-              _BottomNavItem(
-                index: 2,
-                selectedIndex: index,
-                icon: Icons.auto_stories_rounded,
-                label: 'Journal',
-                onTap: () => ref.read(navigationIndexProvider.notifier).state = 2,
-              ),
-              _BottomNavItem(
-                index: 3,
-                selectedIndex: index,
-                icon: Icons.bar_chart_rounded,
-                label: 'Insights',
-                onTap: () => ref.read(navigationIndexProvider.notifier).state = 3,
-              ),
-              _BottomNavItem(
-                index: 4,
-                selectedIndex: index,
-                icon: Icons.tune_rounded,
-                label: 'Settings',
-                onTap: () => ref.read(navigationIndexProvider.notifier).state = 4,
-              ),
+              if (isRunning) ...[
+                PulsingDot(
+                  color: isDark ? DaylogColors.darkAccent : DaylogColors.accent,
+                  size: 6,
+                  isPaused: activeTask!.isPaused,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  '$timerText · ${activeTask!.title}',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ] else ...[
+                Icon(
+                  Icons.camera_alt_outlined,
+                  size: 13,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  'Capture focus',
+                  style: TextStyle(
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w600,
+                    color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
+                  ),
+                ),
+              ],
             ],
           ),
         ),
@@ -203,17 +415,20 @@ class _Shell extends ConsumerWidget {
   }
 }
 
-class _BottomNavItem extends StatelessWidget {
+/// Refined Inset Tab Item with Elevated Specular Pill Indicator
+class _DockNavItem extends StatelessWidget {
   final int index;
   final int selectedIndex;
   final IconData icon;
+  final IconData? activeIcon;
   final String label;
   final VoidCallback onTap;
 
-  const _BottomNavItem({
+  const _DockNavItem({
     required this.index,
     required this.selectedIndex,
     required this.icon,
+    this.activeIcon,
     required this.label,
     required this.onTap,
   });
@@ -222,33 +437,94 @@ class _BottomNavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     final selected = index == selectedIndex;
     final theme = Theme.of(context);
-    final color = selected ? theme.colorScheme.primary : theme.colorScheme.onSurface;
-    final opacity = selected ? 1.0 : 0.55;
+    final isDark = theme.brightness == Brightness.dark;
+
+    // Active tab colors & styling
+    final activeBg = isDark ? const Color(0xFF2C2825) : Colors.white;
+    final activeBorder = isDark
+        ? Colors.white.withValues(alpha: 0.22)
+        : DaylogColors.accent.withValues(alpha: 0.25);
+    final activeShadow = isDark
+        ? [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.45),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ]
+        : [
+            BoxShadow(
+              color: DaylogColors.accent.withValues(alpha: 0.14),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ];
+
+    final activeIconColor = isDark ? Colors.white : DaylogColors.accent;
+    final activeTextColor = isDark ? Colors.white : DaylogColors.lightText;
+
+    final inactiveColor = isDark
+        ? Colors.white.withValues(alpha: 0.55)
+        : theme.colorScheme.onSurface.withValues(alpha: 0.55);
 
     return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                size: 22,
-                color: color.withValues(alpha: opacity),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () {
+            HapticFeedback.selectionClick();
+            onTap();
+          },
+          borderRadius: BorderRadius.circular(20),
+          splashColor: (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
+              .withValues(alpha: 0.12),
+          highlightColor: (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
+              .withValues(alpha: 0.06),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 220),
+            curve: Curves.easeOutCubic,
+            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+            decoration: BoxDecoration(
+              color: selected ? activeBg : Colors.transparent,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: selected ? activeBorder : Colors.transparent,
+                width: 1.0,
               ),
-              const SizedBox(height: 3),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: selected ? FontWeight.bold : FontWeight.w500,
-                  color: color.withValues(alpha: opacity),
+              boxShadow: selected ? activeShadow : null,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedScale(
+                  scale: selected ? 1.08 : 1.0,
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  child: Icon(
+                    selected ? (activeIcon ?? icon) : icon,
+                    size: 21,
+                    color: selected ? activeIconColor : inactiveColor,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 3),
+                AnimatedDefaultTextStyle(
+                  duration: const Duration(milliseconds: 200),
+                  curve: Curves.easeOutCubic,
+                  style: TextStyle(
+                    fontSize: 10.5,
+                    fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                    color: selected ? activeTextColor : inactiveColor,
+                    letterSpacing: selected ? -0.1 : 0,
+                  ),
+                  child: Text(
+                    label,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

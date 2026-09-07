@@ -1,5 +1,5 @@
-// lib/screens/home/home_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/task_entry.dart';
 import '../../providers/task_provider.dart';
@@ -298,17 +298,32 @@ class _TaskDetailLogCard extends ConsumerWidget {
         color: isHighlighted
             ? (isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100)
             : theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isHighlighted
-              ? (isDark ? DaylogColors.darkAccent.withValues(alpha: 0.4) : DaylogColors.accent.withValues(alpha: 0.3))
-              : theme.colorScheme.outlineVariant,
-          width: 1.0,
+              ? (isDark
+                  ? DaylogColors.darkAccent.withValues(alpha: 0.55)
+                  : DaylogColors.accent.withValues(alpha: 0.40))
+              : (isDark
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.white.withValues(alpha: 0.85)),
+          width: 1.1,
         ),
+        boxShadow: [
+          BoxShadow(
+            color: isHighlighted
+                ? (isDark
+                    ? DaylogColors.darkAccent.withValues(alpha: 0.25)
+                    : DaylogColors.accent.withValues(alpha: 0.15))
+                : Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
+            blurRadius: isHighlighted ? 18 : 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
@@ -460,7 +475,9 @@ class _ActiveSessionHero extends ConsumerWidget {
       ref.watch(appTickerProvider);
     }
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
     final elapsed = task.currentElapsedSeconds;
+    final heroColor = isDark ? DaylogColors.darkAccent : theme.colorScheme.primary;
 
     return InkWell(
       onTap: onOpenModal,
@@ -468,13 +485,23 @@ class _ActiveSessionHero extends ConsumerWidget {
       child: Container(
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: theme.colorScheme.primary,
+          color: heroColor,
           borderRadius: BorderRadius.circular(28),
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.32),
+            width: 1.2,
+          ),
           boxShadow: [
             BoxShadow(
-              color: theme.colorScheme.primary.withValues(alpha: 0.35),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
+              color: heroColor.withValues(alpha: isDark ? 0.45 : 0.30),
+              blurRadius: 28,
+              spreadRadius: 2,
+              offset: const Offset(0, 10),
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.08),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
@@ -485,38 +512,51 @@ class _ActiveSessionHero extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Row(
-                  children: [
-                    PulsingDot(color: Colors.white, size: 7, isPaused: task.isPaused),
-                    const SizedBox(width: 8),
-                    Text(
-                      task.isPaused ? 'PAUSED' : 'FOCUSING',
-                      style: const TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: 0.8,
-                      ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.32),
+                      width: 0.9,
                     ),
-                  ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      PulsingDot(color: Colors.white, size: 7, isPaused: task.isPaused),
+                      const SizedBox(width: 7),
+                      Text(
+                        task.isPaused ? 'PAUSED' : 'FOCUSING',
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 CategoryTag(category: task.category, isDark: false),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
             // Task Name
             Text(
               task.title,
               style: const TextStyle(
-                fontSize: 17,
+                fontSize: 18,
                 fontWeight: FontWeight.bold,
                 color: Colors.white,
+                letterSpacing: -0.2,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
 
             // Elapsed Clock
             Text(
@@ -529,7 +569,7 @@ class _ActiveSessionHero extends ConsumerWidget {
                 fontFeatures: [FontFeature.tabularFigures()],
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
 
             // Action Buttons
             Row(
@@ -537,6 +577,7 @@ class _ActiveSessionHero extends ConsumerWidget {
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: () {
+                      HapticFeedback.selectionClick();
                       if (task.isPaused) {
                         ref.read(activeTaskProvider.notifier).resumeActive();
                       } else {
@@ -546,7 +587,13 @@ class _ActiveSessionHero extends ConsumerWidget {
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white.withValues(alpha: 0.22),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                        side: BorderSide(
+                          color: Colors.white.withValues(alpha: 0.35),
+                          width: 1.0,
+                        ),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
                     icon: Icon(
@@ -562,10 +609,15 @@ class _ActiveSessionHero extends ConsumerWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: () => ref.read(activeTaskProvider.notifier).stopActive(),
+                    onPressed: () {
+                      HapticFeedback.selectionClick();
+                      ref.read(activeTaskProvider.notifier).stopActive();
+                    },
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
                       foregroundColor: DaylogColors.accent700,
+                      elevation: 4,
+                      shadowColor: Colors.black.withValues(alpha: 0.25),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                       padding: const EdgeInsets.symmetric(vertical: 12),
                     ),
