@@ -1,4 +1,4 @@
-package com.example.daylog
+package com.astrava.daylog
 
 import io.flutter.embedding.android.FlutterActivity
 
