@@ -1,4 +1,5 @@
 // lib/screens/onboarding/onboarding_screen.dart
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,11 +17,75 @@ class OnboardingScreen extends ConsumerStatefulWidget {
 class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
+  static const int _totalPages = 6;
 
-  // Selected categories state for onboarding
+  // Selected categories and goals state for onboarding
   late Set<String> _selectedCategories;
   double _dailyGoalHours = 4.0;
   bool _eveningReminder = true;
+
+  final List<_FeatureSlideData> _slides = const [
+    _FeatureSlideData(
+      imagePath: 'assets/images/zero-friction-focus-timer-v1.png',
+      badge: '⏱️ · FOCUS SESSIONS',
+      badgeTag: 'Live Focus',
+      badgeIcon: Icons.timer_outlined,
+      title: 'Zero-Friction\nFocus Timer',
+      description:
+          'Enter effortless flow state with 1-tap live timers, smart category detection, and gentle background tracking.',
+      highlights: [
+        _HighlightItem(icon: Icons.bolt_rounded, label: '1-Tap Quick Start'),
+        _HighlightItem(icon: Icons.category_rounded, label: 'Smart Tagging'),
+        _HighlightItem(icon: Icons.notifications_active_outlined, label: 'Background Ping'),
+      ],
+      accentGlow: DaylogColors.accent,
+    ),
+    _FeatureSlideData(
+      imagePath: 'assets/images/action-items-priorities-v1.png',
+      badge: '🎯 · TASK MASTERY',
+      badgeTag: "Today's Queue",
+      badgeIcon: Icons.check_circle_outline_rounded,
+      title: 'Action Items\n& Priorities',
+      description:
+          'Turn ambitious plans into structured daily progress with color-coded priority flags and smart due dates.',
+      highlights: [
+        _HighlightItem(icon: Icons.flag_rounded, label: 'High / Med / Low Flags'),
+        _HighlightItem(icon: Icons.event_note_rounded, label: 'Smart Due Dates'),
+        _HighlightItem(icon: Icons.add_task_rounded, label: 'Quick Todo Inbox'),
+      ],
+      accentGlow: Color(0xFFD48344),
+    ),
+    _FeatureSlideData(
+      imagePath: 'assets/images/deep-work-insights-v1.png',
+      badge: '📊 · DEEP ANALYTICS',
+      badgeTag: 'Weekly Trends',
+      badgeIcon: Icons.bar_chart_rounded,
+      title: 'Deep Work\nInsights',
+      description:
+          'Understand exactly where your focus hours go with weekly category breakdowns, streak metrics, and goal meters.',
+      highlights: [
+        _HighlightItem(icon: Icons.pie_chart_outline_rounded, label: 'Category Mix'),
+        _HighlightItem(icon: Icons.local_fire_department_rounded, label: 'Streak Tracking'),
+        _HighlightItem(icon: Icons.track_changes_rounded, label: 'Daily Goal Meters'),
+      ],
+      accentGlow: Color(0xFF386B8C),
+    ),
+    _FeatureSlideData(
+      imagePath: 'assets/images/daily-evening-reflection-v1.png',
+      badge: '🌙 · MINDFUL JOURNAL',
+      badgeTag: '9:00 PM Review',
+      badgeIcon: Icons.auto_stories_outlined,
+      title: 'Daily Evening\nReflection',
+      description:
+          'Close every day with mental clarity using a guided 4-question review to celebrate wins, learn, and plan tomorrow.',
+      highlights: [
+        _HighlightItem(icon: Icons.menu_book_rounded, label: '4 Guided Prompts'),
+        _HighlightItem(icon: Icons.emoji_events_outlined, label: 'Celebrate Wins'),
+        _HighlightItem(icon: Icons.wb_sunny_outlined, label: 'Tomorrow’s Focus'),
+      ],
+      accentGlow: Color(0xFF4A7C59),
+    ),
+  ];
 
   @override
   void initState() {
@@ -35,11 +100,11 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _nextPage() {
-    if (_currentPage < 2) {
+    if (_currentPage < _totalPages - 1) {
       _pageController.animateToPage(
         _currentPage + 1,
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeOutCubic,
       );
     } else {
       _finishOnboarding();
@@ -50,8 +115,8 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     if (_currentPage > 0) {
       _pageController.animateToPage(
         _currentPage - 1,
-        duration: const Duration(milliseconds: 350),
-        curve: Curves.easeInOut,
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeOutCubic,
       );
     }
   }
@@ -100,123 +165,441 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
     );
   }
 
+  Color _getActiveAccentGlow() {
+    if (_currentPage < _slides.length) {
+      return _slides[_currentPage].accentGlow;
+    }
+    return DaylogColors.accent;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final activeGlow = _getActiveAccentGlow();
+    final isLastPage = _currentPage == _totalPages - 1;
+
+    return Scaffold(
+      backgroundColor: theme.scaffoldBackgroundColor,
+      body: Stack(
+        children: [
+          // ── Background Ambient Glowing Halos (Liquid Glass Effect) ────────
+          Positioned(
+            top: -60,
+            right: -60,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    activeGlow.withValues(alpha: isDark ? 0.22 : 0.14),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: 80,
+            left: -80,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 500),
+              curve: Curves.easeInOut,
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
+                        .withValues(alpha: isDark ? 0.15 : 0.08),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // ── Main Content Area ─────────────────────────────────────────────
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                // Floating Liquid Glass Top Header
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 8, 18, 4),
+                  child: _LiquidGlassHeader(
+                    currentPage: _currentPage,
+                    totalPages: _totalPages,
+                    onSkip: _finishOnboarding,
+                  ),
+                ),
+
+                // 6 Sequential Walkthrough Pages (4 Feature Slides + Categories + Goal Target)
+                Expanded(
+                  child: PageView(
+                    controller: _pageController,
+                    physics: const BouncingScrollPhysics(),
+                    onPageChanged: (page) => setState(() => _currentPage = page),
+                    children: [
+                      // Slide 1: Zero-Friction Focus Timer
+                      _FeatureSlideView(slide: _slides[0]),
+                      // Slide 2: Action Items & Priorities
+                      _FeatureSlideView(slide: _slides[1]),
+                      // Slide 3: Deep Work Insights
+                      _FeatureSlideView(slide: _slides[2]),
+                      // Slide 4: Daily Evening Reflection
+                      _FeatureSlideView(slide: _slides[3]),
+                      // Slide 5: Full Category Selection (as originally implemented)
+                      _CategoryPickerPage(
+                        selectedCategories: _selectedCategories,
+                        onToggleCategory: (cat) {
+                          setState(() {
+                            if (_selectedCategories.contains(cat)) {
+                              if (_selectedCategories.length > 1) {
+                                _selectedCategories.remove(cat);
+                              }
+                            } else {
+                              _selectedCategories.add(cat);
+                            }
+                          });
+                        },
+                        onApplyPreset: (categories) {
+                          setState(() {
+                            _selectedCategories = Set.from(categories);
+                          });
+                        },
+                        onAddCustom: _showAddCustomCategoryDialog,
+                      ),
+                      // Slide 6: Goal Setting & Evening Reminder (as originally implemented)
+                      _GoalSettingPage(
+                        dailyGoalHours: _dailyGoalHours,
+                        onGoalChanged: (val) => setState(() => _dailyGoalHours = val),
+                        eveningReminder: _eveningReminder,
+                        onReminderChanged: (val) => setState(() => _eveningReminder = val),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Space for floating liquid bottom dock
+                const SizedBox(height: 104),
+              ],
+            ),
+          ),
+
+          // ── Floating Liquid Glass Bottom Navigation Dock ──────────────────
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 0,
+            child: _LiquidGlassBottomDock(
+              currentPage: _currentPage,
+              totalPages: _totalPages,
+              accentGlow: activeGlow,
+              buttonLabel: isLastPage ? 'Start Tracking' : 'Continue',
+              isButtonEnabled: _currentPage != 4 || _selectedCategories.isNotEmpty,
+              onPrev: _currentPage > 0 ? _prevPage : null,
+              onNext: _nextPage,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// ── Data Model for Feature Slides ───────────────────────────────────────────
+class _FeatureSlideData {
+  final String imagePath;
+  final String badge;
+  final String badgeTag;
+  final IconData badgeIcon;
+  final String title;
+  final String description;
+  final List<_HighlightItem> highlights;
+  final Color accentGlow;
+
+  const _FeatureSlideData({
+    required this.imagePath,
+    required this.badge,
+    required this.badgeTag,
+    required this.badgeIcon,
+    required this.title,
+    required this.description,
+    required this.highlights,
+    required this.accentGlow,
+  });
+}
+
+class _HighlightItem {
+  final IconData icon;
+  final String label;
+
+  const _HighlightItem({required this.icon, required this.label});
+}
+
+/// ── Individual Feature Slide Layout ─────────────────────────────────────────
+class _FeatureSlideView extends StatelessWidget {
+  final _FeatureSlideData slide;
+
+  const _FeatureSlideView({required this.slide});
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Top Navigation Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  if (_currentPage > 0)
-                    IconButton(
-                      icon: const Icon(Icons.arrow_back_rounded, size: 22),
-                      onPressed: _prevPage,
-                      tooltip: 'Back',
-                    )
-                  else
-                    const SizedBox(width: 48),
+    return SingleChildScrollView(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          const SizedBox(height: 6),
 
-                  // Step Indicator Dots
-                  Row(
-                    children: List.generate(3, (index) {
-                      final isActive = index == _currentPage;
-                      return AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        margin: const EdgeInsets.symmetric(horizontal: 4),
-                        width: isActive ? 22 : 7,
-                        height: 7,
-                        decoration: BoxDecoration(
-                          color: isActive
-                              ? theme.colorScheme.primary
-                              : (isDark ? const Color(0xFF423C38) : const Color(0xFFD6C8B8)),
-                          borderRadius: BorderRadius.circular(999),
+          // ── Hero Liquid Glass Image Card ──────────────────────────────────
+          _LiquidGlassImageCard(
+            imagePath: slide.imagePath,
+            badgeTag: slide.badgeTag,
+            badgeIcon: slide.badgeIcon,
+            accentGlow: slide.accentGlow,
+          ),
+
+          const SizedBox(height: 20),
+
+          // ── Feature Pillar Tag Pill ───────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 5),
+            decoration: BoxDecoration(
+              color: (isDark ? const Color(0xFF2E2A28) : Colors.white)
+                  .withValues(alpha: isDark ? 0.70 : 0.85),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(
+                color: isDark
+                    ? Colors.white.withValues(alpha: 0.16)
+                    : Colors.black.withValues(alpha: 0.08),
+                width: 1.0,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 6,
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: slide.accentGlow,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 7),
+                Text(
+                  slide.badge,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                    color: isDark ? DaylogColors.darkText : DaylogColors.lightText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // ── Headline ──────────────────────────────────────────────────────
+          Text(
+            slide.title,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 27,
+              fontWeight: FontWeight.w800,
+              color: theme.colorScheme.onSurface,
+              height: 1.18,
+              letterSpacing: -0.6,
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
+          // ── Body Description ──────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              slide.description,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 13.5,
+                color: theme.colorScheme.onSurface.withValues(alpha: 0.70),
+                height: 1.42,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // ── Feature Micro-Highlight Glass Chips ───────────────────────────
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.center,
+            children: slide.highlights.map((h) {
+              return _LiquidHighlightChip(item: h);
+            }).toList(),
+          ),
+
+          const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+}
+
+/// ── Hero Image with Liquid Glass Aesthetics ─────────────────────────────────
+class _LiquidGlassImageCard extends StatelessWidget {
+  final String imagePath;
+  final String badgeTag;
+  final IconData badgeIcon;
+  final Color accentGlow;
+
+  const _LiquidGlassImageCard({
+    required this.imagePath,
+    required this.badgeTag,
+    required this.badgeIcon,
+    required this.accentGlow,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final cardHeight = (screenHeight * 0.38).clamp(240.0, 360.0);
+
+    return Container(
+      height: cardHeight,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: accentGlow.withValues(alpha: isDark ? 0.28 : 0.15),
+            blurRadius: 24,
+            spreadRadius: -4,
+            offset: const Offset(0, 10),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(28),
+        child: Stack(
+          children: [
+            // Glass backdrop background
+            BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: (isDark ? const Color(0xFF221F1D) : const Color(0xFFFFFDFC))
+                      .withValues(alpha: isDark ? 0.88 : 0.94),
+                  borderRadius: BorderRadius.circular(28),
+                  border: Border.all(
+                    color: isDark
+                        ? Colors.white.withValues(alpha: 0.18)
+                        : Colors.white.withValues(alpha: 0.92),
+                    width: 1.4,
+                  ),
+                ),
+              ),
+            ),
+
+            // The Illustration Asset
+            Positioned.fill(
+              child: Padding(
+                padding: const EdgeInsets.all(10.0),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: Image.asset(
+                    imagePath,
+                    fit: BoxFit.contain,
+                    errorBuilder: (context, error, stackTrace) {
+                      return Center(
+                        child: Icon(
+                          badgeIcon,
+                          size: 64,
+                          color: accentGlow.withValues(alpha: 0.5),
                         ),
                       );
-                    }),
+                    },
                   ),
+                ),
+              ),
+            ),
 
-                  if (_currentPage < 2)
-                    TextButton(
-                      onPressed: _finishOnboarding,
-                      child: Text(
-                        'Skip',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                        ),
+            // Top-right floating liquid glass pill badge
+            Positioned(
+              top: 14,
+              right: 14,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4.5),
+                    decoration: BoxDecoration(
+                      color: (isDark ? Colors.black : Colors.white)
+                          .withValues(alpha: isDark ? 0.60 : 0.75),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: isDark
+                            ? Colors.white.withValues(alpha: 0.25)
+                            : Colors.white.withValues(alpha: 0.85),
+                        width: 1.0,
                       ),
-                    )
-                  else
-                    const SizedBox(width: 48),
-                ],
-              ),
-            ),
-
-            // Page Content
-            Expanded(
-              child: PageView(
-                controller: _pageController,
-                physics: const ClampingScrollPhysics(),
-                onPageChanged: (page) => setState(() => _currentPage = page),
-                children: [
-                  _WelcomePage(onNext: _nextPage),
-                  _CategoryPickerPage(
-                    selectedCategories: _selectedCategories,
-                    onToggleCategory: (cat) {
-                      setState(() {
-                        if (_selectedCategories.contains(cat)) {
-                          if (_selectedCategories.length > 1) {
-                            _selectedCategories.remove(cat);
-                          }
-                        } else {
-                          _selectedCategories.add(cat);
-                        }
-                      });
-                    },
-                    onApplyPreset: (categories) {
-                      setState(() {
-                        _selectedCategories = Set.from(categories);
-                      });
-                    },
-                    onAddCustom: _showAddCustomCategoryDialog,
-                  ),
-                  _GoalSettingPage(
-                    dailyGoalHours: _dailyGoalHours,
-                    onGoalChanged: (val) => setState(() => _dailyGoalHours = val),
-                    eveningReminder: _eveningReminder,
-                    onReminderChanged: (val) => setState(() => _eveningReminder = val),
-                  ),
-                ],
-              ),
-            ),
-
-            // Bottom CTA Button
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 10, 20, 20),
-              child: SizedBox(
-                width: double.infinity,
-                child: FilledButton(
-                  onPressed: _selectedCategories.isEmpty ? null : _nextPage,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: theme.colorScheme.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
-                    elevation: 4,
-                  ),
-                  child: Text(
-                    _currentPage == 2 ? 'Start Tracking' : 'Continue',
-                    style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.12),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          badgeIcon,
+                          size: 13,
+                          color: isDark ? DaylogColors.darkAccent : DaylogColors.accent,
+                        ),
+                        const SizedBox(width: 5),
+                        Text(
+                          badgeTag,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: theme.colorScheme.onSurface,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -228,160 +611,52 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 }
 
-/// ── Page 1: Welcome & Highlights ─────────────────────────────────────────────
-class _WelcomePage extends StatelessWidget {
-  final VoidCallback onNext;
-  const _WelcomePage({required this.onNext});
+/// ── Highlight Micro-Chip (Liquid Glass Style) ───────────────────────────────
+class _LiquidHighlightChip extends StatelessWidget {
+  final _HighlightItem item;
+
+  const _LiquidHighlightChip({required this.item});
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
 
-    return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      children: [
-        const SizedBox(height: 10),
-        // App Logo / Hero Pulsing Icon
-        Center(
-          child: Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100,
-              shape: BoxShape.circle,
-              border: Border.all(
-                color: (isDark ? DaylogColors.darkAccent : DaylogColors.accent).withValues(alpha: 0.3),
-                width: 2,
-              ),
-            ),
-            child: Icon(
-              Icons.access_time_filled_rounded,
-              size: 40,
-              color: isDark ? DaylogColors.darkAccent : DaylogColors.accent,
-            ),
-          ),
-        ),
-        const SizedBox(height: 24),
-
-        Text(
-          'Master your focus\nwith Daylog',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: theme.colorScheme.onSurface,
-            height: 1.2,
-            letterSpacing: -0.5,
-          ),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 10),
-        Text(
-          'An offline-first, organic workspace for high performers. Track sessions, organize priorities, and reflect daily.',
-          style: TextStyle(
-            fontSize: 14,
-            color: theme.colorScheme.onSurface.withValues(alpha: 0.65),
-            height: 1.4,
-          ),
-          textAlign: TextAlign.center,
-        ),
-
-        const SizedBox(height: 32),
-
-        // Feature Pillars
-        _FeatureCard(
-          icon: Icons.timer_outlined,
-          title: 'Zero-Friction Focus Timer',
-          description: '1-tap live timers, auto category detection, and background notifications.',
-          isDark: isDark,
-        ),
-        const SizedBox(height: 12),
-        _FeatureCard(
-          icon: Icons.check_circle_outline_rounded,
-          title: 'Action Items & Priorities',
-          description: 'High-priority flags, due dates, and quick capture for todos.',
-          isDark: isDark,
-        ),
-        const SizedBox(height: 12),
-        _FeatureCard(
-          icon: Icons.auto_stories_outlined,
-          title: 'Daily Evening Reflection',
-          description: 'Structured 4-question journal to review wins, learnings, and tomorrow’s goals.',
-          isDark: isDark,
-        ),
-        const SizedBox(height: 12),
-        _FeatureCard(
-          icon: Icons.bar_chart_rounded,
-          title: 'Deep Work Insights',
-          description: 'Weekly focus breakdowns, distribution charts, and goal tracking.',
-          isDark: isDark,
-        ),
-      ],
-    );
-  }
-}
-
-class _FeatureCard extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-  final bool isDark;
-
-  const _FeatureCard({
-    required this.icon,
-    required this.title,
-    required this.description,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
       decoration: BoxDecoration(
-        color: theme.cardTheme.color,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: theme.colorScheme.outlineVariant, width: 1.0),
+        color: (isDark ? const Color(0xFF262321) : Colors.white)
+            .withValues(alpha: isDark ? 0.65 : 0.75),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.12)
+              : Colors.black.withValues(alpha: 0.05),
+          width: 0.9,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.20 : 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100,
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: isDark ? DaylogColors.darkAccent : DaylogColors.accent,
-            ),
+          Icon(
+            item.icon,
+            size: 13,
+            color: isDark ? DaylogColors.darkAccent : DaylogColors.accent,
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.onSurface,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                    height: 1.3,
-                  ),
-                ),
-              ],
+          const SizedBox(width: 6),
+          Text(
+            item.label,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.85),
             ),
           ),
         ],
@@ -390,7 +665,7 @@ class _FeatureCard extends StatelessWidget {
   }
 }
 
-/// ── Page 2: Category Customization with Frosted Selectable Chips ──────────────
+/// ── Page 5: Category Picker (Preserved exactly as originally designed) ───────
 class _CategoryPickerPage extends ConsumerStatefulWidget {
   final Set<String> selectedCategories;
   final ValueChanged<String> onToggleCategory;
@@ -431,6 +706,7 @@ class _CategoryPickerPageState extends ConsumerState<_CategoryPickerPage> {
     }).toList();
 
     return ListView(
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
       children: [
         Text(
@@ -1050,7 +1326,7 @@ class _DomainTab extends StatelessWidget {
   }
 }
 
-/// ── Page 3: Goal & Preferences ──────────────────────────────────────────────
+/// ── Page 6: Goal & Preferences (Preserved exactly as originally designed) ────
 class _GoalSettingPage extends StatelessWidget {
   final double dailyGoalHours;
   final ValueChanged<double> onGoalChanged;
@@ -1072,6 +1348,7 @@ class _GoalSettingPage extends StatelessWidget {
     final goals = [2.0, 3.0, 4.0, 6.0, 8.0];
 
     return ListView(
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       children: [
         const SizedBox(height: 10),
@@ -1226,7 +1503,385 @@ class _GoalSettingPage extends StatelessWidget {
             ],
           ),
         ),
+        const SizedBox(height: 24),
       ],
+    );
+  }
+}
+
+/// ── Liquid Glass Top Status Header ──────────────────────────────────────────
+class _LiquidGlassHeader extends StatelessWidget {
+  final int currentPage;
+  final int totalPages;
+  final VoidCallback onSkip;
+
+  const _LiquidGlassHeader({
+    required this.currentPage,
+    required this.totalPages,
+    required this.onSkip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isLastPage = currentPage == totalPages - 1;
+
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        // Brand Logo Mark Pill
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          decoration: BoxDecoration(
+            color: (isDark ? const Color(0xFF24201E) : Colors.white)
+                .withValues(alpha: isDark ? 0.70 : 0.85),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.14)
+                  : Colors.white.withValues(alpha: 0.85),
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.access_time_filled_rounded,
+                size: 15,
+                color: isDark ? DaylogColors.darkAccent : DaylogColors.accent,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'DayLog',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: -0.2,
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        // Slide Step Pill Indicator (e.g. 01 / 06)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+          decoration: BoxDecoration(
+            color: (isDark ? Colors.black.withValues(alpha: 0.35) : Colors.black.withValues(alpha: 0.04)),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(
+              color: isDark
+                  ? Colors.white.withValues(alpha: 0.10)
+                  : Colors.black.withValues(alpha: 0.05),
+            ),
+          ),
+          child: Text(
+            '0${currentPage + 1} / 0$totalPages',
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.4,
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+            ),
+          ),
+        ),
+
+        // Skip Button
+        AnimatedOpacity(
+          opacity: isLastPage ? 0.0 : 1.0,
+          duration: const Duration(milliseconds: 200),
+          child: IgnorePointer(
+            ignoring: isLastPage,
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onSkip,
+                borderRadius: BorderRadius.circular(999),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: (isDark ? Colors.white.withValues(alpha: 0.08) : Colors.white.withValues(alpha: 0.6)),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.12)
+                          : Colors.black.withValues(alpha: 0.06),
+                    ),
+                  ),
+                  child: Text(
+                    'Skip',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.75),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// ── Floating Liquid Glass Bottom Navigation Dock ────────────────────────────
+class _LiquidGlassBottomDock extends StatelessWidget {
+  final int currentPage;
+  final int totalPages;
+  final Color accentGlow;
+  final String buttonLabel;
+  final bool isButtonEnabled;
+  final VoidCallback? onPrev;
+  final VoidCallback onNext;
+
+  const _LiquidGlassBottomDock({
+    required this.currentPage,
+    required this.totalPages,
+    required this.accentGlow,
+    required this.buttonLabel,
+    this.isButtonEnabled = true,
+    required this.onPrev,
+    required this.onNext,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+    final isLastPage = currentPage == totalPages - 1;
+
+    return SafeArea(
+      top: false,
+      bottom: true,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            // Atmospheric ambient glow behind the dock
+            Positioned(
+              bottom: 4,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 400),
+                width: 220,
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: accentGlow.withValues(alpha: isDark ? 0.35 : 0.22),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Frosted Main Glass Dock Container
+            Container(
+              decoration: BoxDecoration(
+                color: (isDark ? const Color(0xFF1E1C1A) : const Color(0xFFFFF9F0))
+                    .withValues(alpha: isDark ? 0.90 : 0.94),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.16)
+                      : Colors.white.withValues(alpha: 0.90),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.08),
+                    blurRadius: 18,
+                    offset: const Offset(0, 6),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.15 : 0.02),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Top Progress Worm Dots (6 dots)
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: List.generate(totalPages, (index) {
+                            final isActive = index == currentPage;
+                            return AnimatedContainer(
+                              duration: const Duration(milliseconds: 280),
+                              curve: Curves.easeOutCubic,
+                              margin: const EdgeInsets.symmetric(horizontal: 3.5),
+                              width: isActive ? 22 : 7,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: isActive
+                                    ? theme.colorScheme.primary
+                                    : (isDark
+                                        ? const Color(0xFF423C38)
+                                        : const Color(0xFFD6C8B8)),
+                                borderRadius: BorderRadius.circular(999),
+                                boxShadow: isActive
+                                    ? [
+                                        BoxShadow(
+                                          color: theme.colorScheme.primary
+                                              .withValues(alpha: 0.45),
+                                          blurRadius: 6,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                            );
+                          }),
+                        ),
+
+                        const SizedBox(height: 10),
+
+                        // Bottom Control Action Row
+                        Row(
+                          children: [
+                            // Back Button (Smoothly animated)
+                            AnimatedOpacity(
+                              opacity: onPrev != null ? 1.0 : 0.0,
+                              duration: const Duration(milliseconds: 200),
+                              child: AnimatedScale(
+                                scale: onPrev != null ? 1.0 : 0.8,
+                                duration: const Duration(milliseconds: 200),
+                                child: InkWell(
+                                  onTap: onPrev != null
+                                      ? () {
+                                          HapticFeedback.selectionClick();
+                                          onPrev!();
+                                        }
+                                      : null,
+                                  borderRadius: BorderRadius.circular(999),
+                                  child: Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? Colors.white.withValues(alpha: 0.08)
+                                          : Colors.white.withValues(alpha: 0.7),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isDark
+                                            ? Colors.white.withValues(alpha: 0.14)
+                                            : Colors.black.withValues(alpha: 0.06),
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.arrow_back_rounded,
+                                      size: 19,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            const SizedBox(width: 8),
+
+                            // Main Glowing CTA Button (Liquid Glass Fill)
+                            Expanded(
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: isButtonEnabled
+                                      ? () {
+                                          HapticFeedback.mediumImpact();
+                                          onNext();
+                                        }
+                                      : null,
+                                  borderRadius: BorderRadius.circular(999),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 250),
+                                    height: 46,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: isButtonEnabled
+                                            ? (isLastPage
+                                                ? [
+                                                    theme.colorScheme.primary,
+                                                    const Color(0xFFD47551),
+                                                  ]
+                                                : [
+                                                    theme.colorScheme.primary,
+                                                    theme.colorScheme.primary.withValues(alpha: 0.92),
+                                                  ])
+                                            : [
+                                                Colors.grey.withValues(alpha: 0.4),
+                                                Colors.grey.withValues(alpha: 0.4),
+                                              ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(999),
+                                      boxShadow: isButtonEnabled
+                                          ? [
+                                              BoxShadow(
+                                                color: theme.colorScheme.primary
+                                                    .withValues(alpha: 0.35),
+                                                blurRadius: 12,
+                                                offset: const Offset(0, 4),
+                                              ),
+                                            ]
+                                          : null,
+                                      border: Border.all(
+                                        color: Colors.white.withValues(alpha: 0.35),
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          buttonLabel,
+                                          style: const TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                            letterSpacing: -0.2,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Icon(
+                                          isLastPage
+                                              ? Icons.bolt_rounded
+                                              : Icons.arrow_forward_rounded,
+                                          size: 18,
+                                          color: Colors.white,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
