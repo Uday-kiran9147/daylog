@@ -1,7 +1,7 @@
 name: daylog
 description: Offline-first daily journal and time tracker
 publish_to: none
-version: 1.0.0+1
+version: 1.0.1+2
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -40,8 +40,8 @@ flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
-  image_path: "assets/icon/daylog-icon-1024.png"
+  image_path: "assets/icon/daylog-icon_v7.png"
   adaptive_icon_background: "#C85A32"
-  adaptive_icon_foreground: "assets/icon/daylog-icon-1024.png"
+  adaptive_icon_foreground: "assets/icon/daylog-icon_v7.png"
 flutter:
   uses-material-design: true
