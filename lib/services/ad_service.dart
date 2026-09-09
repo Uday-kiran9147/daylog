@@ -2,6 +2,7 @@
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:purchases_flutter/purchases_flutter.dart';
 
@@ -14,20 +15,28 @@ class AdService {
 
   // ──────────────────────────────────────────────────────────────────────────
   // AD UNIT CONFIGURATION
-  // Replace production IDs with your live AdMob Ad Unit IDs before release.
+  // Loaded from .env with fallback to configured IDs.
   // ──────────────────────────────────────────────────────────────────────────
 
   // Android Ad Unit IDs
-  static const String _androidProductionBannerId = 'ca-app-pub-5324145457812943/3408814811';
-  static const String _androidProductionInterstitialId = 'ca-app-pub-5324145457812943/6902326943';
-  static const String _androidProductionRewardedId = 'ca-app-pub-5324145457812943/7888105552';
-  static const String _androidProductionAppOpenId = 'ca-app-pub-5324145457812943/XXXXXXXXXX';
+  static String get _androidProductionBannerId =>
+      dotenv.env['ADMOB_ANDROID_BANNER_ID'] ?? 'ca-app-pub-5324145457812943/3408814811';
+  static String get _androidProductionInterstitialId =>
+      dotenv.env['ADMOB_ANDROID_INTERSTITIAL_ID'] ?? 'ca-app-pub-5324145457812943/6902326943';
+  static String get _androidProductionRewardedId =>
+      dotenv.env['ADMOB_ANDROID_REWARDED_ID'] ?? 'ca-app-pub-5324145457812943/7888105552';
+  static String get _androidProductionAppOpenId =>
+      dotenv.env['ADMOB_ANDROID_APP_OPEN_ID'] ?? 'ca-app-pub-5324145457812943/XXXXXXXXXX';
 
   // iOS Ad Unit IDs
-  static const String _iosProductionBannerId = 'ca-app-pub-5324145457812943/XXXXXXXXXX';
-  static const String _iosProductionInterstitialId = 'ca-app-pub-5324145457812943/XXXXXXXXXX';
-  static const String _iosProductionRewardedId = 'ca-app-pub-5324145457812943/XXXXXXXXXX';
-  static const String _iosProductionAppOpenId = 'ca-app-pub-5324145457812943/XXXXXXXXXX';
+  static String get _iosProductionBannerId =>
+      dotenv.env['ADMOB_IOS_BANNER_ID'] ?? 'ca-app-pub-5324145457812943/XXXXXXXXXX';
+  static String get _iosProductionInterstitialId =>
+      dotenv.env['ADMOB_IOS_INTERSTITIAL_ID'] ?? 'ca-app-pub-5324145457812943/XXXXXXXXXX';
+  static String get _iosProductionRewardedId =>
+      dotenv.env['ADMOB_IOS_REWARDED_ID'] ?? 'ca-app-pub-5324145457812943/XXXXXXXXXX';
+  static String get _iosProductionAppOpenId =>
+      dotenv.env['ADMOB_IOS_APP_OPEN_ID'] ?? 'ca-app-pub-5324145457812943/XXXXXXXXXX';
 
   // Google Official Test Ad Unit IDs (used automatically in debug mode)
   static const String _androidTestBannerId = 'ca-app-pub-3940256099942544/6300978111';
@@ -110,12 +119,12 @@ class AdService {
       listener: BannerAdListener(
         onAdLoaded: (ad) {
           debugPrint('[AdService] Banner loaded for placement: $placement');
-          _trackAdLoaded(
+          unawaited(_trackAdLoaded(
             ad: ad,
             adFormat: AdFormat.banner,
             placement: placement,
             adUnitId: adUnitId,
-          );
+          ));
           onAdLoaded(ad as BannerAd);
         },
         onAdFailedToLoad: (ad, error) {
@@ -124,12 +133,12 @@ class AdService {
           onAdFailedToLoad?.call(error);
         },
         onAdOpened: (ad) {
-          _trackAdDisplayed(
+          unawaited(_trackAdDisplayed(
             ad: ad,
             adFormat: AdFormat.banner,
             placement: placement,
             adUnitId: adUnitId,
-          );
+          ));
         },
       ),
     );
@@ -159,12 +168,12 @@ class AdService {
           debugPrint('[AdService] Interstitial ad preloaded for: $placement');
           _cachedInterstitialAd = ad;
           _isInterstitialLoading = false;
-          _trackAdLoaded(
+          unawaited(_trackAdLoaded(
             ad: ad,
             adFormat: AdFormat.interstitial,
             placement: placement,
             adUnitId: adUnitId,
-          );
+          ));
         },
         onAdFailedToLoad: (error) {
           debugPrint('[AdService] Interstitial ad failed to preload: $error');
@@ -193,12 +202,12 @@ class AdService {
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (ad) {
         debugPrint('[AdService] Interstitial ad displayed ($placement)');
-        _trackAdDisplayed(
+        unawaited(_trackAdDisplayed(
           ad: ad,
           adFormat: AdFormat.interstitial,
           placement: placement,
           adUnitId: adUnitId,
-        );
+        ));
       },
       onAdDismissedFullScreenContent: (ad) {
         debugPrint('[AdService] Interstitial ad dismissed.');
@@ -242,12 +251,12 @@ class AdService {
           debugPrint('[AdService] Rewarded ad preloaded for: $placement');
           _cachedRewardedAd = ad;
           _isRewardedLoading = false;
-          _trackAdLoaded(
+          unawaited(_trackAdLoaded(
             ad: ad,
             adFormat: AdFormat.rewarded,
             placement: placement,
             adUnitId: adUnitId,
-          );
+          ));
         },
         onAdFailedToLoad: (error) {
           debugPrint('[AdService] Rewarded ad failed to preload: $error');
@@ -279,12 +288,12 @@ class AdService {
     ad.fullScreenContentCallback = FullScreenContentCallback(
       onAdShowedFullScreenContent: (ad) {
         debugPrint('[AdService] Rewarded ad displayed ($placement)');
-        _trackAdDisplayed(
+        unawaited(_trackAdDisplayed(
           ad: ad,
           adFormat: AdFormat.rewarded,
           placement: placement,
           adUnitId: adUnitId,
-        );
+        ));
       },
       onAdDismissedFullScreenContent: (ad) {
         debugPrint('[AdService] Rewarded ad dismissed. Reward earned: $userEarnedReward');
@@ -316,15 +325,18 @@ class AdService {
   // REVENUECAT ATTRIBUTION HELPERS
   // ──────────────────────────────────────────────────────────────────────────
 
-  void _trackAdLoaded({
+  Future<void> _trackAdLoaded({
     required Ad ad,
     required AdFormat adFormat,
     required String placement,
     required String adUnitId,
-  }) {
+  }) async {
     try {
+      final isConfigured = await Purchases.isConfigured;
+      if (!isConfigured) return;
+
       final impressionId = ad.responseInfo?.responseId ?? DateTime.now().millisecondsSinceEpoch.toString();
-      Purchases.adTracker.trackAdLoaded(
+      await Purchases.adTracker.trackAdLoaded(
         AdLoadedData(
           networkName: 'Google Ads',
           mediatorName: AdMediatorName.adMob,
@@ -339,15 +351,18 @@ class AdService {
     }
   }
 
-  void _trackAdDisplayed({
+  Future<void> _trackAdDisplayed({
     required Ad ad,
     required AdFormat adFormat,
     required String placement,
     required String adUnitId,
-  }) {
+  }) async {
     try {
+      final isConfigured = await Purchases.isConfigured;
+      if (!isConfigured) return;
+
       final impressionId = ad.responseInfo?.responseId ?? DateTime.now().millisecondsSinceEpoch.toString();
-      Purchases.adTracker.trackAdDisplayed(
+      await Purchases.adTracker.trackAdDisplayed(
         AdDisplayedData(
           networkName: 'Google Ads',
           mediatorName: AdMediatorName.adMob,

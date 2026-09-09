@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'app.dart';
@@ -7,9 +8,16 @@ import 'providers/task_provider.dart';
 import 'services/ad_service.dart';
 import 'services/db_service.dart';
 import 'services/notification_service.dart';
+import 'services/revenue_cat_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    debugPrint('Could not load .env file: $e');
+  }
+  await RevenueCatService.init();
   await AdService.init();
   final container = ProviderContainer();
   NotificationService.container = container;
