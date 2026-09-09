@@ -42,9 +42,9 @@ flutter_launcher_icons:
   android: true
   ios: true
   remove_alpha_ios: true
-  image_path: "assets/icon/daylog-icon_v7.png"
+  image_path: "assets/icon/daylog-icon_v8.png"
   adaptive_icon_background: "#C85A32"
-  adaptive_icon_foreground: "assets/icon/daylog-icon_v7.png"
+  adaptive_icon_foreground: "assets/icon/daylog-icon_v8.png"
 flutter:
   uses-material-design: true
   assets:
