@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/theme_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../providers/todo_provider.dart';
+import '../../services/ad_service.dart';
 import '../../services/export_service.dart';
 import '../../services/notification_service.dart';
 import '../../utils/constants.dart';
@@ -206,17 +207,35 @@ class SettingsScreen extends ConsumerWidget {
                   Column(
                     children: [
                       OutlinedButton.icon(
-                        onPressed: () async {
-                          try {
-                            await ExportService.exportData();
-                            if (context.mounted) {
-                              showDaylogToast(context, 'Backup exported as daylog-backup.json');
-                            }
-                          } catch (e) {
-                            if (context.mounted) {
-                              showDaylogToast(context, 'Export failed: $e');
-                            }
-                          }
+                        onPressed: () {
+                          AdService.instance.showRewardedAd(
+                            placement: 'export_backup',
+                            onUserEarnedReward: (_) async {
+                              try {
+                                await ExportService.exportData();
+                                if (context.mounted) {
+                                  showDaylogToast(context, 'Backup exported as daylog-backup.json');
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  showDaylogToast(context, 'Export failed: $e');
+                                }
+                              }
+                            },
+                            onAdNotReady: () async {
+                              // Fallback if ad is not ready: still allow user to export
+                              try {
+                                await ExportService.exportData();
+                                if (context.mounted) {
+                                  showDaylogToast(context, 'Backup exported as daylog-backup.json');
+                                }
+                              } catch (e) {
+                                if (context.mounted) {
+                                  showDaylogToast(context, 'Export failed: $e');
+                                }
+                              }
+                            },
+                          );
                         },
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),

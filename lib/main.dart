@@ -1,16 +1,16 @@
-// lib/main.dart
-import 'package:daylog/models/todo_entry.dart';
-import 'package:daylog/providers/task_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:isar/isar.dart';
 import 'app.dart';
+import 'models/todo_entry.dart';
+import 'providers/task_provider.dart';
+import 'services/ad_service.dart';
 import 'services/db_service.dart';
 import 'services/notification_service.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
+  await AdService.init();
   final container = ProviderContainer();
   NotificationService.container = container;
 

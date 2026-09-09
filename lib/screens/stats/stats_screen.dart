@@ -1,18 +1,62 @@
-// lib/screens/stats/stats_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../providers/stats_provider.dart';
 import '../../providers/journal_provider.dart';
 import '../../providers/task_provider.dart';
+import '../../services/ad_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 import '../../widgets/daylog_widgets.dart';
 
-class StatsScreen extends ConsumerWidget {
+class StatsScreen extends ConsumerStatefulWidget {
   const StatsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<StatsScreen> createState() => _StatsScreenState();
+}
+
+class _StatsScreenState extends ConsumerState<StatsScreen> {
+  BannerAd? _bannerAd;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerAd();
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  void _loadBannerAd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final size = await AdSize.getLargeAnchoredAdaptiveBannerAdSize(
+        MediaQuery.sizeOf(context).width.truncate(),
+      );
+
+      if (size == null || !mounted) return;
+
+      final ad = AdService.instance.createBannerAd(
+        placement: 'stats_screen_banner',
+        size: size,
+        onAdLoaded: (loadedAd) {
+          if (mounted) {
+            setState(() {
+              _bannerAd = loadedAd;
+            });
+          }
+        },
+      );
+      _bannerAd = ad;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final statsAsync = ref.watch(weekStatsProvider);
@@ -84,6 +128,17 @@ class StatsScreen extends ConsumerWidget {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
+                  if (_bannerAd != null)
+                    Align(
+                      alignment: Alignment.bottomCenter,
+                      child: SafeArea(
+                        child: SizedBox(
+                          width: _bannerAd!.size.width.toDouble(),
+                          height: _bannerAd!.size.height.toDouble(),
+                          child: AdWidget(ad: _bannerAd!),
+                        ),
+                      ),
+                    ),
                   // Page Header
                   DaylogPageHeader(
                     title: 'Insights',

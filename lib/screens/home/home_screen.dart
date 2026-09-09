@@ -1,21 +1,68 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../models/task_entry.dart';
 import '../../providers/task_provider.dart';
+import '../../services/ad_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 import '../../widgets/daylog_widgets.dart';
 import '../timer/start_task_sheet.dart';
 import '../timer/edit_task_sheet.dart';
 
-class HomeScreen extends ConsumerWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   final VoidCallback? onOpenTimerModal;
 
   const HomeScreen({super.key, this.onOpenTimerModal});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  BannerAd? _bannerAd;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadBannerAd();
+    // Preload interstitial for home transitions
+    AdService.instance.preloadInterstitialAd(placement: 'home_screen_interstitial');
+  }
+
+  @override
+  void dispose() {
+    _bannerAd?.dispose();
+    super.dispose();
+  }
+
+  void _loadBannerAd() {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      final size = await AdSize.getLargeAnchoredAdaptiveBannerAdSize(
+        MediaQuery.sizeOf(context).width.truncate(),
+      );
+
+      if (size == null || !mounted) return;
+
+      final ad = AdService.instance.createBannerAd(
+        placement: 'home_screen_banner',
+        size: size,
+        onAdLoaded: (loadedAd) {
+          if (mounted) {
+            setState(() {
+              _bannerAd = loadedAd;
+            });
+          }
+        },
+      );
+      _bannerAd = ad;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final now = DateTime.now();
     final todayStr = 'Today · ${friendlyDate(now)}';
     final activeAsync = ref.watch(activeTaskProvider);
@@ -34,20 +81,34 @@ class HomeScreen extends ConsumerWidget {
             padding: EdgeInsets.zero,
             children: [
               // Page Header
+              if (_bannerAd != null)
+                Align(
+                  alignment: Alignment.bottomCenter,
+                  child: SafeArea(
+                    child: SizedBox(
+                      width: _bannerAd!.size.width.toDouble(),
+                      height: _bannerAd!.size.height.toDouble(),
+                      child: AdWidget(ad: _bannerAd!),
+                    ),
+                  ),
+                ),
               DaylogPageHeader(
                 title: 'DayLog',
                 subtitle: todayStr,
               ),
 
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Active / Inactive Focus Session Hero
                     activeAsync.when(
                       data: (active) => active != null
-                          ? _ActiveSessionHero(task: active, onOpenModal: onOpenTimerModal)
+                          ? _ActiveSessionHero(
+                              task: active,
+                              onOpenModal: widget.onOpenTimerModal)
                           : DashedStartSessionCard(
                               onTap: () => _openStartSheet(context, ref),
                             ),
@@ -86,7 +147,10 @@ class HomeScreen extends ConsumerWidget {
                               style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurface
+                                    .withValues(alpha: 0.6),
                               ),
                             ),
                             const SizedBox(height: 10),
@@ -96,17 +160,22 @@ class HomeScreen extends ConsumerWidget {
                               children: chips.take(4).map((t) {
                                 return InkWell(
                                   onTap: () async {
-                                    await ref.read(activeTaskProvider.notifier).startTask(t.title, t.category);
-                                    onOpenTimerModal?.call();
+                                    await ref
+                                        .read(activeTaskProvider.notifier)
+                                        .startTask(t.title, t.category);
+                                    widget.onOpenTimerModal?.call();
                                   },
                                   borderRadius: BorderRadius.circular(999),
                                   child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 14, vertical: 8),
                                     decoration: BoxDecoration(
                                       color: Theme.of(context).cardTheme.color,
                                       borderRadius: BorderRadius.circular(999),
                                       border: Border.all(
-                                        color: Theme.of(context).colorScheme.outlineVariant,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .outlineVariant,
                                         width: 1.0,
                                       ),
                                     ),
@@ -115,7 +184,9 @@ class HomeScreen extends ConsumerWidget {
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
-                                        color: Theme.of(context).colorScheme.onSurface,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
                                       ),
                                     ),
                                   ),
@@ -135,13 +206,16 @@ class HomeScreen extends ConsumerWidget {
                       data: (tasks) {
                         final active = activeAsync.valueOrNull;
                         final allTasks = <TaskEntry>[...tasks];
-                        if (active != null && !allTasks.any((t) => t.id == active.id)) {
+                        if (active != null &&
+                            !allTasks.any((t) => t.id == active.id)) {
                           allTasks.insert(0, active);
                         }
 
                         // Sort most recent first
-                        allTasks.sort((a, b) => b.startedAt.compareTo(a.startedAt));
-                        final isDark = Theme.of(context).brightness == Brightness.dark;
+                        allTasks
+                            .sort((a, b) => b.startedAt.compareTo(a.startedAt));
+                        final isDark =
+                            Theme.of(context).brightness == Brightness.dark;
 
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -153,14 +227,20 @@ class HomeScreen extends ConsumerWidget {
                                   style: TextStyle(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
+                                    color: Theme.of(context)
+                                        .colorScheme
+                                        .onSurface
+                                        .withValues(alpha: 0.75),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF332D2A) : const Color(0xFFE8DFD3),
+                                    color: isDark
+                                        ? const Color(0xFF332D2A)
+                                        : const Color(0xFFE8DFD3),
                                     borderRadius: BorderRadius.circular(999),
                                   ),
                                   child: Text(
@@ -168,29 +248,39 @@ class HomeScreen extends ConsumerWidget {
                                     style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.75),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.75),
                                     ),
                                   ),
                                 ),
                               ],
                             ),
                             const SizedBox(height: 12),
-
                             if (allTasks.isEmpty)
                               Container(
                                 width: double.infinity,
-                                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                                padding: const EdgeInsets.symmetric(
+                                    vertical: 24, horizontal: 16),
                                 decoration: BoxDecoration(
                                   color: Theme.of(context).cardTheme.color,
                                   borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(color: Theme.of(context).colorScheme.outlineVariant, width: 1.0),
+                                  border: Border.all(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .outlineVariant,
+                                      width: 1.0),
                                 ),
                                 child: Column(
                                   children: [
                                     Icon(
                                       Icons.access_time_rounded,
                                       size: 32,
-                                      color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.35),
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurface
+                                          .withValues(alpha: 0.35),
                                     ),
                                     const SizedBox(height: 8),
                                     Text(
@@ -198,7 +288,10 @@ class HomeScreen extends ConsumerWidget {
                                       style: TextStyle(
                                         fontSize: 13,
                                         fontWeight: FontWeight.w500,
-                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.6),
                                       ),
                                     ),
                                     const SizedBox(height: 2),
@@ -206,7 +299,10 @@ class HomeScreen extends ConsumerWidget {
                                       'Start a session above to track your work.',
                                       style: TextStyle(
                                         fontSize: 11.5,
-                                        color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.45),
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface
+                                            .withValues(alpha: 0.45),
                                       ),
                                     ),
                                   ],
@@ -218,26 +314,32 @@ class HomeScreen extends ConsumerWidget {
                                   task: task,
                                   onTap: () {
                                     if (task.isRunning) {
-                                      onOpenTimerModal?.call();
+                                      widget.onOpenTimerModal?.call();
                                     } else {
                                       showModalBottomSheet(
                                         context: context,
                                         isScrollControlled: true,
                                         backgroundColor: Colors.transparent,
-                                        builder: (_) => EditTaskSheet(task: task),
+                                        builder: (_) =>
+                                            EditTaskSheet(task: task),
                                       );
                                     }
                                   },
                                   onRestart: () async {
-                                    await ref.read(activeTaskProvider.notifier).startTask(task.title, task.category);
-                                    onOpenTimerModal?.call();
+                                    await ref
+                                        .read(activeTaskProvider.notifier)
+                                        .startTask(task.title, task.category);
+                                    widget.onOpenTimerModal?.call();
                                   },
                                 ),
                               ),
                           ],
                         );
                       },
-                      loading: () => const Center(child: Padding(padding: EdgeInsets.all(20), child: CircularProgressIndicator())),
+                      loading: () => const Center(
+                          child: Padding(
+                              padding: EdgeInsets.all(20),
+                              child: CircularProgressIndicator())),
                       error: (e, _) => Text('Error: $e'),
                     ),
 
@@ -258,7 +360,7 @@ class HomeScreen extends ConsumerWidget {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => StartTaskSheet(
-        onTaskStarted: (_) => onOpenTimerModal?.call(),
+        onTaskStarted: (_) => widget.onOpenTimerModal?.call(),
       ),
     );
   }
@@ -362,7 +464,8 @@ class _TaskDetailLogCard extends StatelessWidget {
                             timeRangeText,
                             style: TextStyle(
                               fontSize: 11.5,
-                              color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.55),
                             ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
@@ -400,14 +503,17 @@ class _TaskDetailLogCard extends StatelessWidget {
                       onTap: onRestart,
                       borderRadius: BorderRadius.circular(999),
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 4, vertical: 2),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Icon(
                               Icons.replay_rounded,
                               size: 13,
-                              color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+                              color: isDark
+                                  ? DaylogColors.darkAccent
+                                  : DaylogColors.accent700,
                             ),
                             const SizedBox(width: 3),
                             Text(
@@ -415,7 +521,9 @@ class _TaskDetailLogCard extends StatelessWidget {
                               style: TextStyle(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
-                                color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+                                color: isDark
+                                    ? DaylogColors.darkAccent
+                                    : DaylogColors.accent700,
                               ),
                             ),
                           ],
@@ -489,7 +597,8 @@ class _ActiveSessionHero extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
-    final heroColor = isDark ? DaylogColors.darkAccent : theme.colorScheme.primary;
+    final heroColor =
+        isDark ? DaylogColors.darkAccent : theme.colorScheme.primary;
 
     return RepaintBoundary(
       child: InkWell(
@@ -526,7 +635,8 @@ class _ActiveSessionHero extends ConsumerWidget {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.18),
                       borderRadius: BorderRadius.circular(999),
@@ -538,7 +648,10 @@ class _ActiveSessionHero extends ConsumerWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        PulsingDot(color: Colors.white, size: 7, isPaused: task.isPaused),
+                        PulsingDot(
+                            color: Colors.white,
+                            size: 7,
+                            isPaused: task.isPaused),
                         const SizedBox(width: 7),
                         Text(
                           task.isPaused ? 'PAUSED' : 'FOCUSING',
@@ -601,12 +714,15 @@ class _ActiveSessionHero extends ConsumerWidget {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       icon: Icon(
-                        task.isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                        task.isPaused
+                            ? Icons.play_arrow_rounded
+                            : Icons.pause_rounded,
                         size: 18,
                       ),
                       label: Text(
                         task.isPaused ? 'Resume' : 'Pause',
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -622,13 +738,15 @@ class _ActiveSessionHero extends ConsumerWidget {
                         foregroundColor: DaylogColors.accent700,
                         elevation: 4,
                         shadowColor: Colors.black.withValues(alpha: 0.25),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(999)),
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       icon: const Icon(Icons.stop_rounded, size: 18),
                       label: const Text(
                         'Stop',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.bold),
                       ),
                     ),
                   ),
@@ -678,7 +796,9 @@ class _TodayStatsRow extends ConsumerWidget {
     final active = ref.watch(activeTaskProvider).valueOrNull;
 
     final taskCount = tasksAsync.when(
-      data: (t) => (t.length + (active != null && !t.any((x) => x.id == active.id) ? 1 : 0)).toString(),
+      data: (t) => (t.length +
+              (active != null && !t.any((x) => x.id == active.id) ? 1 : 0))
+          .toString(),
       loading: () => '--',
       error: (_, __) => '--',
     );

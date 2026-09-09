@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/task_entry.dart';
 import '../../providers/task_provider.dart';
+import '../../services/ad_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 import '../../widgets/daylog_widgets.dart';
@@ -141,6 +142,7 @@ class TimerFullscreenModal extends ConsumerWidget {
                       onPressed: () async {
                         await ref.read(activeTaskProvider.notifier).stopActive();
                         onMinimize();
+                        AdService.instance.showInterstitialAd(placement: 'timer_complete');
                       },
                       style: FilledButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
