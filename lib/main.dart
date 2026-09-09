@@ -9,7 +9,7 @@ import 'services/ad_service.dart';
 import 'services/db_service.dart';
 import 'services/notification_service.dart';
 import 'services/revenue_cat_service.dart';
-
+// import 'utils/marketing_seed_data.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   try {
