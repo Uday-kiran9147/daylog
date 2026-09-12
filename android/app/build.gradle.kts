@@ -42,6 +42,21 @@ android {
         versionName = flutter.versionName
     }
 
+    flavorDimensions += "default"
+    productFlavors {
+        create("dev") {
+            dimension = "default"
+            applicationIdSuffix = ".dev"
+            resValue("string", "app_name", "DayLog Dev")
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
+        }
+        create("prod") {
+            dimension = "default"
+            resValue("string", "app_name", "DayLog")
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-5324145457812943~7768334400"
+        }
+    }
+
     signingConfigs {
         create("release") {
             keyAlias = keystoreProperties.getProperty("keyAlias")

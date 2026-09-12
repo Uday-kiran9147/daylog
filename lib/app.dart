@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'config/flavor_config.dart';
 import 'models/task_entry.dart';
 import 'screens/home/home_screen.dart';
 import 'screens/todos/todos_screen.dart';
@@ -30,10 +31,11 @@ class DayLogApp extends ConsumerWidget {
     final themeMode = ref.watch(themeModeProvider);
     final initError = ref.watch(appInitErrorProvider);
     final userSettings = ref.watch(userSettingsProvider);
+    final appTitle = FlavorConfig.instance.appTitle;
 
     if (initError != null) {
       return MaterialApp(
-        title: 'DayLog - Error',
+        title: '$appTitle - Error',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(useMaterial3: true),
         home: Scaffold(
@@ -50,9 +52,9 @@ class DayLogApp extends ConsumerWidget {
                       size: 64,
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      'Failed to initialize DayLog',
-                      style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                    Text(
+                      'Failed to initialize $appTitle',
+                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -70,11 +72,11 @@ class DayLogApp extends ConsumerWidget {
     }
 
     return MaterialApp(
-      title: 'DayLog',
+      title: appTitle,
       theme: kLightTheme,
       darkTheme: kDarkTheme,
       themeMode: themeMode,
-      debugShowCheckedModeBanner: false,
+      debugShowCheckedModeBanner: FlavorConfig.instance.isDev,
       builder: (context, child) {
         final isDark = Theme.of(context).brightness == Brightness.dark;
         return AnnotatedRegion<SystemUiOverlayStyle>(

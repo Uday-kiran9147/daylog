@@ -50,9 +50,39 @@ Make sure you have the [Flutter SDK](https://docs.flutter.dev/get-started/instal
    ```
 
 4. **Launch the application**:
-   ```bash
-   flutter run
-   ```
+   - **Development Flavor** (loads `.env.dev`, uses test ads, package `com.astrava.daylog.dev`):
+     ```bash
+     flutter run --flavor dev -t lib/main_dev.dart
+     ```
+   - **Production Flavor** (loads `.env.prod`, package `com.astrava.daylog`):
+     ```bash
+     flutter run --flavor prod -t lib/main_prod.dart
+     ```
+   - **Default (Prod)**:
+     ```bash
+     flutter run
+     ```
+
+---
+
+## 🏷️ Flavors & Environments
+
+| Flavor | Target File | Environment File | Android App ID | Display Name |
+| :--- | :--- | :--- | :--- | :--- |
+| **dev** | `lib/main_dev.dart` | `.env.dev` | `com.astrava.daylog.dev` | `DayLog Dev` |
+| **prod** | `lib/main_prod.dart` | `.env.prod` | `com.astrava.daylog` | `DayLog` |
+
+### Building Release Packages
+
+- **Build Dev APK**:
+  ```bash
+  flutter build apk --flavor dev -t lib/main_dev.dart
+  ```
+- **Build Prod APK / App Bundle**:
+  ```bash
+  flutter build apk --flavor prod -t lib/main_prod.dart
+  flutter build appbundle --flavor prod -t lib/main_prod.dart
+  ```
 
 ---
 

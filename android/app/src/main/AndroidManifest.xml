@@ -6,14 +6,14 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="com.google.android.gms.permission.AD_ID"/>
     <application
-        android:label="DayLog"
+        android:label="@string/app_name"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
 
         <!-- AdMob App ID (must be direct child of application) -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-5324145457812943~7768334400"/>
+            android:value="${admobAppId}"/>
 
         <activity
             android:name=".MainActivity"
