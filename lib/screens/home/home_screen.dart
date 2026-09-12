@@ -22,6 +22,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   BannerAd? _bannerAd;
+  bool _isBannerLoaded = false;
 
   @override
   void initState() {
@@ -40,24 +41,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void _loadBannerAd() {
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       if (!mounted) return;
-      final size = await AdSize.getLargeAnchoredAdaptiveBannerAdSize(
-        MediaQuery.sizeOf(context).width.truncate(),
-      );
+      const size = AdSize.banner;
 
-      if (size == null || !mounted) return;
+      _bannerAd?.dispose();
+      _bannerAd = null;
+      _isBannerLoaded = false;
 
-      final ad = AdService.instance.createBannerAd(
+      AdService.instance.createBannerAd(
         placement: 'home_screen_banner',
         size: size,
         onAdLoaded: (loadedAd) {
           if (mounted) {
             setState(() {
               _bannerAd = loadedAd;
+              _isBannerLoaded = true;
+            });
+          }
+        },
+        onAdFailedToLoad: (error) {
+          debugPrint('[HomeScreen] Banner ad failed to load: $error');
+          if (mounted) {
+            setState(() {
+              _bannerAd = null;
+              _isBannerLoaded = false;
             });
           }
         },
       );
-      _bannerAd = ad;
     });
   }
 
@@ -80,16 +90,14 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              // Page Header
-              if (_bannerAd != null)
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: SafeArea(
-                    child: SizedBox(
-                      width: _bannerAd!.size.width.toDouble(),
-                      height: _bannerAd!.size.height.toDouble(),
-                      child: AdWidget(ad: _bannerAd!),
-                    ),
+              if (_isBannerLoaded && _bannerAd != null)
+                Center(
+                  child: Container(
+                    alignment: Alignment.center,
+                    width: _bannerAd!.size.width.toDouble(),
+                    height: _bannerAd!.size.height.toDouble(),
+                    margin: const EdgeInsets.symmetric(vertical: 4),
+                    child: AdWidget(ad: _bannerAd!),
                   ),
                 ),
               DaylogPageHeader(
