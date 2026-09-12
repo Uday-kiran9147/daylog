@@ -421,15 +421,17 @@ class _TickingTopActionContent extends ConsumerWidget {
           isPaused: task.isPaused,
         ),
         const SizedBox(width: 6),
-        Text(
-          '$timerText · ${task.title}',
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: TextStyle(
-            fontSize: 11.5,
-            fontWeight: FontWeight.bold,
-            color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
-            fontFeatures: const [FontFeature.tabularFigures()],
+        Flexible(
+          child: Text(
+            '$timerText · ${task.title}',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              fontSize: 11.5,
+              fontWeight: FontWeight.bold,
+              color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
           ),
         ),
       ],

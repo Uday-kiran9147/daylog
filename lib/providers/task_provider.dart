@@ -6,6 +6,7 @@ import '../models/task_entry.dart';
 import '../services/db_service.dart';
 import '../services/notification_service.dart';
 import '../utils/date_utils.dart';
+import 'stats_provider.dart';
 
 // ── active running task ──────────────────────────────────────────────────────
 
@@ -40,6 +41,8 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       NotificationService.showActiveTaskNotification(task);
       ref.invalidate(todayTasksProvider);
       ref.invalidate(todayTotalSecondsProvider);
+      ref.invalidate(weekStatsProvider);
+      ref.invalidate(weekTotalSecondsProvider);
       return task;
     } catch (e, stackTrace) {
       debugPrint('Error starting task: $e\n$stackTrace');
@@ -61,6 +64,8 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       NotificationService.showActiveTaskNotification(null);
       ref.invalidate(todayTasksProvider);
       ref.invalidate(todayTotalSecondsProvider);
+      ref.invalidate(weekStatsProvider);
+      ref.invalidate(weekTotalSecondsProvider);
     } catch (e, stackTrace) {
       debugPrint('Error stopping task: $e\n$stackTrace');
       state = AsyncError(e, stackTrace);
@@ -120,6 +125,8 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       ref.invalidate(todayTasksProvider);
       ref.invalidate(todayTotalSecondsProvider);
       ref.invalidate(recentTasksProvider);
+      ref.invalidate(weekStatsProvider);
+      ref.invalidate(weekTotalSecondsProvider);
     } catch (e, stackTrace) {
       debugPrint('Error deleting task: $e\n$stackTrace');
       rethrow;
@@ -139,6 +146,8 @@ class ActiveTaskNotifier extends AsyncNotifier<TaskEntry?> {
       ref.invalidate(todayTasksProvider);
       ref.invalidate(todayTotalSecondsProvider);
       ref.invalidate(recentTasksProvider);
+      ref.invalidate(weekStatsProvider);
+      ref.invalidate(weekTotalSecondsProvider);
     } catch (e, stackTrace) {
       debugPrint('Error updating task: $e\n$stackTrace');
       rethrow;

@@ -108,8 +108,9 @@ final weekJournalsProvider = FutureProvider<List<JournalEntry>>((ref) async {
   try {
     final db = await DbService.db;
     final now = DateTime.now();
+    final startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
     final keys = List.generate(7, (i) {
-      final d = now.subtract(Duration(days: i));
+      final d = startOfWeek.add(Duration(days: i));
       return dayKey(d);
     });
     return await db.journalEntrys

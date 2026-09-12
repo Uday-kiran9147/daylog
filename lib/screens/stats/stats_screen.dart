@@ -74,10 +74,13 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
     final activeTaskAsync = ref.watch(activeTaskProvider);
 
     final activeTask = activeTaskAsync.valueOrNull;
+    if (activeTask != null && !activeTask.isPaused) {
+      ref.watch(appTickerProvider);
+    }
 
-    // Compute date subtitle for the current week
+    // Compute date subtitle for the current week (Monday to Sunday)
     final now = DateTime.now();
-    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final startOfWeek = DateTime(now.year, now.month, now.day).subtract(Duration(days: now.weekday - 1));
     final endOfWeek = startOfWeek.add(const Duration(days: 6));
     final weekSubtitle = 'Week of ${startOfWeek.day}–${endOfWeek.day} ${friendlyDate(startOfWeek).split(', ').last.split(' ').last}';
 
@@ -87,7 +90,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
           data: (stats) {
             final todayKeyStr = dayKey(now);
             final processedStats = stats.map((s) {
-              if (s.dayKey == todayKeyStr && activeTask != null && !activeTask.isPaused) {
+              if (s.dayKey == todayKeyStr && activeTask != null) {
                 final activeSeconds = activeTask.currentElapsedSeconds;
                 final newByCategory = Map<String, int>.from(s.byCategory);
                 newByCategory[activeTask.category] = (newByCategory[activeTask.category] ?? 0) + activeSeconds;
@@ -111,21 +114,19 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
             }
 
             final totalWeekSeconds = processedStats.fold<int>(0, (sum, s) => sum + s.totalSeconds);
-            final totalWeekHours = (totalWeekSeconds / 3600.0).toStringAsFixed(1);
+            final totalWeekDisplay = totalWeekSeconds == 0 ? '0h' : formatDuration(totalWeekSeconds);
 
             final sortedCategories = categoryTotals.entries.toList()
               ..sort((a, b) => b.value.compareTo(a.value));
 
             final topCategory = sortedCategories.isNotEmpty ? sortedCategories.first : null;
-            final topCategoryHours = topCategory != null
-                ? (topCategory.value / 3600.0).toStringAsFixed(1)
-                : '0.0';
+            final topCategoryDuration = topCategory != null ? formatDuration(topCategory.value) : '0m';
             final topCategoryPct = (totalWeekSeconds > 0 && topCategory != null)
                 ? ((topCategory.value / totalWeekSeconds) * 100).round()
                 : 0;
 
             final insightText = topCategory != null && totalWeekSeconds > 0
-                ? '${capitalizeCategory(topCategory.key)} took up the biggest share of your week — ${topCategoryHours}h of ${totalWeekHours}h ($topCategoryPct%).'
+                ? '${capitalizeCategory(topCategory.key)} took up the biggest share of your week — $topCategoryDuration of $totalWeekDisplay ($topCategoryPct%).'
                 : 'Start tracking tasks this week to unlock personalized focus insights.';
 
             final weekDayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -165,7 +166,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                             Expanded(
                               child: DaylogStatCard(
                                 kicker: 'This week',
-                                value: '${totalWeekHours}h',
+                                value: totalWeekDisplay,
                                 isAccent: true,
                               ),
                             ),
@@ -207,7 +208,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                               final s = processedStats[i];
                               final isToday = s.dayKey == todayKeyStr;
                               final ratio = maxSeconds > 0 ? (s.totalSeconds / maxSeconds) : 0.0;
-                              final hours = (s.totalSeconds / 3600.0).toStringAsFixed(1);
+                              final dayDuration = s.totalSeconds == 0 ? '0m' : formatDuration(s.totalSeconds);
                               final dayName = i < weekDayLabels.length ? weekDayLabels[i] : '';
 
                               return Expanded(
@@ -217,7 +218,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                                     mainAxisAlignment: MainAxisAlignment.end,
                                     children: [
                                       Text(
-                                        '${hours}h',
+                                        dayDuration,
                                         style: TextStyle(
                                           fontSize: 10,
                                           color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
@@ -284,7 +285,7 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                           )
                         else
                           ...sortedCategories.take(5).map((e) {
-                            final hoursStr = (e.value / 3600.0).toStringAsFixed(1);
+                            final durationStr = formatDuration(e.value);
                             final pct = totalWeekSeconds > 0
                                 ? ((e.value / totalWeekSeconds) * 100).round()
                                 : 0;
@@ -298,9 +299,12 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
-                                      CategoryTag(category: e.key, isDark: isDark),
+                                      Flexible(
+                                        child: CategoryTag(category: e.key, isDark: isDark),
+                                      ),
+                                      const SizedBox(width: 8),
                                       Text(
-                                        '${hoursStr}h · $pct%',
+                                        '$durationStr · $pct%',
                                         style: TextStyle(
                                           fontSize: 12,
                                           color: theme.colorScheme.onSurface.withValues(alpha: 0.65),

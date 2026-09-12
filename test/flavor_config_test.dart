@@ -26,6 +26,8 @@ void main() {
     });
 
     test('formattedVersion returns version and build number', () {
+      FlavorConfig.appVersion = '1.0.4';
+      FlavorConfig.buildNumber = '8';
       expect(FlavorConfig.formattedVersion, 'v1.0.4 (8)');
     });
   });

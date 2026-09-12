@@ -1,4 +1,5 @@
 // lib/main_common.dart
+// import 'package:daylog/utils/marketing_seed_data.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -59,6 +60,7 @@ Future<void> _initBackgroundServices(ProviderContainer container) async {
     final activeTask = container.read(activeTaskProvider).valueOrNull;
     await NotificationService.updateTaskReminders(activeTask);
     await NotificationService.showActiveTaskNotification(activeTask);
+    // MarketingDataSeeder.seedIndieHackerData();
   } catch (e, stackTrace) {
     debugPrint('Initialization error: $e\n$stackTrace');
     container.read(appInitErrorProvider.notifier).state = e.toString();

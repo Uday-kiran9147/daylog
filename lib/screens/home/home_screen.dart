@@ -655,7 +655,7 @@ class _ActiveSessionHero extends ConsumerWidget {
                       ],
                     ),
                   ),
-                  CategoryTag(category: task.category, isDark: false),
+                  Flexible(child: CategoryTag(category: task.category, isDark: false)),
                 ],
               ),
               const SizedBox(height: 14),
