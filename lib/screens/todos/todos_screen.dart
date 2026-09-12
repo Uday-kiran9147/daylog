@@ -500,15 +500,30 @@ class _TodoItemCard extends ConsumerWidget {
           ),
 
           // Delete Action
-          InkWell(
-            onTap: () => ref.read(todoProvider.notifier).deleteTodo(todo.id),
-            borderRadius: BorderRadius.circular(999),
-            child: Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: Icon(
-                Icons.delete_outline_rounded,
-                size: 16,
-                color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+          Tooltip(
+            message: 'Delete',
+            child: InkWell(
+              onTap: () async {
+                final confirmed = await showDaylogConfirmSheet(
+                  context: context,
+                  title: 'Delete action item?',
+                  message: 'Are you sure you want to delete "${todo.title}"?',
+                  confirmLabel: 'Delete',
+                  isDestructive: true,
+                  icon: Icons.delete_outline_rounded,
+                );
+                if (confirmed == true) {
+                  ref.read(todoProvider.notifier).deleteTodo(todo.id);
+                }
+              },
+              borderRadius: BorderRadius.circular(999),
+              child: Padding(
+                padding: const EdgeInsets.all(4.0),
+                child: Icon(
+                  Icons.delete_outline_rounded,
+                  size: 16,
+                  color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                ),
               ),
             ),
           ),

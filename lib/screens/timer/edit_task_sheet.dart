@@ -59,6 +59,17 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
   }
 
   Future<void> _delete() async {
+    final confirmed = await showDaylogConfirmSheet(
+      context: context,
+      title: 'Delete focus task?',
+      message: 'Are you sure you want to delete "${widget.task.title}"?',
+      confirmLabel: 'Delete',
+      isDestructive: true,
+      icon: Icons.delete_outline_rounded,
+    );
+
+    if (confirmed != true) return;
+
     try {
       await ref.read(activeTaskProvider.notifier).deleteTask(widget.task.id);
       if (mounted) {

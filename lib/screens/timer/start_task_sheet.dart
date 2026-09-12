@@ -1,8 +1,10 @@
 // lib/screens/timer/start_task_sheet.dart
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/task_entry.dart';
 import '../../providers/task_provider.dart';
+import '../../providers/todo_provider.dart';
 import '../../providers/user_settings_provider.dart';
 import '../../utils/constants.dart';
 
@@ -178,6 +180,89 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
                 );
               }).toList(),
             ),
+          ),
+
+          // Action items quick-start
+          ref.watch(todoProvider).when(
+            data: (todos) {
+              final pending = todos
+                  .where((t) => !t.isCompleted)
+                  .toList()
+                ..sort((a, b) {
+                  if (a.isHighPriority && !b.isHighPriority) return -1;
+                  if (!a.isHighPriority && b.isHighPriority) return 1;
+                  return 0;
+                });
+              if (pending.isEmpty) return const SizedBox.shrink();
+
+              return Padding(
+                padding: const EdgeInsets.only(top: 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'From your action items',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.55),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: pending.take(4).map((todo) {
+                        return InkWell(
+                          onTap: () {
+                            _controller.text = todo.title;
+                            _start(todo.title);
+                          },
+                          borderRadius: BorderRadius.circular(999),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100,
+                              borderRadius: BorderRadius.circular(999),
+                              border: Border.all(
+                                color: isDark ? DaylogColors.darkAccent : DaylogColors.accent,
+                                width: 1.0,
+                              ),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                if (todo.isHighPriority) ...[
+                                  Icon(
+                                    Icons.flag_rounded,
+                                    size: 12,
+                                    color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+                                  ),
+                                  const SizedBox(width: 4),
+                                ],
+                                Flexible(
+                                  child: Text(
+                                    todo.title,
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: isDark ? DaylogColors.darkAccent : DaylogColors.accent700,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              );
+            },
+            loading: () => const SizedBox.shrink(),
+            error: (_, __) => const SizedBox.shrink(),
           ),
 
           // Quick start recent chips

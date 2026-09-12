@@ -1,4 +1,5 @@
 // lib/widgets/daylog_widgets.dart
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../utils/constants.dart';
 
@@ -229,6 +230,8 @@ class CategoryTag extends StatelessWidget {
           fontWeight: FontWeight.w600,
           color: fg,
         ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -695,3 +698,258 @@ void showDaylogToast(BuildContext context, String message) {
     ),
   );
 }
+
+/// Confirmation Dialog styled according to DayLog's floating frosted glass shell design
+Future<bool?> showDaylogConfirmSheet({
+  required BuildContext context,
+  required String title,
+  required String message,
+  String confirmLabel = 'Delete',
+  String cancelLabel = 'Cancel',
+  bool isDestructive = true,
+  IconData? icon,
+}) {
+  final theme = Theme.of(context);
+  final isDark = theme.brightness == Brightness.dark;
+
+  final glowColor = isDestructive
+      ? const Color(0xFFE53935)
+      : (isDark ? DaylogColors.darkAccent : DaylogColors.accent);
+
+  return showModalBottomSheet<bool>(
+    context: context,
+    backgroundColor: Colors.transparent,
+    barrierColor: Colors.black.withValues(alpha: isDark ? 0.65 : 0.35),
+    isScrollControlled: true,
+    builder: (ctx) => SafeArea(
+      top: false,
+      bottom: true,
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+          14,
+          0,
+          14,
+          MediaQuery.of(ctx).viewInsets.bottom + 14,
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.bottomCenter,
+          children: [
+            // Ambient atmospheric glow behind the shell dialog (matching _GlassDock)
+            Positioned(
+              bottom: 4,
+              child: Container(
+                width: 220,
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(
+                      color: glowColor.withValues(alpha: isDark ? 0.32 : 0.18),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Main Frosted Glass Shell Container
+            Container(
+              decoration: BoxDecoration(
+                color: (isDark ? const Color(0xFF1E1C1A) : const Color(0xFFFFF9F0))
+                    .withValues(alpha: isDark ? 0.92 : 0.96),
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: isDark
+                      ? Colors.white.withValues(alpha: 0.14)
+                      : Colors.white.withValues(alpha: 0.85),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.40 : 0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.12 : 0.03),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(32),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 14, 20, 18),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Grab handle pill
+                        Center(
+                          child: Container(
+                            width: 38,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: theme.colorScheme.onSurface.withValues(alpha: 0.20),
+                              borderRadius: BorderRadius.circular(2),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Header with icon badge & title
+                        Row(
+                          children: [
+                            if (icon != null) ...[
+                              Container(
+                                width: 38,
+                                height: 38,
+                                decoration: BoxDecoration(
+                                  color: isDestructive
+                                      ? (isDark ? const Color(0xFF3B1414) : const Color(0xFFFFEBEE))
+                                      : (isDark ? DaylogColors.darkAccent100 : DaylogColors.accent100),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(
+                                    color: isDestructive
+                                        ? const Color(0xFFE53935).withValues(alpha: 0.3)
+                                        : (isDark ? DaylogColors.darkAccent : DaylogColors.accent).withValues(alpha: 0.3),
+                                    width: 1.0,
+                                  ),
+                                ),
+                                child: Icon(
+                                  icon,
+                                  size: 19,
+                                  color: isDestructive
+                                      ? const Color(0xFFE53935)
+                                      : (isDark ? DaylogColors.darkAccent : DaylogColors.accent700),
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                            ],
+                            Expanded(
+                              child: Text(
+                                title,
+                                style: TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                  color: theme.colorScheme.onSurface,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+
+                        // Message text
+                        Text(
+                          message,
+                          style: TextStyle(
+                            fontSize: 13.5,
+                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                            height: 1.4,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Bottom Action Deck with Inset Container matching Shell Dock style
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isDark
+                                ? Colors.black.withValues(alpha: 0.28)
+                                : Colors.black.withValues(alpha: 0.04),
+                            borderRadius: BorderRadius.circular(24),
+                            border: Border.all(
+                              color: isDark
+                                  ? Colors.white.withValues(alpha: 0.06)
+                                  : Colors.black.withValues(alpha: 0.04),
+                              width: 1.0,
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () => Navigator.of(ctx).pop(false),
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 11),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        cancelLabel,
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w600,
+                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.8),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    onTap: () => Navigator.of(ctx).pop(true),
+                                    borderRadius: BorderRadius.circular(20),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 11),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        color: isDestructive
+                                            ? const Color(0xFFE53935)
+                                            : theme.colorScheme.primary,
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: (isDestructive
+                                                    ? const Color(0xFFE53935)
+                                                    : theme.colorScheme.primary)
+                                                .withValues(alpha: 0.35),
+                                            blurRadius: 8,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Text(
+                                        confirmLabel,
+                                        style: const TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+

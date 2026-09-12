@@ -391,7 +391,6 @@ class _TaskDetailLogCard extends StatelessWidget {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final catInfo = getCategoryInfo(task.category);
-    final timeRangeText = formatTimeRange(task.startedAt, task.stoppedAt);
     final isHighlighted = task.isRunning;
 
     final card = Container(
@@ -463,24 +462,7 @@ class _TaskDetailLogCard extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                     ),
                     const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        CategoryTag(category: task.category, isDark: isDark),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            timeRangeText,
-                            style: TextStyle(
-                              fontSize: 11.5,
-                              color: theme.colorScheme.onSurface
-                                  .withValues(alpha: 0.55),
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                      ],
-                    ),
+                    CategoryTag(category: task.category, isDark: isDark),
                   ],
                 ),
               ),
