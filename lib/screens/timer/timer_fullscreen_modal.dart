@@ -27,10 +27,15 @@ class TimerFullscreenModal extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final elapsed = task.currentElapsedSeconds;
 
-    return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      body: SafeArea(
-        child: Padding(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) onMinimize();
+      },
+      child: Scaffold(
+        backgroundColor: theme.scaffoldBackgroundColor,
+        body: SafeArea(
+          child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -161,6 +166,7 @@ class TimerFullscreenModal extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
             ],
+          ),
           ),
         ),
       ),
