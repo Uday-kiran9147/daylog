@@ -18,6 +18,11 @@ class FlavorConfig {
     required this.envFileName,
   });
 
+  static const String appVersion = '1.0.4';
+  static const String buildNumber = '8';
+
+  static String get formattedVersion => 'v$appVersion ($buildNumber)';
+
   static FlavorConfig? _instance;
 
   static FlavorConfig get instance => _instance ?? FlavorConfig.prod;

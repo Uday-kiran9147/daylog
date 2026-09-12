@@ -24,5 +24,9 @@ void main() {
     test('default instance falls back to prod when uninitialized', () {
       expect(FlavorConfig.instance.flavor, Flavor.prod);
     });
+
+    test('formattedVersion returns version and build number', () {
+      expect(FlavorConfig.formattedVersion, 'v1.0.4 (8)');
+    });
   });
 }
