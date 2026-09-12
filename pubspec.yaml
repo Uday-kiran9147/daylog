@@ -1,7 +1,7 @@
 name: daylog
 description: Offline-first daily journal and time tracker
 publish_to: none
-version: 1.0.4+9
+version: 1.1.5+9
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
