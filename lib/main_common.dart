@@ -16,6 +16,7 @@ import 'services/revenue_cat_service.dart';
 Future<void> mainCommon(FlavorConfig config) async {
   WidgetsFlutterBinding.ensureInitialized();
   FlavorConfig.instance = config;
+  await FlavorConfig.loadAppInfo();
 
   // Try loading flavor-specific env file, falling back to default '.env'
   try {

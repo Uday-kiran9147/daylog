@@ -1,5 +1,7 @@
 // lib/config/flavor_config.dart
 
+import 'package:package_info_plus/package_info_plus.dart';
+
 /// Supported build and runtime flavors for DayLog.
 enum Flavor {
   dev,
@@ -18,8 +20,14 @@ class FlavorConfig {
     required this.envFileName,
   });
 
-  static const String appVersion = '1.0.4';
-  static const String buildNumber = '8';
+  static String appVersion = 'unknown';
+  static String buildNumber = 'unknown';
+
+  static Future<void> loadAppInfo() async {
+    final packageInfo = await PackageInfo.fromPlatform();
+    appVersion = packageInfo.version;
+    buildNumber = packageInfo.buildNumber;
+  }
 
   static String get formattedVersion => 'v$appVersion ($buildNumber)';
 
