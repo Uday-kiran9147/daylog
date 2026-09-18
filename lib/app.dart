@@ -15,6 +15,7 @@ import 'screens/timer/start_task_sheet.dart';
 import 'providers/task_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_settings_provider.dart';
+import 'services/ad_service.dart';
 import 'utils/constants.dart';
 import 'utils/date_utils.dart';
 import 'widgets/daylog_widgets.dart';
@@ -23,11 +24,41 @@ final navigationIndexProvider = StateProvider<int>((ref) => 0);
 final showTimerFullProvider = StateProvider<bool>((ref) => false);
 final appInitErrorProvider = StateProvider<String?>((ref) => null);
 
-class DayLogApp extends ConsumerWidget {
+class DayLogApp extends ConsumerStatefulWidget {
   const DayLogApp({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<DayLogApp> createState() => _DayLogAppState();
+}
+
+class _DayLogAppState extends ConsumerState<DayLogApp> {
+  late final AppLifecycleListener _lifecycleListener;
+
+  @override
+  void initState() {
+    super.initState();
+    _lifecycleListener = AppLifecycleListener(
+      onResume: _onAppResume,
+    );
+  }
+
+  void _onAppResume() {
+    final userSettings = ref.read(userSettingsProvider);
+    final activeTask = ref.read(activeTaskProvider).valueOrNull;
+    // Serve app open ads only if user finished onboarding and is not currently in an active focus session
+    if (userSettings.hasCompletedOnboarding && activeTask == null) {
+      AdService.instance.showAppOpenAdIfAvailable();
+    }
+  }
+
+  @override
+  void dispose() {
+    _lifecycleListener.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final themeMode = ref.watch(themeModeProvider);
     final initError = ref.watch(appInitErrorProvider);
     final userSettings = ref.watch(userSettingsProvider);

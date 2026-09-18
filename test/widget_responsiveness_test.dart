@@ -58,16 +58,16 @@ void main() {
             home: Scaffold(
               body: SafeArea(
                 child: ListView(
-                  children: [
-                    const DaylogPageHeader(
+                  children: const [
+                    DaylogPageHeader(
                       title: 'Very Long Page Header Title For Overflow Testing',
                       subtitle: 'Subtitle text describing the page contents with details',
                       showBackButton: true,
                     ),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Row(
-                        children: const [
+                        children: [
                           Expanded(
                             child: DaylogStatCard(
                               kicker: 'Tracked today',
@@ -94,13 +94,13 @@ void main() {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    SizedBox(height: 12),
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      padding: EdgeInsets.symmetric(horizontal: 16),
                       child: Wrap(
                         spacing: 8,
                         runSpacing: 8,
-                        children: const [
+                        children: [
                           CategoryTag(category: 'Development'),
                           CategoryTag(category: 'System Design'),
                           CategoryTag(category: 'Very Long Custom Category Name Exceeding Normal Width'),

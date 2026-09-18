@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -286,6 +287,49 @@ class SettingsScreen extends ConsumerWidget {
                       ),
                     ],
                   ),
+
+                  // ── MONETIZATION & MEDIATION DIAGNOSTICS (AdMob Checklist) ──
+                  if (FlavorConfig.instance.isDev || kDebugMode) ...[
+                    const SizedBox(height: 26),
+                    Text(
+                      'Monetization & Mediation',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        HapticFeedback.lightImpact();
+                        AdService.instance.openAdInspector(
+                          onClosed: (error) {
+                            if (context.mounted) {
+                              if (error != null) {
+                                showDaylogToast(context, 'Ad Inspector: $error');
+                              } else {
+                                showDaylogToast(context, 'Ad Inspector closed');
+                              }
+                            }
+                          },
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
+                        side: BorderSide(color: theme.colorScheme.outlineVariant),
+                        foregroundColor: theme.colorScheme.onSurface,
+                        backgroundColor: theme.cardTheme.color,
+                        minimumSize: const Size(double.infinity, 48),
+                      ),
+                      icon: const Icon(Icons.troubleshoot_outlined, size: 18),
+                      label: const Text(
+                        'Launch Ad Inspector',
+                        style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 36),
 
