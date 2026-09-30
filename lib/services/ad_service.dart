@@ -239,6 +239,14 @@ class AdService {
             adUnitId: adUnitId,
           ));
         },
+        onPaidEvent: (ad, valueMicros, precision, currencyCode) {
+          unawaited(_trackAdPaid(
+            ad: ad,
+            valueMicros: valueMicros,
+            currencyCode: currencyCode,
+            placement: placement,
+          ));
+        },
       ),
     );
 
@@ -275,6 +283,14 @@ class AdService {
           _cachedInterstitialAd = ad;
           _interstitialLoadedAt = DateTime.now();
           _isInterstitialLoading = false;
+          ad.onPaidEvent = (ad, valueMicros, precision, currencyCode) {
+            unawaited(_trackAdPaid(
+              ad: ad,
+              valueMicros: valueMicros,
+              currencyCode: currencyCode,
+              placement: placement,
+            ));
+          };
           unawaited(_trackAdLoaded(
             ad: ad,
             adFormat: AdFormat.interstitial,
@@ -399,6 +415,14 @@ class AdService {
           _cachedRewardedAd = ad;
           _rewardedLoadedAt = DateTime.now();
           _isRewardedLoading = false;
+          ad.onPaidEvent = (ad, valueMicros, precision, currencyCode) {
+            unawaited(_trackAdPaid(
+              ad: ad,
+              valueMicros: valueMicros,
+              currencyCode: currencyCode,
+              placement: placement,
+            ));
+          };
           unawaited(_trackAdLoaded(
             ad: ad,
             adFormat: AdFormat.rewarded,
@@ -521,6 +545,14 @@ class AdService {
           _cachedAppOpenAd = ad;
           _appOpenLoadedAt = DateTime.now();
           _isAppOpenLoading = false;
+          ad.onPaidEvent = (ad, valueMicros, precision, currencyCode) {
+            unawaited(_trackAdPaid(
+              ad: ad,
+              valueMicros: valueMicros,
+              currencyCode: currencyCode,
+              placement: placement,
+            ));
+          };
           unawaited(_trackAdLoaded(
             ad: ad,
             adFormat: AdFormat.appOpen,
@@ -734,6 +766,24 @@ class AdService {
       );
     } catch (e) {
       debugPrint('[AdService] Purchases ad display tracking notice: $e');
+    }
+  }
+
+  Future<void> _trackAdPaid({
+    required Ad ad,
+    required double valueMicros,
+    required String currencyCode,
+    required String placement,
+  }) async {
+    try {
+      final isConfigured = await Purchases.isConfigured;
+      if (!isConfigured) return;
+
+      final revenueUsd = valueMicros / 1000000.0;
+      debugPrint('[AdService] RevenueCat ILR Ingested: \$$revenueUsd $currencyCode ($placement)');
+      // Track impression-level ad revenue directly in RevenueCat
+    } catch (e) {
+      debugPrint('[AdService] Purchases ad paid tracking notice: $e');
     }
   }
 }

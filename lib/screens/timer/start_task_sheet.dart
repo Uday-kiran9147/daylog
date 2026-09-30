@@ -6,6 +6,7 @@ import '../../providers/task_provider.dart';
 import '../../providers/todo_provider.dart';
 import '../../providers/user_settings_provider.dart';
 import '../../utils/constants.dart';
+import '../../widgets/soundscape_sheet.dart';
 
 class StartTaskSheet extends ConsumerStatefulWidget {
   final ValueChanged<TaskEntry>? onTaskStarted;
@@ -326,7 +327,20 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
             ),
           ),
 
-          const SizedBox(height: 20),
+          // Ambient Focus Audio Shortcut
+          const Padding(
+            padding: EdgeInsets.only(bottom: 12),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Background Audio',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                SoundscapeTimerPill(),
+              ],
+            ),
+          ),
 
           // Action buttons: Cancel & Start
           Row(

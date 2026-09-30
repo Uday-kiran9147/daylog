@@ -2,11 +2,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/task_entry.dart';
+import '../../providers/soundscape_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../services/ad_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 import '../../widgets/daylog_widgets.dart';
+import '../../widgets/soundscape_sheet.dart';
 
 class TimerFullscreenModal extends ConsumerWidget {
   final TaskEntry task;
@@ -40,18 +42,24 @@ class TimerFullscreenModal extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Minimize Arrow Button
-              IconButton(
-                onPressed: onMinimize,
-                icon: Icon(
-                  Icons.keyboard_arrow_down_rounded,
-                  size: 30,
-                  color: theme.colorScheme.onSurface,
-                ),
-                style: IconButton.styleFrom(
-                  padding: EdgeInsets.zero,
-                  minimumSize: const Size(40, 40),
-                ),
+              // Top bar: Minimize Arrow Button + Focus Audio Pill
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  IconButton(
+                    onPressed: onMinimize,
+                    icon: Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 30,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                    style: IconButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(40, 40),
+                    ),
+                  ),
+                  const SoundscapeTimerPill(),
+                ],
               ),
 
               const Spacer(flex: 1),
@@ -146,6 +154,7 @@ class TimerFullscreenModal extends ConsumerWidget {
                     child: FilledButton.icon(
                       onPressed: () async {
                         await ref.read(activeTaskProvider.notifier).stopActive();
+                        ref.read(soundscapeProvider.notifier).stop();
                         onMinimize();
                         AdService.instance.showInterstitialAd(placement: 'timer_complete');
                       },
