@@ -27,9 +27,9 @@ class SoundscapeCatalog {
   static const SoundscapeTrack gentleRain = SoundscapeTrack(
     id: 'gentle_rain',
     title: 'Gentle Rain',
-    description: 'Soft steady rainfall for calm focus & deep work',
+    description: '1-Hour continuous rainfall for calm focus & deep work',
     iconEmoji: '🌧️',
-    audioUrl: 'https://assets.mixkit.co/active_storage/sfx/2393/2393-preview.mp3',
+    audioUrl: 'https://archive.org/download/relaxingsoundofrain/Relaxing%20Sound%20of%20Rain.mp3',
   );
 
   static const List<SoundscapeTrack> tracks = [
