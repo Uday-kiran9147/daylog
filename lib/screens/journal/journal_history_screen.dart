@@ -96,16 +96,20 @@ class JournalHistoryScreen extends ConsumerWidget {
         Text(
           title,
           style: TextStyle(
-            fontSize: 11,
+            fontSize: 11.5,
             fontWeight: FontWeight.bold,
             color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
             letterSpacing: 0.5,
           ),
         ),
-        const SizedBox(height: 2),
+        const SizedBox(height: 4),
         Text(
           content,
-          style: TextStyle(fontSize: 13, color: theme.colorScheme.onSurface),
+          style: TextStyle(
+            fontSize: 14,
+            height: 1.45,
+            color: theme.colorScheme.onSurface,
+          ),
         ),
       ],
     );

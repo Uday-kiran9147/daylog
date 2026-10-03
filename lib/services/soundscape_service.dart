@@ -57,6 +57,7 @@ class SoundscapeService {
   bool get isPlaying => _isPlaying;
   bool get isLoading => _isLoading;
   double get volume => _volume;
+  Stream<PlayerState> get onPlayerStateChanged => _player.onPlayerStateChanged;
 
   Future<void> init() async {
     try {

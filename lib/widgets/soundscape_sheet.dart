@@ -26,7 +26,7 @@ class SoundscapeBottomSheet extends ConsumerWidget {
     final isDark = theme.brightness == Brightness.dark;
     final soundState = ref.watch(soundscapeProvider);
     final notifier = ref.read(soundscapeProvider.notifier);
-    final track = SoundscapeCatalog.gentleRain;
+    const track = SoundscapeCatalog.gentleRain;
     final isPlaying = soundState.isPlaying;
     final isBuffering = soundState.isBuffering;
 

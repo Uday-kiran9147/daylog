@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../models/task_entry.dart';
 import '../../providers/task_provider.dart';
 import '../../services/ad_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 import '../../widgets/daylog_widgets.dart';
+import '../../widgets/native_ad_card.dart';
 import '../timer/start_task_sheet.dart';
 import '../timer/edit_task_sheet.dart';
 
@@ -21,54 +21,11 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  BannerAd? _bannerAd;
-  bool _isBannerLoaded = false;
-
   @override
   void initState() {
     super.initState();
-    _loadBannerAd();
     // Preload interstitial for home transitions
     AdService.instance.preloadInterstitialAd(placement: 'home_screen_interstitial');
-  }
-
-  @override
-  void dispose() {
-    _bannerAd?.dispose();
-    super.dispose();
-  }
-
-  void _loadBannerAd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      const size = AdSize.banner;
-
-      _bannerAd?.dispose();
-      _bannerAd = null;
-      _isBannerLoaded = false;
-
-      AdService.instance.createBannerAd(
-        placement: 'home_screen_banner',
-        size: size,
-        onAdLoaded: (loadedAd) {
-          if (mounted) {
-            setState(() {
-              _bannerAd = loadedAd;
-              _isBannerLoaded = true;
-            });
-          }
-        },
-        onAdFailedToLoad: (error) {
-          debugPrint('[HomeScreen] Banner ad failed to load: $error');
-          if (mounted) {
-            setState(() {
-              _bannerAd = null;
-              _isBannerLoaded = false;
-            });
-          }
-        },
-      );
-    });
   }
 
   @override
@@ -90,16 +47,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           child: ListView(
             padding: EdgeInsets.zero,
             children: [
-              if (_isBannerLoaded && _bannerAd != null)
-                Center(
-                  child: Container(
-                    alignment: Alignment.center,
-                    width: _bannerAd!.size.width.toDouble(),
-                    height: _bannerAd!.size.height.toDouble(),
-                    margin: const EdgeInsets.symmetric(vertical: 4),
-                    child: AdWidget(ad: _bannerAd!),
-                  ),
-                ),
               DaylogPageHeader(
                 title: 'DayLog',
                 subtitle: todayStr,
@@ -350,6 +297,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                               child: CircularProgressIndicator())),
                       error: (e, _) => Text('Error: $e'),
                     ),
+
+                    // Curated Native Sponsor Card
+                    const DaylogNativeAdCard(placement: 'home_screen_footer'),
 
                     const SizedBox(height: 100),
                   ],

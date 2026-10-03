@@ -1,11 +1,15 @@
 // lib/screens/timer/timer_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../models/task_entry.dart';
+import '../../providers/soundscape_provider.dart';
 import '../../providers/task_provider.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 import '../../widgets/daylog_widgets.dart';
+import '../../widgets/focus_timer_widgets.dart';
+import '../../widgets/focus_victory_modal.dart';
 import 'start_task_sheet.dart';
 
 class TimerScreen extends ConsumerWidget {
@@ -46,7 +50,7 @@ class TimerScreen extends ConsumerWidget {
                       if (active != null) ...[
                         Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 20),
+                          padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
                           decoration: BoxDecoration(
                             color: theme.cardTheme.color,
                             borderRadius: BorderRadius.circular(24),
@@ -74,43 +78,60 @@ class TimerScreen extends ConsumerWidget {
                                   color: theme.colorScheme.onSurface,
                                 ),
                                 textAlign: TextAlign.center,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                               ),
                               const SizedBox(height: 10),
                               CategoryTag(category: active.category, isDark: isDark),
                               const SizedBox(height: 20),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  formatTimer(elapsed),
-                                  style: TextStyle(
-                                    fontSize: 56,
-                                    fontWeight: FontWeight.bold,
-                                    color: theme.colorScheme.onSurface,
-                                    letterSpacing: 1.0,
-                                    fontFeatures: const [FontFeature.tabularFigures()],
-                                  ),
+
+                              // Radial Breathing Aura around Active Timer
+                              RadialBreathingAura(
+                                isPaused: active.isPaused,
+                                size: 210,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        formatTimer(elapsed),
+                                        style: TextStyle(
+                                          fontSize: 50,
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.colorScheme.onSurface,
+                                          letterSpacing: 1.0,
+                                          fontFeatures: const [FontFeature.tabularFigures()],
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        PulsingDot(
+                                          color: theme.colorScheme.primary,
+                                          size: 7,
+                                          isPaused: active.isPaused,
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          active.isPaused ? 'Paused' : 'Focusing',
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
-                              const SizedBox(height: 14),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  PulsingDot(
-                                    color: theme.colorScheme.primary,
-                                    size: 7,
-                                    isPaused: active.isPaused,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    active.isPaused ? 'Paused' : 'Focusing',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600,
-                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
-                                    ),
-                                  ),
-                                ],
-                              ),
+
+                              const SizedBox(height: 18),
+                              // Ambient Rain Audio Dock
+                              const AmbientAudioDock(),
                             ],
                           ),
                         ),
@@ -120,6 +141,7 @@ class TimerScreen extends ConsumerWidget {
                             Expanded(
                               child: OutlinedButton.icon(
                                 onPressed: () {
+                                  HapticFeedback.selectionClick();
                                   if (active.isPaused) {
                                     ref.read(activeTaskProvider.notifier).resumeActive();
                                   } else {
@@ -146,10 +168,26 @@ class TimerScreen extends ConsumerWidget {
                             const SizedBox(width: 12),
                             Expanded(
                               child: FilledButton.icon(
-                                onPressed: () => ref.read(activeTaskProvider.notifier).stopActive(),
+                                onPressed: () async {
+                                  HapticFeedback.mediumImpact();
+                                  final completedSec = active.currentElapsedSeconds;
+                                  final taskToLog = active;
+
+                                  await ref.read(activeTaskProvider.notifier).stopActive();
+                                  ref.read(soundscapeProvider.notifier).stop();
+
+                                  if (context.mounted) {
+                                    await FocusVictoryModal.show(
+                                      context,
+                                      task: taskToLog,
+                                      completedSeconds: completedSec,
+                                    );
+                                  }
+                                },
                                 style: FilledButton.styleFrom(
                                   padding: const EdgeInsets.symmetric(vertical: 14),
                                   backgroundColor: isDark ? DaylogColors.darkAccent700 : DaylogColors.accent700,
+                                  foregroundColor: Colors.white,
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                                 ),
                                 icon: const Icon(Icons.stop_rounded, size: 18),

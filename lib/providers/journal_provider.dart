@@ -96,6 +96,26 @@ class JournalNotifier extends AsyncNotifier<JournalEntry?> {
       tomorrow: tomorrow,
     );
   }
+
+  /// Appends a completed focus session directly into today's reflection accomplishments.
+  Future<void> appendAccomplishment(String text) async {
+    final date = DateTime.now();
+    final key = dayKey(date);
+    final db = await DbService.db;
+    final existing = await db.journalEntrys.getByDayKey(key);
+
+    final currentShipped = existing?.shipped ?? '';
+    final updatedShipped = currentShipped.trim().isEmpty
+        ? '• $text'
+        : '$currentShipped\n• $text';
+
+    await ref.read(journalForDateProvider(key).notifier).save(
+      shipped: updatedShipped,
+      blockers: existing?.blockers ?? '',
+      improved: existing?.improved ?? '',
+      tomorrow: existing?.tomorrow ?? '',
+    );
+  }
 }
 
 final journalNotifierProvider = AsyncNotifierProvider<JournalNotifier, JournalEntry?>(

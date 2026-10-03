@@ -1,5 +1,6 @@
 // lib/providers/soundscape_provider.dart
 import 'dart:async';
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/ad_service.dart';
@@ -75,15 +76,24 @@ class SoundscapeNotifier extends StateNotifier<SoundscapeState> {
   }
 
   Timer? _tickerTimer;
+  StreamSubscription<PlayerState>? _playerSub;
 
   void _init() {
     SoundscapeService.instance.init();
     _tickerTimer = Timer.periodic(const Duration(seconds: 1), (_) => _tick());
+    _playerSub = SoundscapeService.instance.onPlayerStateChanged.listen((playerState) {
+      if (!mounted) return;
+      final isPlaying = playerState == PlayerState.playing;
+      if (state.isPlaying != isPlaying) {
+        state = state.copyWith(isPlaying: isPlaying);
+      }
+    });
   }
 
   @override
   void dispose() {
     _tickerTimer?.cancel();
+    _playerSub?.cancel();
     super.dispose();
   }
 

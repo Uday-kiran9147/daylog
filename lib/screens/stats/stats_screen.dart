@@ -1,72 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../../providers/stats_provider.dart';
 import '../../providers/journal_provider.dart';
 import '../../providers/task_provider.dart';
-import '../../services/ad_service.dart';
 import '../../utils/constants.dart';
 import '../../utils/date_utils.dart';
 import '../../widgets/daylog_widgets.dart';
+import '../../widgets/native_ad_card.dart';
 
-class StatsScreen extends ConsumerStatefulWidget {
+class StatsScreen extends ConsumerWidget {
   const StatsScreen({super.key});
 
   @override
-  ConsumerState<StatsScreen> createState() => _StatsScreenState();
-}
-
-class _StatsScreenState extends ConsumerState<StatsScreen> {
-  BannerAd? _bannerAd;
-  bool _isBannerLoaded = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadBannerAd();
-  }
-
-  @override
-  void dispose() {
-    _bannerAd?.dispose();
-    super.dispose();
-  }
-
-  void _loadBannerAd() {
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      if (!mounted) return;
-      const size = AdSize.banner;
-
-      _bannerAd?.dispose();
-      _bannerAd = null;
-      _isBannerLoaded = false;
-
-      AdService.instance.createBannerAd(
-        placement: 'stats_screen_banner',
-        size: size,
-        onAdLoaded: (loadedAd) {
-          if (mounted) {
-            setState(() {
-              _bannerAd = loadedAd;
-              _isBannerLoaded = true;
-            });
-          }
-        },
-        onAdFailedToLoad: (error) {
-          debugPrint('[StatsScreen] Banner ad failed to load: $error');
-          if (mounted) {
-            setState(() {
-              _bannerAd = null;
-              _isBannerLoaded = false;
-            });
-          }
-        },
-      );
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final isDark = theme.brightness == Brightness.dark;
     final statsAsync = ref.watch(weekStatsProvider);
@@ -139,16 +85,6 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
               child: ListView(
                 padding: EdgeInsets.zero,
                 children: [
-                  if (_isBannerLoaded && _bannerAd != null)
-                    Center(
-                      child: Container(
-                        alignment: Alignment.center,
-                        width: _bannerAd!.size.width.toDouble(),
-                        height: _bannerAd!.size.height.toDouble(),
-                        margin: const EdgeInsets.symmetric(vertical: 4),
-                        child: AdWidget(ad: _bannerAd!),
-                      ),
-                    ),
                   // Page Header
                   DaylogPageHeader(
                     title: 'Insights',
@@ -384,6 +320,9 @@ class _StatsScreenState extends ConsumerState<StatsScreen> {
                             ],
                           ),
                         ),
+
+                        // Curated Native Sponsor Card
+                        const DaylogNativeAdCard(placement: 'stats_screen_bottom'),
 
                         const SizedBox(height: 100),
                       ],
