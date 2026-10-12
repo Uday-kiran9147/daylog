@@ -256,7 +256,7 @@ class _JournalScreenState extends ConsumerState<JournalScreen> {
                             border: Border.all(
                               color: isDark
                                   ? DaylogColors.darkAccent.withValues(alpha: 0.45)
-                                  : DaylogColors.accent.withValues(alpha: 0.35),
+                                  : Colors.white,
                               width: 1.1,
                             ),
                             boxShadow: [
@@ -491,7 +491,7 @@ class _QuestionField extends StatelessWidget {
               filled: true,
               fillColor: isDark
                   ? Colors.black.withValues(alpha: 0.25)
-                  : const Color(0xFFF9F6F0),
+                  : const Color(0xFFFFFDF9),
               hintText: placeholder,
               hintStyle: TextStyle(
                 fontSize: 13.5,
@@ -500,24 +500,24 @@ class _QuestionField extends StatelessWidget {
               ),
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide(
-                  color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.08),
+                  color: isDark ? theme.colorScheme.outlineVariant : Colors.white,
                   width: 1.0,
                 ),
               ),
               enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide(
-                  color: isDark ? Colors.white10 : Colors.black.withValues(alpha: 0.08),
+                  color: isDark ? theme.colorScheme.outlineVariant : Colors.white,
                   width: 1.0,
                 ),
               ),
               focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
                 borderSide: BorderSide(
-                  color: isDark ? DaylogColors.darkAccent : DaylogColors.accent,
-                  width: 1.4,
+                  color: isDark ? DaylogColors.darkAccent : Colors.white,
+                  width: 1.5,
                 ),
               ),
             ),

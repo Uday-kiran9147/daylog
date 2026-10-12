@@ -249,6 +249,7 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
                                         Flexible(
                                           child: Text(
                                             todo.title,
+                                            maxLines: 1,
                                             style: TextStyle(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w500,
@@ -333,10 +334,15 @@ class _StartTaskSheetState extends ConsumerState<StartTaskSheet> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Background Audio',
-                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                Flexible(
+                  child: Text(
+                    'Background Audio',
+                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
+                SizedBox(width: 8),
                 SoundscapeTimerPill(),
               ],
             ),

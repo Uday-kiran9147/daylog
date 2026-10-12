@@ -12,6 +12,9 @@ import 'services/ad_service.dart';
 import 'services/db_service.dart';
 import 'services/notification_service.dart';
 import 'services/revenue_cat_service.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'firebase_options.dart';
+import 'daynote/providers/daynote_providers.dart';
 
 /// Common bootstrap logic for all app flavors.
 Future<void> mainCommon(FlavorConfig config) async {
@@ -61,6 +64,18 @@ Future<void> _initBackgroundServices(ProviderContainer container) async {
     await NotificationService.updateTaskReminders(activeTask);
     await NotificationService.showActiveTaskNotification(activeTask);
     // MarketingDataSeeder.seedIndieHackerData();
+
+    // Initialize Firebase for optional DayNote cloud sync
+    try {
+      await Firebase.initializeApp(
+        options: DefaultFirebaseOptions.currentPlatform,
+      );
+      container.read(firebaseInitializedProvider.notifier).state = true;
+      debugPrint('Firebase initialized successfully for DayNote.');
+    } catch (e) {
+      debugPrint('Firebase initialization notice (running offline): $e');
+      container.read(firebaseInitializedProvider.notifier).state = false;
+    }
   } catch (e, stackTrace) {
     debugPrint('Initialization error: $e\n$stackTrace');
     container.read(appInitErrorProvider.notifier).state = e.toString();

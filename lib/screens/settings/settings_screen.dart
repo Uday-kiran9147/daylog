@@ -12,6 +12,8 @@ import '../../services/notification_service.dart';
 import '../../utils/constants.dart';
 import '../../widgets/daylog_widgets.dart';
 import 'manage_categories_sheet.dart';
+import '../../daynote/providers/daynote_providers.dart';
+import '../../daynote/widgets/account_sheet.dart';
 
 // State providers for notification preferences
 final wrapUpNotifProvider = StateProvider<bool>((ref) => true);
@@ -44,6 +46,72 @@ class SettingsScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── DAYNOTE PLANNER & CLOUD SYNC ─────────────────────────
+                  Text(
+                    'DayNote Planner & Cloud Sync',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+
+                  Builder(
+                    builder: (ctx) {
+                      final auth = ref.watch(dayNoteAuthProvider);
+                      final isAuth = auth.isAuthenticated;
+                      final email = auth.currentUser?.email;
+
+                      return OutlinedButton.icon(
+                        onPressed: () {
+                          AccountSheet.show(
+                            context,
+                            authViewModel: auth,
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          side: BorderSide(color: theme.colorScheme.outlineVariant),
+                          foregroundColor: theme.colorScheme.onSurface,
+                          backgroundColor: theme.cardTheme.color,
+                          minimumSize: const Size(double.infinity, 48),
+                        ),
+                        icon: Icon(
+                          isAuth ? Icons.cloud_done_outlined : Icons.today_outlined,
+                          size: 18,
+                        ),
+                        label: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Text(
+                                  'DayNote Account & Backup',
+                                  style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  isAuth ? 'Synced to $email' : 'Local offline storage · Tap to sign in',
+                                  style: TextStyle(
+                                    fontSize: 11.5,
+                                    color: theme.colorScheme.onSurface.withValues(alpha: 0.5),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Icon(Icons.chevron_right_rounded, size: 20),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
+                  const SizedBox(height: 26),
+
                   // ── APPEARANCE SECTION ───────────────────────────────────
                   Text(
                     'Appearance',
@@ -99,9 +167,9 @@ class SettingsScreen extends ConsumerWidget {
 
                   const SizedBox(height: 26),
 
-                  // ── CATEGORIES SECTION ───────────────────────────────────
+                  // ── DAYLOG FOCUS CATEGORIES ───────────────────────────────
                   Text(
-                    'Categories & Focus Domains',
+                    'DayLog Focus Categories',
                     style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.w600,

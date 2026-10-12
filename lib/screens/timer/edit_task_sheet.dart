@@ -143,6 +143,7 @@ class _EditTaskSheetState extends ConsumerState<EditTaskSheet> {
           const SizedBox(height: 14),
           TextField(
             controller: _controller,
+            style: TextStyle(fontSize: 15, color: theme.colorScheme.onSurface),
             decoration: const InputDecoration(hintText: 'Task Name'),
             textCapitalization: TextCapitalization.sentences,
             onSubmitted: (_) => _save(),

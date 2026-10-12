@@ -1,6 +1,7 @@
 // lib/widgets/daylog_widgets.dart
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../utils/constants.dart';
 
 /// App bar / Page Header matching Daylog.dc.html
@@ -50,19 +51,20 @@ class DaylogPageHeader extends StatelessWidget {
               children: [
                 Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 21,
-                    fontWeight: FontWeight.bold,
+                  style: GoogleFonts.inter(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
                     color: theme.colorScheme.onSurface,
-                    letterSpacing: -0.3,
+                    letterSpacing: -0.2,
                   ),
                 ),
                 if (subtitle != null && subtitle!.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     subtitle!,
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       fontSize: 12,
+                      fontWeight: FontWeight.w500,
                       color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
                     ),
                   ),
@@ -119,13 +121,9 @@ class DaylogStatCard extends StatelessWidget {
         color: bgColor,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: isAccent
-              ? (isDark
-                  ? DaylogColors.darkAccent.withValues(alpha: 0.45)
-                  : DaylogColors.accent.withValues(alpha: 0.35))
-              : (isDark
-                  ? Colors.white.withValues(alpha: 0.12)
-                  : Colors.white.withValues(alpha: 0.85)),
+          color: isDark
+              ? Colors.white.withValues(alpha: 0.12)
+              : Colors.white,
           width: 1.1,
         ),
         boxShadow: [
@@ -350,7 +348,7 @@ class DashedStartSessionCard extends StatelessWidget {
           painter: _DashedBorderPainter(
             color: isDark
                 ? Colors.white.withValues(alpha: 0.18)
-                : DaylogColors.accent.withValues(alpha: 0.35),
+                : Colors.white,
             strokeWidth: 1.5,
             gap: 6.0,
             dash: 6.0,
@@ -373,8 +371,8 @@ class DashedStartSessionCard extends StatelessWidget {
                   shape: BoxShape.circle,
                   border: Border.all(
                     color: isDark
-                        ? DaylogColors.darkAccent.withValues(alpha: 0.35)
-                        : DaylogColors.accent.withValues(alpha: 0.25),
+                        ? Colors.white.withValues(alpha: 0.15)
+                        : Colors.white,
                   ),
                 ),
                 child: Icon(

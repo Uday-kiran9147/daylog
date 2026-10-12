@@ -6,6 +6,7 @@ plugins {
     id("kotlin-android")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+    id("com.google.gms.google-services")
 }
 
 val keystoreProperties = Properties()
@@ -47,13 +48,13 @@ android {
         create("dev") {
             dimension = "default"
             applicationIdSuffix = ".dev"
-            resValue("string", "app_name", "DayLog Dev")
+            resValue("string", "app_name", "DayNote Dev")
             manifestPlaceholders["admobAppId"] = "ca-app-pub-3940256099942544~3347511713"
         }
         create("prod") {
             dimension = "default"
-            resValue("string", "app_name", "DayLog")
-            manifestPlaceholders["admobAppId"] = "ca-app-pub-5324145457812943~7768334400"
+            resValue("string", "app_name", "DayNote")
+            manifestPlaceholders["admobAppId"] = "ca-app-pub-5324145457812943~4606784751"
         }
     }
 

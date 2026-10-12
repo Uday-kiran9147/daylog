@@ -12,6 +12,7 @@ import 'screens/settings/settings_screen.dart';
 import 'screens/onboarding/onboarding_screen.dart';
 import 'screens/timer/timer_fullscreen_modal.dart';
 import 'screens/timer/start_task_sheet.dart';
+import 'daynote/screens/daynote_screen.dart';
 import 'providers/task_provider.dart';
 import 'providers/theme_provider.dart';
 import 'providers/user_settings_provider.dart';
@@ -144,6 +145,7 @@ class _Shell extends ConsumerWidget {
     }
 
     final screens = [
+      const DayNoteScreen(),
       HomeScreen(
         onOpenTimerModal: () => ref.read(showTimerFullProvider.notifier).state = true,
       ),
@@ -303,42 +305,50 @@ class _GlassDock extends StatelessWidget {
                               _DockNavItem(
                                 index: 0,
                                 selectedIndex: selectedIndex,
-                                icon: Icons.home_outlined,
-                                activeIcon: Icons.home_rounded,
-                                label: 'Home',
+                                icon: Icons.today_outlined,
+                                activeIcon: Icons.today_rounded,
+                                label: 'DayNote',
                                 onTap: () => onTabSelected(0),
                               ),
                               _DockNavItem(
                                 index: 1,
                                 selectedIndex: selectedIndex,
-                                icon: Icons.grid_view_outlined,
-                                activeIcon: Icons.grid_view_rounded,
-                                label: 'Todos',
+                                icon: Icons.timelapse_outlined,
+                                activeIcon: Icons.timelapse_rounded,
+                                label: 'DayLog',
                                 onTap: () => onTabSelected(1),
                               ),
                               _DockNavItem(
                                 index: 2,
                                 selectedIndex: selectedIndex,
-                                icon: Icons.auto_stories_outlined,
-                                activeIcon: Icons.auto_stories_rounded,
-                                label: 'Journal',
+                                icon: Icons.grid_view_outlined,
+                                activeIcon: Icons.grid_view_rounded,
+                                label: 'Todos',
                                 onTap: () => onTabSelected(2),
                               ),
                               _DockNavItem(
                                 index: 3,
                                 selectedIndex: selectedIndex,
-                                icon: Icons.bar_chart_outlined,
-                                activeIcon: Icons.bar_chart_rounded,
-                                label: 'Stats',
+                                icon: Icons.auto_stories_outlined,
+                                activeIcon: Icons.auto_stories_rounded,
+                                label: 'Journal',
                                 onTap: () => onTabSelected(3),
                               ),
                               _DockNavItem(
                                 index: 4,
                                 selectedIndex: selectedIndex,
+                                icon: Icons.bar_chart_outlined,
+                                activeIcon: Icons.bar_chart_rounded,
+                                label: 'Stats',
+                                onTap: () => onTabSelected(4),
+                              ),
+                              _DockNavItem(
+                                index: 5,
+                                selectedIndex: selectedIndex,
                                 icon: Icons.tune_rounded,
                                 activeIcon: Icons.tune_rounded,
                                 label: 'Settings',
-                                onTap: () => onTabSelected(4),
+                                onTap: () => onTabSelected(5),
                               ),
                             ],
                           ),
@@ -410,7 +420,7 @@ class _TopActionPill extends StatelessWidget {
                     ),
                     const SizedBox(width: 6),
                     Text(
-                      'Capture focus',
+                      'DayLog Focus',
                       style: TextStyle(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w600,
@@ -538,10 +548,10 @@ class _DockNavItem extends StatelessWidget {
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 220),
             curve: Curves.easeOutCubic,
-            padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 2),
+            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 1),
             decoration: BoxDecoration(
               color: selected ? activeBg : Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
               border: Border.all(
                 color: selected ? activeBorder : Colors.transparent,
                 width: 1.0,
@@ -553,21 +563,21 @@ class _DockNavItem extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 AnimatedScale(
-                  scale: selected ? 1.08 : 1.0,
+                  scale: selected ? 1.06 : 1.0,
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOutCubic,
                   child: Icon(
                     selected ? (activeIcon ?? icon) : icon,
-                    size: 21,
+                    size: 19.5,
                     color: selected ? activeIconColor : inactiveColor,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 2.5),
                 AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 200),
                   curve: Curves.easeOutCubic,
                   style: TextStyle(
-                    fontSize: 10.5,
+                    fontSize: 9.8,
                     fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                     color: selected ? activeTextColor : inactiveColor,
                     letterSpacing: selected ? -0.1 : 0,

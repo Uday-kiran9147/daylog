@@ -182,9 +182,42 @@ class _TodosScreenState extends ConsumerState<TodosScreen> {
                                       controller: _newTodoController,
                                       autofocus: true,
                                       textCapitalization: TextCapitalization.sentences,
-                                      decoration: const InputDecoration(
-                                        hintText: 'New action item',
-                                        contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                                      style: TextStyle(
+                                        fontSize: 14.5,
+                                        color: theme.colorScheme.onSurface,
+                                      ),
+                                      decoration: InputDecoration(
+                                        hintText: 'New action item...',
+                                        hintStyle: TextStyle(
+                                          fontSize: 14,
+                                          color: theme.colorScheme.onSurface.withValues(alpha: 0.45),
+                                        ),
+                                        filled: true,
+                                        fillColor: isDark
+                                            ? Colors.black.withValues(alpha: 0.25)
+                                            : const Color(0xFFFFFDF9),
+                                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide(
+                                            color: isDark ? theme.colorScheme.outlineVariant : Colors.white,
+                                            width: 1.0,
+                                          ),
+                                        ),
+                                        enabledBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide(
+                                            color: isDark ? theme.colorScheme.outlineVariant : Colors.white,
+                                            width: 1.0,
+                                          ),
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(12),
+                                          borderSide: BorderSide(
+                                            color: isDark ? DaylogColors.darkAccent : Colors.white,
+                                            width: 1.5,
+                                          ),
+                                        ),
                                       ),
                                       onSubmitted: (_) => _addInlineTodo(),
                                     ),
@@ -566,7 +599,7 @@ class _AddTodoSheetState extends ConsumerState<_AddTodoSheet> {
 
     return Container(
       decoration: BoxDecoration(
-        color: theme.scaffoldBackgroundColor,
+        color: theme.cardTheme.color,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: const [
           BoxShadow(color: Color(0x33000000), blurRadius: 20, offset: Offset(0, -4)),
@@ -606,6 +639,7 @@ class _AddTodoSheetState extends ConsumerState<_AddTodoSheet> {
             controller: _controller,
             autofocus: true,
             textCapitalization: TextCapitalization.sentences,
+            style: TextStyle(fontSize: 15, color: theme.colorScheme.onSurface),
             decoration: const InputDecoration(hintText: 'What needs to be done?'),
             onSubmitted: (_) => _submit(),
           ),
@@ -624,8 +658,8 @@ class _AddTodoSheetState extends ConsumerState<_AddTodoSheet> {
                 borderRadius: BorderRadius.circular(999),
                 border: Border.all(
                   color: _isHighPriority
-                      ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
-                      : theme.colorScheme.outlineVariant,
+                      ? (isDark ? DaylogColors.darkAccent : Colors.white)
+                      : (isDark ? theme.colorScheme.outlineVariant : Colors.white),
                   width: 1.0,
                 ),
               ),

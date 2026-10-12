@@ -33,6 +33,14 @@ dependencies:
   flutter_dotenv: ^6.0.1
   package_info_plus: ^8.3.0
   audioplayers: ^6.8.1
+
+  # DayNote integration
+  intl: ^0.20.2
+  shared_preferences: ^2.5.6
+  google_fonts: ^6.2.1
+  firebase_core: ^4.15.0
+  firebase_auth: ^6.7.0
+  cloud_firestore: ^6.10.0
 dev_dependencies:
   flutter_test:
     sdk: flutter

@@ -31,7 +31,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
-    final todayStr = 'Today · ${friendlyDate(now)}';
+    final todayStr = 'Focus Sessions · ${friendlyDate(now)}';
     final activeAsync = ref.watch(activeTaskProvider);
     final todayTasksAsync = ref.watch(todayTasksProvider);
     final recentAsync = ref.watch(recentTasksProvider);

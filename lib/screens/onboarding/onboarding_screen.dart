@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../providers/user_settings_provider.dart';
+import '../../config/flavor_config.dart';
 import '../../utils/constants.dart';
 import '../../widgets/daylog_widgets.dart';
 
@@ -130,16 +131,30 @@ class _OnboardingScreenState extends ConsumerState<OnboardingScreen> {
   }
 
   void _showAddCustomCategoryDialog() {
+    final theme = Theme.of(context);
     final controller = TextEditingController();
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('New Category', style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
+        backgroundColor: theme.cardTheme.color,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(color: theme.colorScheme.outlineVariant, width: 1.0),
+        ),
+        title: Text(
+          'New Category',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: theme.colorScheme.onSurface,
+          ),
+        ),
         content: TextField(
           controller: controller,
           autofocus: true,
           textCapitalization: TextCapitalization.words,
+          style: TextStyle(fontSize: 15, color: theme.colorScheme.onSurface),
           decoration: const InputDecoration(
             hintText: 'e.g. Mobile Apps, Guitar, Research',
           ),
@@ -815,23 +830,21 @@ class _CategoryPickerPageState extends ConsumerState<_CategoryPickerPage> {
         Row(
           children: [
             Expanded(
-              child: SizedBox(
-                height: 42,
-                child: TextField(
-                  onChanged: (val) => setState(() => _searchQuery = val.trim()),
-                  style: TextStyle(fontSize: 13.5, color: theme.colorScheme.onSurface),
-                  decoration: InputDecoration(
-                    hintText: 'Search categories or keywords...',
-                    prefixIcon: const Icon(Icons.search_rounded, size: 18),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    isDense: true,
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear_rounded, size: 16),
-                            onPressed: () => setState(() => _searchQuery = ''),
-                          )
-                        : null,
-                  ),
+              child: TextField(
+                onChanged: (val) => setState(() => _searchQuery = val.trim()),
+                style: TextStyle(fontSize: 13.5, color: theme.colorScheme.onSurface),
+                decoration: InputDecoration(
+                  hintText: 'Search categories or keywords...',
+                  prefixIcon: const Icon(Icons.search_rounded, size: 18),
+                  prefixIconConstraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  isDense: true,
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear_rounded, size: 16),
+                          onPressed: () => setState(() => _searchQuery = ''),
+                        )
+                      : null,
                 ),
               ),
             ),
@@ -1553,7 +1566,7 @@ class _LiquidGlassHeader extends StatelessWidget {
               ),
               const SizedBox(width: 6),
               Text(
-                'DayLog',
+                FlavorConfig.instance.appTitle,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,

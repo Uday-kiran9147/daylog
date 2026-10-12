@@ -9,6 +9,7 @@ import 'db_service.dart';
 import '../models/task_entry.dart';
 import '../models/journal_entry.dart';
 import '../models/todo_entry.dart';
+import '../config/flavor_config.dart';
 import 'package:isar/isar.dart';
 
 class ExportService {
@@ -71,7 +72,7 @@ class ExportService {
       await SharePlus.instance.share(
         ShareParams(
           files: [XFile(file.path, mimeType: 'application/json')],
-          subject: 'DayLog Data Export',
+          subject: '${FlavorConfig.instance.appTitle} Data Export',
         ),
       );
     } catch (e, stackTrace) {

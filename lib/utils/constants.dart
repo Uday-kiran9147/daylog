@@ -1,6 +1,7 @@
 // lib/utils/constants.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 // ── Organic Warm Color Tokens ────────────────────────────────────────────────
 
@@ -10,7 +11,7 @@ class DaylogColors {
   static const lightSurface = Color(0xFFEBDDC5); // Warm parchment surface
   static const lightCard = Color(0xFFFFF9F0); // Card container
   static const lightText = Color(0xFF201E1D); // Warm espresso text
-  static const lightDivider = Color(0x29201E1D); // ~16% opacity divider
+  static const lightDivider = Color(0xFFFFFFFF); // Clean white border & divider
 
   // Accent Terracotta (Primary)
   static const accent = Color(0xFFC85A32); // Vibrant terracotta
@@ -814,25 +815,26 @@ final kLightTheme = ThemeData(
     outline: Color(0xFF9E958E),
     error: Color(0xFFC0392B),
   ),
+  textTheme: GoogleFonts.interTextTheme(ThemeData.light().textTheme),
   scaffoldBackgroundColor: DaylogColors.lightBg,
-  appBarTheme: const AppBarTheme(
+  appBarTheme: AppBarTheme(
     centerTitle: false,
     elevation: 0,
     scrolledUnderElevation: 0,
     backgroundColor: DaylogColors.lightBg,
     foregroundColor: DaylogColors.lightText,
-    systemOverlayStyle: SystemUiOverlayStyle(
+    systemOverlayStyle: const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.dark,
       statusBarBrightness: Brightness.light,
       systemNavigationBarColor: DaylogColors.lightBg,
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
-    titleTextStyle: TextStyle(
+    titleTextStyle: GoogleFonts.inter(
       fontSize: 21,
-      fontWeight: FontWeight.bold,
+      fontWeight: FontWeight.w700,
       color: DaylogColors.lightText,
-      letterSpacing: -0.3,
+      letterSpacing: -0.2,
     ),
   ),
   cardTheme: CardThemeData(
@@ -844,9 +846,26 @@ final kLightTheme = ThemeData(
     ),
     margin: EdgeInsets.zero,
   ),
+  textSelectionTheme: const TextSelectionThemeData(
+    cursorColor: DaylogColors.accent,
+    selectionColor: Color(0x3DC85A32),
+    selectionHandleColor: DaylogColors.accent,
+  ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-    fillColor: DaylogColors.lightSurface,
+    fillColor: const Color(0xFFFFFDF9),
+    hintStyle: GoogleFonts.inter(
+      fontSize: 14,
+      fontWeight: FontWeight.w400,
+      color: const Color(0xFF9E958E),
+    ),
+    labelStyle: GoogleFonts.inter(
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: const Color(0xFF6B6560),
+    ),
+    prefixIconColor: const Color(0xFF8A827B),
+    suffixIconColor: const Color(0xFF8A827B),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
       borderSide: const BorderSide(color: DaylogColors.lightDivider, width: 1.0),
@@ -857,9 +876,60 @@ final kLightTheme = ThemeData(
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: DaylogColors.accent, width: 1.5),
+      borderSide: const BorderSide(color: Colors.white, width: 1.5),
     ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFFC0392B), width: 1.0),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFFC0392B), width: 1.5),
+    ),
+    errorStyle: GoogleFonts.inter(fontSize: 12, color: const Color(0xFFC0392B)),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  ),
+  dialogTheme: DialogThemeData(
+    backgroundColor: DaylogColors.lightCard,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+      side: const BorderSide(color: DaylogColors.lightDivider, width: 1.0),
+    ),
+    titleTextStyle: GoogleFonts.inter(
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+      color: DaylogColors.lightText,
+      letterSpacing: -0.2,
+    ),
+    contentTextStyle: GoogleFonts.inter(
+      fontSize: 14,
+      color: DaylogColors.lightText.withValues(alpha: 0.85),
+      height: 1.45,
+    ),
+  ),
+  bottomSheetTheme: const BottomSheetThemeData(
+    backgroundColor: DaylogColors.lightCard,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+  ),
+  filledButtonTheme: FilledButtonThemeData(
+    style: FilledButton.styleFrom(
+      backgroundColor: DaylogColors.accent,
+      foregroundColor: Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+    ),
+  ),
+  textButtonTheme: TextButtonThemeData(
+    style: TextButton.styleFrom(
+      foregroundColor: DaylogColors.accent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+    ),
   ),
 );
 
@@ -883,25 +953,26 @@ final kDarkTheme = ThemeData(
     outline: Color(0xFF6B6560),
     error: Color(0xFFE74C3C),
   ),
+  textTheme: GoogleFonts.interTextTheme(ThemeData.dark().textTheme),
   scaffoldBackgroundColor: DaylogColors.darkBg,
-  appBarTheme: const AppBarTheme(
+  appBarTheme: AppBarTheme(
     centerTitle: false,
     elevation: 0,
     scrolledUnderElevation: 0,
     backgroundColor: DaylogColors.darkBg,
     foregroundColor: DaylogColors.darkText,
-    systemOverlayStyle: SystemUiOverlayStyle(
+    systemOverlayStyle: const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
       statusBarBrightness: Brightness.dark,
       systemNavigationBarColor: DaylogColors.darkBg,
       systemNavigationBarIconBrightness: Brightness.light,
     ),
-    titleTextStyle: TextStyle(
+    titleTextStyle: GoogleFonts.inter(
       fontSize: 21,
-      fontWeight: FontWeight.bold,
+      fontWeight: FontWeight.w700,
       color: DaylogColors.darkText,
-      letterSpacing: -0.3,
+      letterSpacing: -0.2,
     ),
   ),
   cardTheme: CardThemeData(
@@ -913,9 +984,26 @@ final kDarkTheme = ThemeData(
     ),
     margin: EdgeInsets.zero,
   ),
+  textSelectionTheme: const TextSelectionThemeData(
+    cursorColor: DaylogColors.darkAccent,
+    selectionColor: Color(0x3DE07A5F),
+    selectionHandleColor: DaylogColors.darkAccent,
+  ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
     fillColor: DaylogColors.darkSurface,
+    hintStyle: GoogleFonts.inter(
+      fontSize: 14,
+      fontWeight: FontWeight.w400,
+      color: const Color(0xFF8A827B),
+    ),
+    labelStyle: GoogleFonts.inter(
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: const Color(0xFFB0A8A0),
+    ),
+    prefixIconColor: const Color(0xFF8A827B),
+    suffixIconColor: const Color(0xFF8A827B),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
       borderSide: const BorderSide(color: DaylogColors.darkDivider, width: 1.0),
@@ -926,8 +1014,59 @@ final kDarkTheme = ThemeData(
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: DaylogColors.darkAccent, width: 1.5),
+      borderSide: const BorderSide(color: Colors.white, width: 1.5),
     ),
+    errorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFFE74C3C), width: 1.0),
+    ),
+    focusedErrorBorder: OutlineInputBorder(
+      borderRadius: BorderRadius.circular(14),
+      borderSide: const BorderSide(color: Color(0xFFE74C3C), width: 1.5),
+    ),
+    errorStyle: GoogleFonts.inter(fontSize: 12, color: const Color(0xFFE74C3C)),
     contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  ),
+  dialogTheme: DialogThemeData(
+    backgroundColor: DaylogColors.darkCard,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(20),
+      side: const BorderSide(color: DaylogColors.darkDivider, width: 1.0),
+    ),
+    titleTextStyle: GoogleFonts.inter(
+      fontSize: 18,
+      fontWeight: FontWeight.w700,
+      color: DaylogColors.darkText,
+      letterSpacing: -0.2,
+    ),
+    contentTextStyle: GoogleFonts.inter(
+      fontSize: 14,
+      color: DaylogColors.darkText.withValues(alpha: 0.85),
+      height: 1.45,
+    ),
+  ),
+  bottomSheetTheme: const BottomSheetThemeData(
+    backgroundColor: DaylogColors.darkCard,
+    surfaceTintColor: Colors.transparent,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+    ),
+  ),
+  filledButtonTheme: FilledButtonThemeData(
+    style: FilledButton.styleFrom(
+      backgroundColor: DaylogColors.darkAccent,
+      foregroundColor: Colors.black,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+      textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700),
+    ),
+  ),
+  textButtonTheme: TextButtonThemeData(
+    style: TextButton.styleFrom(
+      foregroundColor: DaylogColors.darkAccent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      textStyle: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600),
+    ),
   ),
 );
