@@ -70,7 +70,7 @@ class DaynoteAppBar extends StatelessWidget {
                 const SizedBox(width: 9),
                 Flexible(
                   child: Text(
-                    'DAYNOTE',
+                    'DAYLOG',
                     style: DayNoteTheme.body(context).copyWith(
                       fontWeight: FontWeight.w800,
                       fontSize: 15,

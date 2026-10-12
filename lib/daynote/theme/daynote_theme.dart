@@ -38,6 +38,10 @@ class DayNoteTheme {
   static Color divider(BuildContext context) =>
       isDark(context) ? DaylogColors.darkDivider : DaylogColors.lightDivider;
 
+  static Color border(BuildContext context) => Colors.white;
+
+  static Color focusedBorder(BuildContext context) => Colors.white;
+
   static Color accent(BuildContext context) =>
       isDark(context) ? DaylogColors.darkAccent : DaylogColors.accent;
 

@@ -10,6 +10,7 @@ import 'package:daylog/daynote/models/day_entry.dart';
 import 'package:daylog/daynote/models/todo_item.dart';
 import 'package:daylog/daynote/repositories/day_note_repository_impl.dart';
 import 'package:daylog/daynote/services/mock_auth_service.dart';
+import 'package:daylog/daynote/theme/daynote_theme.dart';
 import 'package:daylog/daynote/viewmodels/auth_viewmodel.dart';
 import 'package:daylog/daynote/viewmodels/day_note_viewmodel.dart';
 
@@ -225,37 +226,49 @@ void main() {
   });
 
   group('Theme & Design Consistency Tests', () {
-    testWidgets('Light and Dark themes have consistent text selection cursor matching primary accent', (tester) async {
+    testWidgets('Light theme has consistent text selection cursor matching primary accent', (tester) async {
       expect(kLightTheme.textSelectionTheme.cursorColor, equals(DaylogColors.accent));
-      expect(kDarkTheme.textSelectionTheme.cursorColor, equals(DaylogColors.darkAccent));
     });
 
-    testWidgets('Input decoration themes define uniform border radius and transparent fill', (tester) async {
+    testWidgets('Input decoration theme defines uniform border radius and white borders', (tester) async {
       final lightBorder = kLightTheme.inputDecorationTheme.border as OutlineInputBorder?;
-      final darkBorder = kDarkTheme.inputDecorationTheme.border as OutlineInputBorder?;
 
       expect(lightBorder?.borderRadius, equals(BorderRadius.circular(14)));
-      expect(darkBorder?.borderRadius, equals(BorderRadius.circular(14)));
-
       expect(lightBorder?.borderSide.color, equals(Colors.white));
       expect(kLightTheme.inputDecorationTheme.focusedBorder?.borderSide.color, equals(Colors.white));
-
       expect(kLightTheme.inputDecorationTheme.filled, isTrue);
-      expect(kDarkTheme.inputDecorationTheme.filled, isTrue);
     });
 
     testWidgets('Dialog and Bottom Sheet themes have surfaceTintColor transparent and consistent radius', (tester) async {
       expect(kLightTheme.dialogTheme.surfaceTintColor, equals(Colors.transparent));
-      expect(kDarkTheme.dialogTheme.surfaceTintColor, equals(Colors.transparent));
 
       final lightDialogShape = kLightTheme.dialogTheme.shape as RoundedRectangleBorder?;
       expect(lightDialogShape?.borderRadius, equals(BorderRadius.circular(20)));
 
       expect(kLightTheme.bottomSheetTheme.surfaceTintColor, equals(Colors.transparent));
-      expect(kDarkTheme.bottomSheetTheme.surfaceTintColor, equals(Colors.transparent));
 
       final lightSheetShape = kLightTheme.bottomSheetTheme.shape as RoundedRectangleBorder?;
       expect(lightSheetShape?.borderRadius, equals(const BorderRadius.vertical(top: Radius.circular(28))));
+    });
+
+    testWidgets('DayNoteTheme provides consistent light theme surfaces, text colors, and borders', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: kLightTheme,
+          themeMode: ThemeMode.light,
+          home: Builder(
+            builder: (context) {
+              expect(DayNoteTheme.isDark(context), isFalse);
+              expect(DayNoteTheme.border(context), equals(Colors.white));
+              expect(DayNoteTheme.focusedBorder(context), equals(Colors.white));
+              expect(DayNoteTheme.background(context), equals(DaylogColors.lightBg));
+              expect(DayNoteTheme.cardBackground(context), equals(DaylogColors.lightCard));
+              expect(DayNoteTheme.textPrimary(context), equals(DaylogColors.lightText));
+              return const SizedBox.shrink();
+            },
+          ),
+        ),
+      );
     });
   });
 }

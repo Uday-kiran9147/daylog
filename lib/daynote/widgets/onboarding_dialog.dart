@@ -115,7 +115,7 @@ class _OnboardingDialogState extends State<OnboardingDialog> {
                   ),
                   const SizedBox(width: 8),
                   Text(
-                    'WELCOME TO DAYNOTE',
+                    'WELCOME TO DAYLOG',
                     style: DayNoteTheme.sectionTitle(context).copyWith(
                       letterSpacing: 1.5,
                       fontSize: 12,

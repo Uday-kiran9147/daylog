@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../config/flavor_config.dart';
-import '../../providers/theme_provider.dart';
 import '../../utils/constants.dart';
 import '../screens/auth_screen.dart';
 import '../theme/daynote_theme.dart';
@@ -47,8 +46,6 @@ class AccountSheet extends ConsumerWidget {
     final primary = DayNoteTheme.textPrimary(context);
     final accent = DayNoteTheme.accent(context);
     final bg = DayNoteTheme.background(context);
-    final themeMode = ref.watch(themeModeProvider);
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SafeArea(
       child: Center(
@@ -187,58 +184,6 @@ class AccountSheet extends ConsumerWidget {
                   const SizedBox(height: 14),
                 ],
 
-                // ── APPEARANCE SECTION ───────────────────────────────────
-                Text(
-                  'APPEARANCE',
-                  style: DayNoteTheme.sectionTitle(context).copyWith(
-                    fontSize: 11.5,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? Colors.black.withValues(alpha: 0.28)
-                        : Colors.black.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(
-                      color: isDark
-                          ? Colors.white.withValues(alpha: 0.10)
-                          : Colors.white,
-                      width: 1.0,
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _ThemePill(
-                          label: 'Light',
-                          isSelected: themeMode == ThemeMode.light,
-                          onTap: () => ref.read(themeModeProvider.notifier).state = ThemeMode.light,
-                        ),
-                      ),
-                      Expanded(
-                        child: _ThemePill(
-                          label: 'Dark',
-                          isSelected: themeMode == ThemeMode.dark,
-                          onTap: () => ref.read(themeModeProvider.notifier).state = ThemeMode.dark,
-                        ),
-                      ),
-                      Expanded(
-                        child: _ThemePill(
-                          label: 'System',
-                          isSelected: themeMode == ThemeMode.system,
-                          onTap: () => ref.read(themeModeProvider.notifier).state = ThemeMode.system,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
                 if (onOpenWalkthrough != null) ...[
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
@@ -251,7 +196,7 @@ class AccountSheet extends ConsumerWidget {
                     ),
                     icon: Icon(Icons.help_outline, size: 18, color: accent),
                     label: Text(
-                      'How to Use DayNote',
+                      'How to Use DayLog',
                       style: DayNoteTheme.button(context).copyWith(
                         color: DayNoteTheme.textPrimary(context),
                         fontSize: 13.5,

@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'config/flavor_config.dart';
 import 'daynote/screens/daynote_screen.dart';
-import 'providers/theme_provider.dart';
 import 'services/ad_service.dart';
 import 'utils/constants.dart';
 
@@ -41,7 +40,6 @@ class _DayLogAppState extends ConsumerState<DayLogApp> {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = ref.watch(themeModeProvider);
     final initError = ref.watch(appInitErrorProvider);
     final appTitle = FlavorConfig.instance.appTitle;
 
@@ -86,18 +84,16 @@ class _DayLogAppState extends ConsumerState<DayLogApp> {
     return MaterialApp(
       title: appTitle,
       theme: kLightTheme,
-      darkTheme: kDarkTheme,
-      themeMode: themeMode,
+      themeMode: ThemeMode.light,
       debugShowCheckedModeBanner: FlavorConfig.instance.isDev,
       builder: (context, child) {
-        final isDark = Theme.of(context).brightness == Brightness.dark;
         return AnnotatedRegion<SystemUiOverlayStyle>(
-          value: SystemUiOverlayStyle(
+          value: const SystemUiOverlayStyle(
             statusBarColor: Colors.transparent,
-            statusBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
-            statusBarBrightness: isDark ? Brightness.dark : Brightness.light,
-            systemNavigationBarColor: isDark ? DaylogColors.darkBg : DaylogColors.lightBg,
-            systemNavigationBarIconBrightness: isDark ? Brightness.light : Brightness.dark,
+            statusBarIconBrightness: Brightness.dark,
+            statusBarBrightness: Brightness.light,
+            systemNavigationBarColor: Color.fromARGB(255, 249, 248, 247),
+            systemNavigationBarIconBrightness: Brightness.dark,
           ),
           child: child ?? const SizedBox.shrink(),
         );
