@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../config/flavor_config.dart';
+import '../../providers/theme_provider.dart';
+import '../../utils/constants.dart';
 import '../screens/auth_screen.dart';
 import '../theme/daynote_theme.dart';
 import '../viewmodels/auth_viewmodel.dart';
 
-class AccountSheet extends StatelessWidget {
+class AccountSheet extends ConsumerWidget {
   final AuthViewModel authViewModel;
   final VoidCallback? onOpenWalkthrough;
 
@@ -33,7 +37,7 @@ class AccountSheet extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final user = authViewModel.currentUser;
     final isAuthenticated = authViewModel.isAuthenticated;
     final email = user?.email ?? 'Offline Journal';
@@ -43,6 +47,8 @@ class AccountSheet extends StatelessWidget {
     final primary = DayNoteTheme.textPrimary(context);
     final accent = DayNoteTheme.accent(context);
     final bg = DayNoteTheme.background(context);
+    final themeMode = ref.watch(themeModeProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return SafeArea(
       child: Center(
@@ -72,9 +78,9 @@ class AccountSheet extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'DAYNOTE ACCOUNT',
+                      'SETTINGS & ACCOUNT',
                       style: DayNoteTheme.sectionTitle(context).copyWith(
-                        fontSize: 14,
+                        fontSize: 13,
                         letterSpacing: 1.5,
                       ),
                     ),
@@ -93,8 +99,8 @@ class AccountSheet extends StatelessWidget {
                   padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
                     color: highlightBg,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: dividerColor),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.white),
                   ),
                   child: Row(
                     children: [
@@ -178,14 +184,66 @@ class AccountSheet extends StatelessWidget {
                       AuthScreen.show(context, authViewModel);
                     },
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 14),
                 ],
+
+                // ── APPEARANCE SECTION ───────────────────────────────────
+                Text(
+                  'APPEARANCE',
+                  style: DayNoteTheme.sectionTitle(context).copyWith(
+                    fontSize: 11.5,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? Colors.black.withValues(alpha: 0.28)
+                        : Colors.black.withValues(alpha: 0.04),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: isDark
+                          ? Colors.white.withValues(alpha: 0.10)
+                          : Colors.white,
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: _ThemePill(
+                          label: 'Light',
+                          isSelected: themeMode == ThemeMode.light,
+                          onTap: () => ref.read(themeModeProvider.notifier).state = ThemeMode.light,
+                        ),
+                      ),
+                      Expanded(
+                        child: _ThemePill(
+                          label: 'Dark',
+                          isSelected: themeMode == ThemeMode.dark,
+                          onTap: () => ref.read(themeModeProvider.notifier).state = ThemeMode.dark,
+                        ),
+                      ),
+                      Expanded(
+                        child: _ThemePill(
+                          label: 'System',
+                          isSelected: themeMode == ThemeMode.system,
+                          onTap: () => ref.read(themeModeProvider.notifier).state = ThemeMode.system,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 16),
 
                 if (onOpenWalkthrough != null) ...[
                   OutlinedButton.icon(
                     style: OutlinedButton.styleFrom(
                       foregroundColor: DayNoteTheme.textPrimary(context),
-                      side: BorderSide(color: dividerColor, width: 1.0),
+                      side: const BorderSide(color: Colors.white, width: 1.0),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(14),
                       ),
@@ -193,7 +251,7 @@ class AccountSheet extends StatelessWidget {
                     ),
                     icon: Icon(Icons.help_outline, size: 18, color: accent),
                     label: Text(
-                      'How to Use Daynote',
+                      'How to Use DayNote',
                       style: DayNoteTheme.button(context).copyWith(
                         color: DayNoteTheme.textPrimary(context),
                         fontSize: 13.5,
@@ -231,9 +289,74 @@ class AccountSheet extends StatelessWidget {
                       await authViewModel.signOut();
                     },
                   ),
+                  const SizedBox(height: 10),
                 ],
+
+                const SizedBox(height: 12),
+                Center(
+                  child: Text(
+                    '${FlavorConfig.instance.appTitle} · ${FlavorConfig.formattedVersion}',
+                    style: DayNoteTheme.caption(context).copyWith(
+                      fontSize: 11.5,
+                      color: DayNoteTheme.textTertiary(context),
+                    ),
+                  ),
+                ),
               ],
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemePill extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _ThemePill({
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 7),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isSelected
+              ? (isDark ? DaylogColors.darkAccent100 : Colors.white)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.05),
+                    blurRadius: 4,
+                    offset: const Offset(0, 1),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+            color: isSelected
+                ? (isDark ? DaylogColors.darkAccent : DaylogColors.accent)
+                : theme.colorScheme.onSurface.withValues(alpha: 0.65),
           ),
         ),
       ),

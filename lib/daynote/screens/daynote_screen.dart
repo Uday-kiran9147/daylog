@@ -120,6 +120,7 @@ class _DayNoteScreenState extends ConsumerState<DayNoteScreen> {
                     authViewModel: authViewModel,
                     onGoToToday: vm.goToToday,
                     isTodaySelected: vm.isSelectedDateToday,
+                    onOpenWalkthrough: _showWalkthroughManual,
                   ),
 
                   // Main Scrollable Content

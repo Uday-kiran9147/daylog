@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../models/todo_item.dart';
 import '../theme/daynote_theme.dart';
-import '../../widgets/daylog_widgets.dart';
 import 'classic_checkbox.dart';
 
 class TodoSection extends StatefulWidget {
@@ -171,14 +170,25 @@ class _TodoSectionState extends State<TodoSection> {
   }
 
   Future<bool> _confirmDeleteTodo(BuildContext context, TodoItem todo) async {
-    final result = await showDaylogConfirmSheet(
+    final result = await showDialog<bool>(
       context: context,
-      title: 'Delete item?',
-      message: 'Are you sure you want to delete "${todo.text}"?',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      isDestructive: true,
-      icon: Icons.delete_outline_rounded,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete item?'),
+        content: Text('Are you sure you want to delete "${todo.text}"?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: DayNoteTheme.priorityHigh(context),
+            ),
+            onPressed: () => Navigator.of(ctx).pop(true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
     );
     return result ?? false;
   }

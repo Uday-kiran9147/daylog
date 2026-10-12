@@ -7,12 +7,14 @@ class DaynoteAppBar extends StatelessWidget {
   final AuthViewModel? authViewModel;
   final VoidCallback onGoToToday;
   final bool isTodaySelected;
+  final VoidCallback? onOpenWalkthrough;
 
   const DaynoteAppBar({
     super.key,
     this.authViewModel,
     required this.onGoToToday,
     this.isTodaySelected = true,
+    this.onOpenWalkthrough,
   });
 
   @override
@@ -131,6 +133,7 @@ class DaynoteAppBar extends StatelessWidget {
                   onTap: () => AccountSheet.show(
                     context,
                     authViewModel: authViewModel!,
+                    onOpenWalkthrough: onOpenWalkthrough,
                   ),
                   borderRadius: BorderRadius.circular(16),
                   splashColor: DayNoteTheme.subtleHover(context),

@@ -5,19 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_timezone/flutter_timezone.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz_data;
-import '../app.dart';
-import '../models/task_entry.dart';
-import '../models/todo_entry.dart';
-import '../utils/date_utils.dart';
 
 class NotificationService {
   static final _plugin = FlutterLocalNotificationsPlugin();
   static const _journalId = 1;
-  static const _reminderBaseId = 100;
-  static const _remindersCount = 12; // 12 reminders of 2 hours = 24 hours
-  static const _todoReminderBaseId = 200;
-  static const _todoRemindersCount = 24; // 24 reminders of 1 hour = 24 hours
-  static const _activeTaskNotificationId = 777;
   static ProviderContainer? container;
   static bool _initialized = false;
 
@@ -72,15 +63,6 @@ class NotificationService {
 
     await _plugin.initialize(
       settings: const InitializationSettings(android: android, iOS: ios),
-      onDidReceiveNotificationResponse: (response) {
-        if (container != null) {
-          if (response.payload == 'active_timer') {
-            container!.read(navigationIndexProvider.notifier).state = 1; // Timer screen
-          } else {
-            container!.read(navigationIndexProvider.notifier).state = 3; // Journal screen
-          }
-        }
-      },
     );
 
     // Request Android 13+ POST_NOTIFICATIONS permission
@@ -99,17 +81,17 @@ class NotificationService {
       await _plugin.zonedSchedule(
         id: _journalId,
         title: 'Time to wrap up',
-        body: 'Log what you built today — takes 2 minutes.',
+        body: 'Log today\'s notes & priorities in DayNote.',
         scheduledDate: _next9pm(),
         notificationDetails: const NotificationDetails(
           android: AndroidNotificationDetails(
-            'daylog_journal',
-            'Daily journal reminder',
-            channelDescription: 'Reminds you to fill in your end-of-day journal',
+            'daynote_reminder',
+            'Daily DayNote reminder',
+            channelDescription: 'Reminds you to write in your daily journal',
             importance: Importance.defaultImportance,
             priority: Priority.defaultPriority,
             styleInformation: BigTextStyleInformation(
-              'Log what you do today — takes 2 minutes.',
+              'Log today\'s notes & priorities in DayNote.',
               contentTitle: 'Time to wrap up',
             ),
           ),
@@ -123,7 +105,7 @@ class NotificationService {
     }
   }
 
-  static Future<void> cancelJournalReminder() async {
+  static Future<void> cancelDailyReminder() async {
     try {
       await _plugin.cancel(id: _journalId);
     } catch (e) {
@@ -138,280 +120,5 @@ class NotificationService {
       scheduled = scheduled.add(const Duration(days: 1));
     }
     return scheduled;
-  }
-
-  static Future<void> updateTaskReminders(TaskEntry? activeTask) async {
-    if (!_initialized) {
-      debugPrint('NotificationService not initialized yet. Skipping task reminders update.');
-      return;
-    }
-    try {
-      // 1. Cancel any existing reminders
-      for (int i = 0; i < _remindersCount; i++) {
-        await _plugin.cancel(id: _reminderBaseId + i);
-      }
-
-      final now = tz.TZDateTime.now(tz.local);
-
-      // 2. Schedule new reminders
-      for (int i = 0; i < _remindersCount; i++) {
-        // TO TEST: Change Duration(hours: (i + 1) * 2) to Duration(seconds: (i + 1) * 10)
-        final duration = Duration(hours: (i + 1) * 2);
-        // final duration = Duration(seconds: (i + 1) * 10); // 10s, 20s, 30s, etc.
-        // print('Scheduling reminder in ${duration.inSeconds} seconds');
-        final scheduledTime = now.add(duration);
-
-        // Formats duration text automatically (e.g. "2 hours" or "10 seconds")
-        final timeStr = duration.inHours > 0
-            ? '${duration.inHours} hours'
-            : '${duration.inSeconds} seconds';
-
-        String title;
-        String body;
-
-        if (activeTask != null) {
-          if (activeTask.isPaused) {
-            title = 'Task Paused';
-            body = 'Task "${activeTask.title}" has been paused for $timeStr. Ready to resume?';
-          } else {
-            title = 'Focus Check';
-            if (duration.inHours == 2) {
-              body = 'You\'ve been working on "${activeTask.title}" for 2 hours. Time for a quick stretch?';
-            } else if (duration.inHours == 4) {
-              body = 'You\'ve been working on "${activeTask.title}" for 4 hours. Take a screen break!';
-            } else {
-              body = 'You\'ve been working on "${activeTask.title}" for $timeStr. Make sure to rest!';
-            }
-          }
-        } else {
-          title = 'Track your progress';
-          body = 'You haven\'t logged any tasks in the last $timeStr. Starting something new?';
-        }
-
-        await _plugin.zonedSchedule(
-          id: _reminderBaseId + i,
-          title: title,
-          body: body,
-          scheduledDate: scheduledTime,
-          notificationDetails: NotificationDetails(
-            android: AndroidNotificationDetails(
-              'daylog_task_reminders',
-              'Task Reminders',
-              channelDescription: 'Reminds you about active, paused, or idle tasks every 2 hours',
-              importance: Importance.high,
-              priority: Priority.high,
-              styleInformation: BigTextStyleInformation(
-                body,
-                contentTitle: title,
-              ),
-            ),
-            iOS: const DarwinNotificationDetails(),
-          ),
-          androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        );
-      }
-    } catch (e, stack) {
-      debugPrint('Failed to update task reminders: $e\n$stack');
-    }
-  }
-
-  static Future<void> showTestNotification() async {
-    if (!_initialized) {
-      debugPrint('NotificationService not initialized yet. Cannot show test notification.');
-      return;
-    }
-    try {
-      await _plugin.show(
-        id: 999,
-        title: 'Notification Test',
-        body: 'If you see this, notifications are working and permission is granted!',
-        notificationDetails: const NotificationDetails(
-          android: AndroidNotificationDetails(
-            'daylog_test',
-            'Test Channel',
-            channelDescription: 'For testing instant notifications',
-            importance: Importance.max,
-            priority: Priority.high,
-            playSound: true,
-            styleInformation: BigTextStyleInformation(
-              'If you see this, notifications are working and permission is granted!',
-              contentTitle: 'Notification Test',
-            ),
-          ),
-          iOS: DarwinNotificationDetails(
-            presentAlert: true,
-            presentBadge: true,
-            presentSound: true,
-          ),
-        ),
-      );
-    } catch (e, stack) {
-      debugPrint('Failed to show test notification: $e\n$stack');
-    }
-  }
-
-  static Future<void> updateTodoReminders(List<TodoEntry> pendingHighPriorityTodos) async {
-    if (!_initialized) {
-      debugPrint('NotificationService not initialized yet. Skipping todo reminders update.');
-      return;
-    }
-    try {
-      // 1. Cancel any existing todo reminders
-      for (int i = 0; i < _todoRemindersCount; i++) {
-        await _plugin.cancel(id: _todoReminderBaseId + i);
-      }
-
-      if (pendingHighPriorityTodos.isEmpty) {
-        debugPrint('No pending high-priority todos. Cleared notifications.');
-        return;
-      }
-
-      final now = tz.TZDateTime.now(tz.local);
-      final count = pendingHighPriorityTodos.length;
-      final titles = pendingHighPriorityTodos.map((t) => t.title).join(', ');
-      
-      // Limit description length if there are many items
-      final truncatedTitles = titles.length > 80 ? '${titles.substring(0, 77)}...' : titles;
-
-      const titleText = 'Pending High Priority Tasks';
-      final bodyText = 'You have $count high-priority task(s) pending: $truncatedTitles';
-
-      // 2. Schedule new reminders for the next 24 hours (every 1 hour)
-      for (int i = 0; i < _todoRemindersCount; i++) {
-        final duration = Duration(hours: i + 1);
-        final scheduledTime = now.add(duration);
-
-        await _plugin.zonedSchedule(
-          id: _todoReminderBaseId + i,
-          title: titleText,
-          body: bodyText,
-          scheduledDate: scheduledTime,
-          notificationDetails: NotificationDetails(
-            android: AndroidNotificationDetails(
-              'daylog_todo_reminders',
-              'Todo Reminders',
-              channelDescription: 'Reminds you of incomplete high-priority todos every 1 hour',
-              importance: Importance.max,
-              priority: Priority.high,
-              playSound: true,
-              enableVibration: true,
-              styleInformation: BigTextStyleInformation(
-                bodyText,
-                contentTitle: titleText,
-              ),
-            ),
-            iOS: const DarwinNotificationDetails(
-              presentAlert: true,
-              presentBadge: true,
-              presentSound: true,
-            ),
-          ),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        );
-      }
-      debugPrint('Scheduled $_todoRemindersCount hourly todo reminders.');
-    } catch (e, stack) {
-      debugPrint('Failed to update todo reminders: $e\n$stack');
-    }
-  }
-
-  static Future<void> showActiveTaskNotification(TaskEntry? activeTask) async {
-    if (!_initialized) {
-      debugPrint('NotificationService not initialized yet. Skipping active task notification.');
-      return;
-    }
-    try {
-      if (activeTask == null) {
-        await _plugin.cancel(id: _activeTaskNotificationId);
-        return;
-      }
-
-      final categoryStr = activeTask.category.isNotEmpty
-          ? activeTask.category[0].toUpperCase() + activeTask.category.substring(1)
-          : 'Focus';
-
-      if (activeTask.isPaused) {
-        final elapsed = formatTimer(activeTask.durationSeconds);
-        final title = 'Paused: ${activeTask.title}';
-        final body = 'Category: $categoryStr • Elapsed: $elapsed';
-
-        await _plugin.show(
-          id: _activeTaskNotificationId,
-          title: title,
-          body: body,
-          notificationDetails: NotificationDetails(
-            android: AndroidNotificationDetails(
-              'daylog_active_timer',
-              'Active Focus Timer',
-              channelDescription: 'Shows running task timer status in status bar',
-              importance: Importance.low,
-              priority: Priority.low,
-              ongoing: true,
-              autoCancel: false,
-              onlyAlertOnce: true,
-              showWhen: true,
-              usesChronometer: false,
-              playSound: false,
-              enableVibration: false,
-              category: AndroidNotificationCategory.stopwatch,
-              styleInformation: BigTextStyleInformation(
-                body,
-                contentTitle: title,
-              ),
-            ),
-            iOS: const DarwinNotificationDetails(
-              presentAlert: false,
-              presentBadge: false,
-              presentSound: false,
-            ),
-          ),
-          payload: 'active_timer',
-        );
-      } else {
-        final baseTimestamp = activeTask.startedAt
-            .add(Duration(seconds: activeTask.pauseDurationSeconds))
-            .millisecondsSinceEpoch;
-
-        final title = 'Focusing: ${activeTask.title}';
-        final body = 'Category: $categoryStr';
-
-        await _plugin.show(
-          id: _activeTaskNotificationId,
-          title: title,
-          body: body,
-          notificationDetails: NotificationDetails(
-            android: AndroidNotificationDetails(
-              'daylog_active_timer',
-              'Active Focus Timer',
-              channelDescription: 'Shows running task timer status in status bar',
-              importance: Importance.low,
-              priority: Priority.low,
-              ongoing: true,
-              autoCancel: false,
-              onlyAlertOnce: true,
-              showWhen: true,
-              usesChronometer: true,
-              chronometerCountDown: false,
-              when: baseTimestamp,
-              playSound: false,
-              enableVibration: false,
-              category: AndroidNotificationCategory.stopwatch,
-              styleInformation: BigTextStyleInformation(
-                body,
-                contentTitle: title,
-              ),
-            ),
-            iOS: const DarwinNotificationDetails(
-              presentAlert: false,
-              presentBadge: false,
-              presentSound: false,
-            ),
-          ),
-          payload: 'active_timer',
-        );
-      }
-    } catch (e, stack) {
-      debugPrint('Failed to update active task notification: $e\n$stack');
-    }
   }
 }
