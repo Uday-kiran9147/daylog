@@ -16,8 +16,6 @@ import 'firebase_options.dart';
 Future<void> mainCommon(FlavorConfig config) async {
   WidgetsFlutterBinding.ensureInitialized();
   FlavorConfig.instance = config;
-  await FlavorConfig.loadAppInfo();
-
   // Try loading flavor-specific env file, falling back to default '.env'
   try {
     await dotenv.load(fileName: config.envFileName);
@@ -30,20 +28,24 @@ Future<void> mainCommon(FlavorConfig config) async {
     }
   }
 
-  await RevenueCatService.init();
-  await AdService.init();
-
   final container = ProviderContainer();
 
   // Run the Flutter app immediately for sub-100ms startup!
   runApp(UncontrolledProviderScope(container: container, child: const DayLogApp()));
 
-  // Initialize Firebase in the background after app is running
+  // Initialize background services (Firebase, Ads, RevenueCat, app info) asynchronously
   unawaited(_initBackgroundServices(container));
 }
 
 Future<void> _initBackgroundServices(ProviderContainer container) async {
-  // Initialize Firebase for optional DayNote cloud sync
+  // 1. Load app info in background
+  unawaited(FlavorConfig.loadAppInfo());
+
+  // 2. Initialize RevenueCat and AdService in background without blocking initial frame
+  unawaited(RevenueCatService.init());
+  unawaited(AdService.init());
+
+  // 3. Initialize Firebase for optional DayNote cloud sync
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,

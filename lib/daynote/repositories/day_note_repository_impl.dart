@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import '../models/day_entry.dart';
@@ -31,12 +32,21 @@ class DayNoteRepositoryImpl implements DayNoteRepository {
   Future<DayEntry> getDayEntry(DateTime date) async {
     final dateKey = DayEntry.formatDateKey(date);
 
-    // 1. If user is authenticated and Firestore is available, attempt remote fetch
+    // 1. Instant local cache-first response
+    final localEntry = await _storageService.getEntry(dateKey);
+
+    // 2. If authenticated and Firestore is available:
     if (userId != null && firestoreService != null) {
+      if (localEntry != null) {
+        // Return local entry immediately and sync with remote in background
+        unawaited(_syncRemoteEntryInBackground(dateKey, localEntry));
+        return localEntry;
+      }
+
+      // No local entry found; fetch from remote Firestore
       try {
         final remoteEntry = await firestoreService!.getEntry(userId!, dateKey);
         if (remoteEntry != null) {
-          // Cache locally
           await _storageService.saveEntry(remoteEntry);
           return remoteEntry;
         }
@@ -45,9 +55,19 @@ class DayNoteRepositoryImpl implements DayNoteRepository {
       }
     }
 
-    // 2. Fallback to local storage
-    final localEntry = await _storageService.getEntry(dateKey);
+    // 3. Fallback to local storage or empty entry
     return localEntry ?? DayEntry.empty(date);
+  }
+
+  Future<void> _syncRemoteEntryInBackground(String dateKey, DayEntry localEntry) async {
+    try {
+      final remoteEntry = await firestoreService?.getEntry(userId!, dateKey);
+      if (remoteEntry != null && remoteEntry.updatedAt.isAfter(localEntry.updatedAt)) {
+        await _storageService.saveEntry(remoteEntry);
+      }
+    } catch (e) {
+      debugPrint('Firestore background entry sync notice: $e');
+    }
   }
 
   @override
@@ -67,8 +87,18 @@ class DayNoteRepositoryImpl implements DayNoteRepository {
 
   @override
   Future<Set<String>> getDatesWithContent() async {
-    // 1. If authenticated, fetch from Firestore and merge with local index
+    // 1. Fetch from local storage first (instant sub-millisecond response)
+    final localDates = await _storageService.getDatesWithContent();
+
+    // 2. If authenticated and Firestore is available:
     if (userId != null && firestoreService != null) {
+      if (localDates.isNotEmpty) {
+        // Return local dates immediately and sync with remote in background
+        unawaited(_syncRemoteDatesInBackground());
+        return localDates;
+      }
+
+      // If local storage is empty (e.g. first login on fresh device), fetch from Firestore
       try {
         final remoteDates = await firestoreService!.getDatesWithContent(userId!);
         if (remoteDates.isNotEmpty) {
@@ -79,7 +109,26 @@ class DayNoteRepositoryImpl implements DayNoteRepository {
       }
     }
 
-    return _storageService.getDatesWithContent();
+    return localDates;
+  }
+
+  Future<void> _syncRemoteDatesInBackground() async {
+    try {
+      final remoteDates = await firestoreService?.getDatesWithContent(userId!);
+      if (remoteDates != null && remoteDates.isNotEmpty) {
+        final local = await _storageService.getDatesWithContent();
+        for (final dateKey in remoteDates) {
+          if (!local.contains(dateKey)) {
+            final remoteEntry = await firestoreService?.getEntry(userId!, dateKey);
+            if (remoteEntry != null) {
+              await _storageService.saveEntry(remoteEntry);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('Firestore background dates sync notice: $e');
+    }
   }
 
   @override

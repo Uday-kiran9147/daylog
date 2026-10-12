@@ -7,7 +7,11 @@ class LocalStorageService {
   static const String _indexKey = 'daynote_saved_dates_index';
   static const String _onboardingSeenKey = 'daynote_has_seen_onboarding';
 
-  Future<SharedPreferences> get _prefs => SharedPreferences.getInstance();
+  static SharedPreferences? _cachedPrefs;
+
+  Future<SharedPreferences> get _prefs async {
+    return _cachedPrefs ??= await SharedPreferences.getInstance();
+  }
 
   Future<void> initSeedIfFirstRun() async {
     // Fresh start: no automatic seeded data

@@ -66,12 +66,18 @@ class DayNoteViewModel extends ChangeNotifier {
     try {
       await repository.initialize();
       if (_disposed) return;
-      final seen = await repository.hasSeenOnboarding();
+
+      // Parallelize onboarding check, dates with content, and today's entry
+      final results = await Future.wait([
+        repository.hasSeenOnboarding(),
+        repository.getDatesWithContent(),
+        repository.getDayEntry(_selectedDate),
+      ]);
+
       if (_disposed) return;
-      _shouldShowOnboarding = !seen;
-      await _refreshDatesWithContent();
-      if (_disposed) return;
-      await _loadEntryForDate(_selectedDate);
+      _shouldShowOnboarding = !(results[0] as bool);
+      _datesWithContent = results[1] as Set<String>;
+      _currentEntry = results[2] as DayEntry;
     } catch (e) {
       if (_disposed) return;
       _errorMessage = 'Could not load journal entries: $e';
@@ -92,9 +98,13 @@ class DayNoteViewModel extends ChangeNotifier {
     if (loadSampleData) {
       await repository.loadSampleData();
       if (_disposed) return;
-      await _refreshDatesWithContent();
+      final results = await Future.wait([
+        repository.getDatesWithContent(),
+        repository.getDayEntry(_selectedDate),
+      ]);
       if (_disposed) return;
-      await _loadEntryForDate(_selectedDate);
+      _datesWithContent = results[0] as Set<String>;
+      _currentEntry = results[1] as DayEntry;
     }
     notifyListeners();
   }
@@ -107,9 +117,13 @@ class DayNoteViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
-      await _refreshDatesWithContent();
+      final results = await Future.wait([
+        repository.getDatesWithContent(),
+        repository.getDayEntry(_selectedDate),
+      ]);
       if (_disposed) return;
-      await _loadEntryForDate(_selectedDate);
+      _datesWithContent = results[0] as Set<String>;
+      _currentEntry = results[1] as DayEntry;
     } catch (e) {
       if (_disposed) return;
       _errorMessage = 'Error loading user entries: $e';
