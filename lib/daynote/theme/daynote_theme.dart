@@ -16,23 +16,23 @@ class DayNoteTheme {
       isDark(context) ? DaylogColors.darkCard : DaylogColors.lightCard;
 
   static Color surfaceHighlight(BuildContext context) =>
-      isDark(context) ? DaylogColors.darkSurface : const Color(0xFFFFFDF9);
+      isDark(context) ? DaylogColors.darkSurface : Colors.white;
 
   static Color subtleHover(BuildContext context) =>
-      isDark(context) ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFEFE9DC);
+      isDark(context) ? Colors.white.withValues(alpha: 0.06) : const Color(0xFFE9ECEF);
 
   // Dynamic Text Colors
   static Color textPrimary(BuildContext context) =>
       isDark(context) ? DaylogColors.darkText : DaylogColors.lightText;
 
   static Color textSecondary(BuildContext context) =>
-      isDark(context) ? Colors.white.withValues(alpha: 0.65) : const Color(0xFF5F5953);
+      isDark(context) ? Colors.white.withValues(alpha: 0.65) : const Color(0xFF495057);
 
   static Color textTertiary(BuildContext context) =>
-      isDark(context) ? Colors.white.withValues(alpha: 0.40) : const Color(0xFF948D85);
+      isDark(context) ? Colors.white.withValues(alpha: 0.40) : const Color(0xFF868E96);
 
   static Color textDisabled(BuildContext context) =>
-      isDark(context) ? Colors.white.withValues(alpha: 0.22) : const Color(0xFFC7C0B7);
+      isDark(context) ? Colors.white.withValues(alpha: 0.22) : const Color(0xFFADB5BD);
 
   // Separators & Accents
   static Color divider(BuildContext context) =>
@@ -50,22 +50,22 @@ class DayNoteTheme {
 
   // Priority Colors
   static Color priorityHigh(BuildContext context) =>
-      isDark(context) ? DaylogColors.darkAccent : const Color(0xFFB84533);
+      isDark(context) ? const Color(0xFFF87171) : const Color(0xFFDC2626);
 
   static Color priorityHighBg(BuildContext context) =>
-      isDark(context) ? const Color(0xFF3D251C) : const Color(0xFFF9EAE7);
+      isDark(context) ? const Color(0xFF3B1818) : const Color(0xFFFEE2E2);
 
   static Color priorityMed(BuildContext context) =>
-      isDark(context) ? const Color(0xFFE5A158) : const Color(0xFF9E6523);
+      isDark(context) ? const Color(0xFFFBBF24) : const Color(0xFFD97706);
 
   static Color priorityMedBg(BuildContext context) =>
-      isDark(context) ? const Color(0xFF3B2814) : const Color(0xFFFAF1E4);
+      isDark(context) ? const Color(0xFF382910) : const Color(0xFFFEF3C7);
 
   static Color priorityLow(BuildContext context) =>
-      isDark(context) ? const Color(0xFF7CB88F) : const Color(0xFF4A7C59);
+      isDark(context) ? const Color(0xFF4ADE80) : const Color(0xFF16A34A);
 
   static Color priorityLowBg(BuildContext context) =>
-      isDark(context) ? const Color(0xFF162D1C) : const Color(0xFFECF3EE);
+      isDark(context) ? const Color(0xFF132A1B) : const Color(0xFFDCFCE7);
 
   // Typography
   static TextStyle heading(BuildContext context) => GoogleFonts.inter(

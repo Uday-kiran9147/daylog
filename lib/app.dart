@@ -92,7 +92,7 @@ class _DayLogAppState extends ConsumerState<DayLogApp> {
             statusBarColor: Colors.transparent,
             statusBarIconBrightness: Brightness.dark,
             statusBarBrightness: Brightness.light,
-            systemNavigationBarColor: Color.fromARGB(255, 249, 248, 247),
+            systemNavigationBarColor: DaylogColors.lightBg,
             systemNavigationBarIconBrightness: Brightness.dark,
           ),
           child: child ?? const SizedBox.shrink(),

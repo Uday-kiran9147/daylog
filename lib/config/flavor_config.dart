@@ -38,13 +38,13 @@ class FlavorConfig {
 
   static final FlavorConfig dev = FlavorConfig._(
     flavor: Flavor.dev,
-    appTitle: 'DayLog Dev',
+    appTitle: 'DayNote Dev',
     envFileName: '.env.dev',
   );
 
   static final FlavorConfig prod = FlavorConfig._(
     flavor: Flavor.prod,
-    appTitle: 'DayLog',
+    appTitle: 'DayNote',
     envFileName: '.env.prod',
   );
 

@@ -9,6 +9,7 @@ import 'config/flavor_config.dart';
 import 'services/ad_service.dart';
 import 'services/revenue_cat_service.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'daynote/providers/daynote_providers.dart';
 import 'firebase_options.dart';
 
 /// Common bootstrap logic for all app flavors.
@@ -32,21 +33,25 @@ Future<void> mainCommon(FlavorConfig config) async {
   await RevenueCatService.init();
   await AdService.init();
 
+  final container = ProviderContainer();
+
   // Run the Flutter app immediately for sub-100ms startup!
-  runApp(const ProviderScope(child: DayLogApp()));
+  runApp(UncontrolledProviderScope(container: container, child: const DayLogApp()));
 
   // Initialize Firebase in the background after app is running
-  unawaited(_initBackgroundServices());
+  unawaited(_initBackgroundServices(container));
 }
 
-Future<void> _initBackgroundServices() async {
+Future<void> _initBackgroundServices(ProviderContainer container) async {
   // Initialize Firebase for optional DayNote cloud sync
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
+    container.read(firebaseInitializedProvider.notifier).state = true;
     debugPrint('Firebase initialized successfully for DayNote.');
   } catch (e) {
     debugPrint('Firebase initialization notice (running offline): $e');
+    container.read(firebaseInitializedProvider.notifier).state = false;
   }
 }

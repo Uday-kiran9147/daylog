@@ -60,7 +60,7 @@ class _OnboardingDialogState extends State<OnboardingDialog> {
       'title': 'Quiet Writing Surface',
       'subtitle': 'Distraction-free daily journaling',
       'description':
-          'Record your reflections, journal entries, and thoughts on the warm paper surface. Everything is auto-saved as you type.',
+          'Record your reflections, journal entries, and thoughts on the clean writing surface. Everything is auto-saved as you type.',
     },
   ];
 

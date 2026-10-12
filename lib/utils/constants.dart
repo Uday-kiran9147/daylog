@@ -3,50 +3,50 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-// ── Organic Warm Color Tokens ────────────────────────────────────────────────
+// ── Minimalist Clean Neutral Color Tokens ─────────────────────────────────────
 
 class DaylogColors {
-  // Light Mode Canvas & Surfaces
-  static const lightBg = Color(0xFFF5EAD8); // Warm cream canvas
-  static const lightSurface = Color(0xFFEBDDC5); // Warm parchment surface
-  static const lightCard = Color(0xFFFFF9F0); // Card container
-  static const lightText = Color(0xFF201E1D); // Warm espresso text
-  static const lightDivider = Color(0xFFFFFFFF); // Clean white border & divider
+  // Light Mode Canvas & Surfaces (Clean Minimalist Neutrals)
+  static const lightBg = Color(0xFFF8F9FA); // Clean off-white canvas
+  static const lightSurface = Color(0xFFF1F3F5); // Crisp subtle neutral surface
+  static const lightCard = Color(0xFFFFFFFF); // Pure white card container
+  static const lightText = Color(0xFF1E2124); // Crisp dark slate text
+  static const lightDivider = Color(0xFFE9ECEF); // Subtle clean border & divider
 
-  // Accent Terracotta (Primary)
-  static const accent = Color(0xFFC85A32); // Vibrant terracotta
-  static const accent100 = Color(0xFFF8E4DC); // Soft peach wash
-  static const accent200 = Color(0xFFEDBFA8);
-  static const accent300 = Color(0xFFE09A7A);
-  static const accent400 = Color(0xFFD47551);
-  static const accent500 = Color(0xFFC85A32);
-  static const accent600 = Color(0xFFB04823);
-  static const accent700 = Color(0xFFA83B19); // Deep terracotta
-  static const accent800 = Color(0xFF7A280F); // Very deep rust
-  static const accent900 = Color(0xFF4D1707);
+  // Accent (Modern Charcoal / Slate)
+  static const accent = Color(0xFF2B303A); // Sleek modern dark slate accent
+  static const accent100 = Color(0xFFE9ECEF); // Soft neutral tint
+  static const accent200 = Color(0xFFDEE2E6);
+  static const accent300 = Color(0xFFCED4DA);
+  static const accent400 = Color(0xFF6C757D);
+  static const accent500 = Color(0xFF495057);
+  static const accent600 = Color(0xFF343A40);
+  static const accent700 = Color(0xFF2B303A);
+  static const accent800 = Color(0xFF212529);
+  static const accent900 = Color(0xFF1A1D20);
 
-  // Accent Sage Green (Secondary / Accent-2)
-  static const sage = Color(0xFF4A7C59);
-  static const sage100 = Color(0xFFE2ECE5);
-  static const sage200 = Color(0xFFC2D9C8);
-  static const sage300 = Color(0xFFA2C6AC);
-  static const sage400 = Color(0xFF82B38F);
-  static const sage500 = Color(0xFF4A7C59);
-  static const sage600 = Color(0xFF3B6748);
-  static const sage700 = Color(0xFF2E593B);
-  static const sage800 = Color(0xFF1E3D27);
-  static const sage900 = Color(0xFF102618);
+  // Accent Secondary (Clean Slate / Steel)
+  static const sage = Color(0xFF4A5568);
+  static const sage100 = Color(0xFFEDF2F7);
+  static const sage200 = Color(0xFFE2E8F0);
+  static const sage300 = Color(0xFFCBD5E0);
+  static const sage400 = Color(0xFFA0AEC0);
+  static const sage500 = Color(0xFF718096);
+  static const sage600 = Color(0xFF4A5568);
+  static const sage700 = Color(0xFF2D3748);
+  static const sage800 = Color(0xFF1A202C);
+  static const sage900 = Color(0xFF171923);
 
   // Dark Mode Canvas & Surfaces
-  static const darkBg = Color(0xFF181615); // Deep charcoal
-  static const darkSurface = Color(0xFF252220); // Warm dark surface
-  static const darkCard = Color(0xFF2E2A28); // Dark card container
-  static const darkText = Color(0xFFF5EAD8); // Warm light text
-  static const darkDivider = Color(0x2EF5EAD8); // ~18% opacity divider
-  static const darkAccent = Color(0xFFE07A5F); // Warm terracotta in dark mode
-  static const darkAccent100 = Color(0xFF3D251C);
-  static const darkAccent700 = Color(0xFFC85A32);
-  static const darkAccent800 = Color(0xFFEDBFA8);
+  static const darkBg = Color(0xFF121417); // Sleek deep neutral dark
+  static const darkSurface = Color(0xFF1A1D21); // Clean dark surface
+  static const darkCard = Color(0xFF22262B); // Dark container
+  static const darkText = Color(0xFFF8F9FA); // Clean light text
+  static const darkDivider = Color(0x1FFFFFFF); // Subtle divider
+  static const darkAccent = Color(0xFFE2E8F0); // Sleek light slate accent in dark mode
+  static const darkAccent100 = Color(0xFF2D3748);
+  static const darkAccent700 = Color(0xFFCBD5E0);
+  static const darkAccent800 = Color(0xFFE2E8F0);
 }
 
 // ── Categories & Metadata ────────────────────────────────────────────────────
@@ -848,12 +848,12 @@ final kLightTheme = ThemeData(
   ),
   textSelectionTheme: const TextSelectionThemeData(
     cursorColor: DaylogColors.accent,
-    selectionColor: Color(0x3DC85A32),
+    selectionColor: Color(0x262B303A),
     selectionHandleColor: DaylogColors.accent,
   ),
   inputDecorationTheme: InputDecorationTheme(
     filled: true,
-    fillColor: const Color(0xFFFFFDF9),
+    fillColor: Colors.white,
     hintStyle: GoogleFonts.inter(
       fontSize: 14,
       fontWeight: FontWeight.w400,
@@ -868,11 +868,11 @@ final kLightTheme = ThemeData(
     suffixIconColor: const Color(0xFF8A827B),
     border: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: DaylogColors.lightDivider, width: 1.0),
+      borderSide: const BorderSide(color: Colors.white, width: 1.0),
     ),
     enabledBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
-      borderSide: const BorderSide(color: DaylogColors.lightDivider, width: 1.0),
+      borderSide: const BorderSide(color: Colors.white, width: 1.0),
     ),
     focusedBorder: OutlineInputBorder(
       borderRadius: BorderRadius.circular(14),
