@@ -5,11 +5,13 @@ import '../theme/daynote_theme.dart';
 class SelectedDateHeader extends StatelessWidget {
   final DateTime date;
   final bool isToday;
+  final VoidCallback? onOpenDetails;
 
   const SelectedDateHeader({
     super.key,
     required this.date,
     this.isToday = false,
+    this.onOpenDetails,
   });
 
   @override
@@ -31,47 +33,67 @@ class SelectedDateHeader extends StatelessWidget {
           bottom: BorderSide(color: dividerColor, width: 1.0),
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Wrap(
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 8,
-            runSpacing: 4,
-            children: [
-              Text(
-                formattedDay,
-                style: DayNoteTheme.selectedDate(context),
-              ),
-              if (isToday)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: DayNoteTheme.accentLight(context),
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 0.8,
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    Text(
+                      formattedDay,
+                      style: DayNoteTheme.selectedDate(context),
                     ),
-                  ),
-                  child: Text(
-                    'TODAY',
-                    style: DayNoteTheme.caption(context).copyWith(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.w700,
-                      color: DayNoteTheme.accent(context),
-                      letterSpacing: 1.1,
-                    ),
-                  ),
+                    if (isToday)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: DayNoteTheme.accentLight(context),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: Colors.white,
+                            width: 0.8,
+                          ),
+                        ),
+                        child: Text(
+                          'TODAY',
+                          style: DayNoteTheme.caption(context).copyWith(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.w700,
+                            color: DayNoteTheme.accent(context),
+                            letterSpacing: 1.1,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
-            ],
+                const SizedBox(height: 2),
+                Text(
+                  formattedYear,
+                  style: DayNoteTheme.selectedYear(context),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            formattedYear,
-            style: DayNoteTheme.selectedYear(context),
-          ),
+          if (onOpenDetails != null)
+            IconButton(
+              icon: Icon(
+                Icons.info_outline_rounded,
+                size: 19,
+                color: DayNoteTheme.textSecondary(context),
+              ),
+              tooltip: 'View entry details',
+              splashRadius: 18,
+              visualDensity: VisualDensity.compact,
+              onPressed: onOpenDetails,
+            ),
         ],
       ),
     );

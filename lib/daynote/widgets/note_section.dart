@@ -6,6 +6,7 @@ class NoteSection extends StatefulWidget {
   final String note;
   final bool autoFocus;
   final ValueChanged<String> onNoteChanged;
+  final VoidCallback? onOpenDetails;
 
   const NoteSection({
     super.key,
@@ -13,6 +14,7 @@ class NoteSection extends StatefulWidget {
     required this.note,
     this.autoFocus = false,
     required this.onNoteChanged,
+    this.onOpenDetails,
   });
 
   @override
@@ -105,11 +107,32 @@ class _NoteSectionState extends State<NoteSection> {
                 'NOTES',
                 style: DayNoteTheme.sectionTitle(context),
               ),
-              Text(
-                'Auto-saved',
-                style: DayNoteTheme.caption(context).copyWith(
-                  fontSize: 11,
-                  color: DayNoteTheme.textDisabled(context),
+              InkWell(
+                onTap: widget.onOpenDetails,
+                borderRadius: BorderRadius.circular(6),
+                splashColor: DayNoteTheme.subtleHover(context),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Auto-saved',
+                        style: DayNoteTheme.caption(context).copyWith(
+                          fontSize: 11,
+                          color: DayNoteTheme.textDisabled(context),
+                        ),
+                      ),
+                      if (widget.onOpenDetails != null) ...[
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 13,
+                          color: DayNoteTheme.textTertiary(context),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
               ),
             ],

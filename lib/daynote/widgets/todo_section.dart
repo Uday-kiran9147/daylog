@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import '../models/todo_item.dart';
 import '../theme/daynote_theme.dart';
 import 'classic_checkbox.dart';
+import 'details_sheet.dart';
 
 class TodoSection extends StatefulWidget {
   final List<TodoItem> todos;
@@ -497,6 +498,20 @@ class _TodoSectionState extends State<TodoSection> {
                   ],
                 ),
               ),
+              IconButton(
+                icon: Icon(
+                  Icons.info_outline_rounded,
+                  size: 14,
+                  color: DayNoteTheme.textDisabled(context),
+                ),
+                tooltip: 'View details',
+                splashRadius: 16,
+                visualDensity: VisualDensity.compact,
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                onPressed: () => DetailsSheet.showTodoDetails(context, todo),
+              ),
+              const SizedBox(width: 2),
               IconButton(
                 icon: Icon(
                   Icons.close,

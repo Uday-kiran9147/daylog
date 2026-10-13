@@ -9,6 +9,7 @@ import '../widgets/empty_day_view.dart';
 import '../widgets/note_section.dart';
 import '../widgets/onboarding_dialog.dart';
 import '../widgets/selected_date_header.dart';
+import '../widgets/details_sheet.dart';
 import '../widgets/todo_section.dart';
 
 class DayNoteScreen extends ConsumerStatefulWidget {
@@ -162,6 +163,11 @@ class _DayNoteScreenState extends ConsumerState<DayNoteScreen> {
                           child: SelectedDateHeader(
                             date: vm.selectedDate,
                             isToday: vm.isSelectedDateToday,
+                            onOpenDetails: () => DetailsSheet.showEntryDetails(
+                              context,
+                              entry: entry,
+                              date: vm.selectedDate,
+                            ),
                           ),
                         ),
 
@@ -222,6 +228,13 @@ class _DayNoteScreenState extends ConsumerState<DayNoteScreen> {
                               note: entry.note,
                               autoFocus: _forceFocusNote,
                               onNoteChanged: vm.onNoteChanged,
+                              onOpenDetails: () => DetailsSheet.showNoteDetails(
+                                context,
+                                note: entry.note,
+                                createdAt: entry.noteCreatedAt ?? (entry.note.isNotEmpty ? entry.createdAt : null),
+                                updatedAt: entry.noteUpdatedAt ?? (entry.note.isNotEmpty ? entry.updatedAt : null),
+                                date: vm.selectedDate,
+                              ),
                             ),
                           ),
                         ],

@@ -14,6 +14,7 @@ import 'package:daylog/daynote/services/mock_auth_service.dart';
 import 'package:daylog/daynote/theme/daynote_theme.dart';
 import 'package:daylog/daynote/viewmodels/auth_viewmodel.dart';
 import 'package:daylog/daynote/viewmodels/day_note_viewmodel.dart';
+import 'package:daylog/daynote/widgets/details_sheet.dart';
 
 class _FailingDayNoteRepository extends DayNoteRepositoryImpl {
   @override
@@ -323,6 +324,128 @@ void main() {
           ),
         ),
       );
+    });
+  });
+
+  group('DetailsSheet Tests (Created & Updated Timestamps)', () {
+    test('formatDateTime formats date and time correctly and handles null', () {
+      expect(DetailsSheet.formatDateTime(null), equals('—'));
+      final dt = DateTime(2026, 10, 13, 14, 30);
+      final formatted = DetailsSheet.formatDateTime(dt);
+      expect(formatted.contains('Oct 13, 2026'), isTrue);
+      expect(formatted.contains('2:30 PM'), isTrue);
+    });
+
+    test('formatRelative returns human readable relative descriptions', () {
+      expect(DetailsSheet.formatRelative(null), equals(''));
+      expect(DetailsSheet.formatRelative(DateTime.now()), equals('Just now'));
+      expect(DetailsSheet.formatRelative(DateTime.now().subtract(const Duration(minutes: 5))), equals('5m ago'));
+      expect(DetailsSheet.formatRelative(DateTime.now().subtract(const Duration(hours: 2))), equals('2h ago'));
+    });
+
+    testWidgets('DetailsSheet.showTodoDetails presents created and updated details', (tester) async {
+      final now = DateTime(2026, 10, 13, 10, 15);
+      final later = DateTime(2026, 10, 13, 11, 45);
+      final todo = TodoItem(
+        id: 'todo_1',
+        text: 'Finish project presentation',
+        isDone: true,
+        priority: TodoPriority.high,
+        createdAt: now,
+        updatedAt: later,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: kLightTheme,
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => DetailsSheet.showTodoDetails(context, todo),
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('TASK DETAILS'), findsOneWidget);
+      expect(find.text('Finish project presentation'), findsOneWidget);
+      expect(find.text('CREATED'), findsOneWidget);
+      expect(find.text('LAST UPDATED'), findsOneWidget);
+      expect(find.text('Completed'), findsOneWidget);
+      expect(find.text('High'), findsOneWidget);
+    });
+
+    testWidgets('DetailsSheet.showEntryDetails presents day and note created and updated details', (tester) async {
+      final created = DateTime(2026, 10, 13, 8, 0);
+      final updated = DateTime(2026, 10, 13, 9, 30);
+      final entry = DayEntry(
+        dateKey: '2026-10-13',
+        note: 'Morning reflections on architecture',
+        createdAt: created,
+        updatedAt: updated,
+        noteCreatedAt: created,
+        noteUpdatedAt: updated,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: kLightTheme,
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => DetailsSheet.showEntryDetails(
+                context,
+                entry: entry,
+                date: DateTime(2026, 10, 13),
+              ),
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ENTRY DETAILS'), findsOneWidget);
+      expect(find.text('DAILY RECORD'), findsOneWidget);
+      expect(find.text('JOURNAL NOTE'), findsOneWidget);
+      expect(find.text('CREATED'), findsNWidgets(2));
+      expect(find.text('LAST UPDATED'), findsOneWidget);
+      expect(find.text('LAST MODIFIED'), findsOneWidget);
+    });
+
+    testWidgets('DetailsSheet.showNoteDetails presents note created and modified details', (tester) async {
+      final created = DateTime(2026, 10, 13, 8, 0);
+      final updated = DateTime(2026, 10, 13, 9, 30);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: kLightTheme,
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () => DetailsSheet.showNoteDetails(
+                context,
+                note: 'Daily journal summary',
+                createdAt: created,
+                updatedAt: updated,
+                date: DateTime(2026, 10, 13),
+              ),
+              child: const Text('Open'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('NOTE DETAILS'), findsOneWidget);
+      expect(find.text('WRITING TIMESTAMPS'), findsOneWidget);
+      expect(find.text('CREATED'), findsOneWidget);
+      expect(find.text('LAST MODIFIED'), findsOneWidget);
     });
   });
 }
