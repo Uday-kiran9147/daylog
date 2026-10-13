@@ -1,7 +1,7 @@
 name: daylog
 description: Offline-first daily journal and time tracker
 publish_to: none
-version: 2.0.0+14
+version: 2.1.0+16
 
 environment:
   sdk: ">=3.0.0 <4.0.0"
@@ -10,10 +10,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # local db
-
-  isar: ^3.1.0+1
-  isar_flutter_libs: ^3.1.0
   path_provider: ^2.1.1
 
   # state management
@@ -40,7 +36,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   build_runner: ^2.4.7
-  isar_generator: ^3.1.0
   flutter_lints: ^3.0.0
   flutter_launcher_icons: ^0.13.1
 

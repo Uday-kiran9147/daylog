@@ -21,9 +21,6 @@ subprojects {
         val android = extensions.findByName("android") as? com.android.build.gradle.BaseExtension
         if (android != null) {
             android.compileSdkVersion(36)
-            if (name == "isar_flutter_libs" && android.namespace == null) {
-                android.namespace = "dev.isar.isar_flutter_libs"
-            }
             android.lintOptions {
                 isCheckReleaseBuilds = false
                 isAbortOnError = false

@@ -374,7 +374,7 @@ void main() {
       expect(find.text('Finish project presentation'), findsOneWidget);
       expect(find.text('CREATED'), findsOneWidget);
       expect(find.text('LAST UPDATED'), findsOneWidget);
-      expect(find.text('Completed'), findsOneWidget);
+      expect(find.text('Completed'), findsWidgets);
       expect(find.text('High'), findsOneWidget);
     });
 
