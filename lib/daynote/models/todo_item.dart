@@ -41,6 +41,7 @@ class TodoItem {
   final int order;
   final TodoPriority priority;
   final DateTime createdAt;
+  final DateTime updatedAt;
 
   const TodoItem({
     required this.id,
@@ -49,7 +50,8 @@ class TodoItem {
     this.order = 0,
     this.priority = TodoPriority.none,
     required this.createdAt,
-  });
+    DateTime? updatedAt,
+  }) : updatedAt = updatedAt ?? createdAt;
 
   TodoItem copyWith({
     String? id,
@@ -58,6 +60,7 @@ class TodoItem {
     int? order,
     TodoPriority? priority,
     DateTime? createdAt,
+    DateTime? updatedAt,
   }) {
     return TodoItem(
       id: id ?? this.id,
@@ -66,6 +69,7 @@ class TodoItem {
       order: order ?? this.order,
       priority: priority ?? this.priority,
       createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
     );
   }
 
@@ -77,17 +81,20 @@ class TodoItem {
       'order': order,
       'priority': priority.name,
       'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
     };
   }
 
   factory TodoItem.fromMap(Map<String, dynamic> map) {
+    final created = DateTime.tryParse(map['createdAt'] as String? ?? '') ?? DateTime.now();
     return TodoItem(
       id: map['id'] as String,
       text: map['text'] as String,
       isDone: map['isDone'] as bool? ?? false,
       order: map['order'] as int? ?? 0,
       priority: TodoPriority.fromString(map['priority'] as String?),
-      createdAt: DateTime.tryParse(map['createdAt'] as String? ?? '') ?? DateTime.now(),
+      createdAt: created,
+      updatedAt: DateTime.tryParse(map['updatedAt'] as String? ?? '') ?? created,
     );
   }
 }

@@ -9,6 +9,10 @@ class LocalStorageService {
 
   static SharedPreferences? _cachedPrefs;
 
+  static void resetCache() {
+    _cachedPrefs = null;
+  }
+
   Future<SharedPreferences> get _prefs async {
     return _cachedPrefs ??= await SharedPreferences.getInstance();
   }
@@ -43,6 +47,7 @@ class LocalStorageService {
           order: 0,
           priority: TodoPriority.high,
           createdAt: now.subtract(const Duration(hours: 3)),
+          updatedAt: now.subtract(const Duration(hours: 3)),
         ),
         TodoItem(
           id: 'todo_sample_2',
@@ -51,6 +56,7 @@ class LocalStorageService {
           order: 1,
           priority: TodoPriority.medium,
           createdAt: now.subtract(const Duration(hours: 2)),
+          updatedAt: now.subtract(const Duration(hours: 2)),
         ),
         TodoItem(
           id: 'todo_sample_3',
@@ -59,10 +65,14 @@ class LocalStorageService {
           order: 2,
           priority: TodoPriority.low,
           createdAt: now.subtract(const Duration(hours: 1)),
+          updatedAt: now.subtract(const Duration(hours: 1)),
         ),
       ],
-      note: 'Welcome to your Daynote planner in DayLog!\n\nThis is your quiet, distraction-free space for daily reflections, plans, and moments of clarity. Select any date on the calendar above to begin keeping your daily record.',
+      note: 'Welcome to your DayLog planner!\n\nThis is your quiet, distraction-free space for daily reflections, plans, and moments of clarity. Select any date on the calendar above to begin keeping your daily record.',
+      createdAt: now.subtract(const Duration(hours: 4)),
       updatedAt: now,
+      noteCreatedAt: now.subtract(const Duration(hours: 4)),
+      noteUpdatedAt: now,
     );
 
     // Sample Yesterday Entry
@@ -76,6 +86,7 @@ class LocalStorageService {
           order: 0,
           priority: TodoPriority.medium,
           createdAt: yesterday.add(const Duration(hours: 10)),
+          updatedAt: yesterday.add(const Duration(hours: 12)),
         ),
         TodoItem(
           id: 'todo_sample_5',
@@ -84,10 +95,14 @@ class LocalStorageService {
           order: 1,
           priority: TodoPriority.low,
           createdAt: yesterday.add(const Duration(hours: 18)),
+          updatedAt: yesterday.add(const Duration(hours: 19)),
         ),
       ],
       note: '"Simplicity is the ultimate sophistication." — Leonardo da Vinci\n\nA calm evening reflecting on the week\'s creative work and personal milestones.',
+      createdAt: yesterday.add(const Duration(hours: 9)),
       updatedAt: yesterday.add(const Duration(hours: 20)),
+      noteCreatedAt: yesterday.add(const Duration(hours: 9)),
+      noteUpdatedAt: yesterday.add(const Duration(hours: 20)),
     );
 
     await saveEntry(todayEntry);

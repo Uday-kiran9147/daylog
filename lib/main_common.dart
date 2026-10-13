@@ -45,13 +45,13 @@ Future<void> _initBackgroundServices(ProviderContainer container) async {
   unawaited(RevenueCatService.init());
   unawaited(AdService.init());
 
-  // 3. Initialize Firebase for optional DayNote cloud sync
+  // 3. Initialize Firebase for optional DayLog cloud sync
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
     container.read(firebaseInitializedProvider.notifier).state = true;
-    debugPrint('Firebase initialized successfully for DayNote.');
+    debugPrint('Firebase initialized successfully for DayLog.');
   } catch (e) {
     debugPrint('Firebase initialization notice (running offline): $e');
     container.read(firebaseInitializedProvider.notifier).state = false;

@@ -6,7 +6,7 @@ void main() {
     test('dev flavor has correct attributes', () {
       final config = FlavorConfig.dev;
       expect(config.flavor, Flavor.dev);
-      expect(config.appTitle, 'DayNote Dev');
+      expect(config.appTitle, 'DayLog Dev');
       expect(config.envFileName, '.env.dev');
       expect(config.isDev, isTrue);
       expect(config.isProd, isFalse);
@@ -15,7 +15,7 @@ void main() {
     test('prod flavor has correct attributes', () {
       final config = FlavorConfig.prod;
       expect(config.flavor, Flavor.prod);
-      expect(config.appTitle, 'DayNote');
+      expect(config.appTitle, 'DayLog');
       expect(config.envFileName, '.env.prod');
       expect(config.isDev, isFalse);
       expect(config.isProd, isTrue);

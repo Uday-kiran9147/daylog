@@ -139,20 +139,22 @@ class DayNoteRepositoryImpl implements DayNoteRepository {
       trimmed = trimmed.substring(0, TodoItem.maxTextLength);
     }
 
+    final now = DateTime.now();
     final current = await getDayEntry(date);
     final newTodo = TodoItem(
-      id: 'todo_${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(9999)}',
+      id: 'todo_${now.millisecondsSinceEpoch}_${Random().nextInt(9999)}',
       text: trimmed,
       isDone: false,
       order: current.todos.length,
       priority: priority,
-      createdAt: DateTime.now(),
+      createdAt: now,
+      updatedAt: now,
     );
 
     final updatedTodos = List<TodoItem>.from(current.todos)..add(newTodo);
     final updatedEntry = current.copyWith(
       todos: updatedTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
 
     await saveDayEntry(updatedEntry);
@@ -161,17 +163,21 @@ class DayNoteRepositoryImpl implements DayNoteRepository {
 
   @override
   Future<DayEntry> toggleTodo(DateTime date, String todoId) async {
+    final now = DateTime.now();
     final current = await getDayEntry(date);
     final updatedTodos = current.todos.map((todo) {
       if (todo.id == todoId) {
-        return todo.copyWith(isDone: !todo.isDone);
+        return todo.copyWith(
+          isDone: !todo.isDone,
+          updatedAt: now,
+        );
       }
       return todo;
     }).toList();
 
     final updatedEntry = current.copyWith(
       todos: updatedTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
 
     await saveDayEntry(updatedEntry);
@@ -185,17 +191,21 @@ class DayNoteRepositoryImpl implements DayNoteRepository {
       trimmed = trimmed.substring(0, TodoItem.maxTextLength);
     }
 
+    final now = DateTime.now();
     final current = await getDayEntry(date);
     final updatedTodos = current.todos.map((todo) {
       if (todo.id == todoId) {
-        return todo.copyWith(text: trimmed);
+        return todo.copyWith(
+          text: trimmed,
+          updatedAt: now,
+        );
       }
       return todo;
     }).toList();
 
     final updatedEntry = current.copyWith(
       todos: updatedTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
 
     await saveDayEntry(updatedEntry);
@@ -204,17 +214,21 @@ class DayNoteRepositoryImpl implements DayNoteRepository {
 
   @override
   Future<DayEntry> updateTodoPriority(DateTime date, String todoId, TodoPriority priority) async {
+    final now = DateTime.now();
     final current = await getDayEntry(date);
     final updatedTodos = current.todos.map((todo) {
       if (todo.id == todoId) {
-        return todo.copyWith(priority: priority);
+        return todo.copyWith(
+          priority: priority,
+          updatedAt: now,
+        );
       }
       return todo;
     }).toList();
 
     final updatedEntry = current.copyWith(
       todos: updatedTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
 
     await saveDayEntry(updatedEntry);
@@ -223,12 +237,13 @@ class DayNoteRepositoryImpl implements DayNoteRepository {
 
   @override
   Future<DayEntry> deleteTodo(DateTime date, String todoId) async {
+    final now = DateTime.now();
     final current = await getDayEntry(date);
     final updatedTodos = current.todos.where((t) => t.id != todoId).toList();
 
     final updatedEntry = current.copyWith(
       todos: updatedTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
 
     await saveDayEntry(updatedEntry);
@@ -246,14 +261,18 @@ class DayNoteRepositoryImpl implements DayNoteRepository {
     final item = updatedTodos.removeAt(oldIndex);
     updatedTodos.insert(newIndex, item);
 
+    final now = DateTime.now();
     final indexedTodos = [
       for (int i = 0; i < updatedTodos.length; i++)
-        updatedTodos[i].copyWith(order: i)
+        updatedTodos[i].copyWith(
+          order: i,
+          updatedAt: (oldIndex == i || newIndex == i) ? now : updatedTodos[i].updatedAt,
+        )
     ];
 
     final updatedEntry = current.copyWith(
       todos: indexedTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
 
     await saveDayEntry(updatedEntry);
@@ -262,10 +281,21 @@ class DayNoteRepositoryImpl implements DayNoteRepository {
 
   @override
   Future<DayEntry> updateNote(DateTime date, String noteText) async {
+    final now = DateTime.now();
     final current = await getDayEntry(date);
+    final isCleared = noteText.trim().isEmpty;
+    final isFirstNote = current.note.trim().isEmpty && !isCleared;
+    final noteCreatedAt = isCleared
+        ? null
+        : (current.noteCreatedAt ?? (isFirstNote ? now : current.createdAt));
+    final noteUpdatedAt = isCleared ? null : now;
+
     final updatedEntry = current.copyWith(
       note: noteText,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
+      noteCreatedAt: noteCreatedAt,
+      noteUpdatedAt: noteUpdatedAt,
+      clearNoteTimestamps: isCleared,
     );
 
     await saveDayEntry(updatedEntry);

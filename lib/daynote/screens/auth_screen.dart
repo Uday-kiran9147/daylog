@@ -132,7 +132,7 @@ class _AuthScreenState extends State<AuthScreen> {
                                   ),
                                   const SizedBox(width: 10),
                                   Text(
-                                    'DAYNOTE',
+                                    'DAYLOG',
                                     style: DayNoteTheme.heading(context).copyWith(
                                       fontSize: 24,
                                       letterSpacing: 3.0,

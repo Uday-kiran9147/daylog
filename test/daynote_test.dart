@@ -9,6 +9,7 @@ import 'package:daylog/utils/constants.dart';
 import 'package:daylog/daynote/models/day_entry.dart';
 import 'package:daylog/daynote/models/todo_item.dart';
 import 'package:daylog/daynote/repositories/day_note_repository_impl.dart';
+import 'package:daylog/daynote/services/local_storage_service.dart';
 import 'package:daylog/daynote/services/mock_auth_service.dart';
 import 'package:daylog/daynote/theme/daynote_theme.dart';
 import 'package:daylog/daynote/viewmodels/auth_viewmodel.dart';
@@ -46,6 +47,7 @@ void main() {
   group('DayNoteViewModel Tests', () {
     setUp(() {
       SharedPreferences.setMockInitialValues({});
+      LocalStorageService.resetCache();
     });
 
     test('DayNoteViewModel initializes and handles todo/note operations correctly', () async {
@@ -91,6 +93,58 @@ void main() {
       expect(viewModel.selectedDate.day, equals(tomorrow.day));
       expect(viewModel.currentEntry.todos.isEmpty, isTrue);
       expect(viewModel.currentEntry.note.isEmpty, isTrue);
+    });
+
+    test('tracks createdAt and updatedAt timestamps for TodoItem and DayEntry note correctly', () async {
+      final repository = DayNoteRepositoryImpl();
+      final viewModel = DayNoteViewModel(repository: repository);
+      await viewModel.init();
+
+      final beforeTodo = DateTime.now().subtract(const Duration(milliseconds: 10));
+      await viewModel.addTodo('Buy journal notebook');
+      final todo = viewModel.currentEntry.todos.first;
+
+      expect(todo.createdAt.isAfter(beforeTodo) || todo.createdAt.isAtSameMomentAs(beforeTodo), isTrue);
+      expect(todo.updatedAt.isAfter(beforeTodo) || todo.updatedAt.isAtSameMomentAs(beforeTodo), isTrue);
+
+      final initialTodoUpdatedAt = todo.updatedAt;
+
+      // Small delay to ensure timestamp progression
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      // Toggle todo updates updatedAt
+      await viewModel.toggleTodo(todo.id);
+      final toggledTodo = viewModel.currentEntry.todos.first;
+      expect(toggledTodo.isDone, isTrue);
+      expect(toggledTodo.createdAt, equals(todo.createdAt));
+      expect(toggledTodo.updatedAt.isAfter(initialTodoUpdatedAt), isTrue);
+
+      // Note creation sets noteCreatedAt and noteUpdatedAt
+      final beforeNote = DateTime.now().subtract(const Duration(milliseconds: 10));
+      viewModel.onNoteChanged('First note entry');
+      expect(viewModel.currentEntry.note, equals('First note entry'));
+      expect(viewModel.currentEntry.noteCreatedAt, isNotNull);
+      expect(viewModel.currentEntry.noteUpdatedAt, isNotNull);
+      expect(viewModel.currentEntry.noteCreatedAt!.isAfter(beforeNote) || viewModel.currentEntry.noteCreatedAt!.isAtSameMomentAs(beforeNote), isTrue);
+      final initialNoteCreated = viewModel.currentEntry.noteCreatedAt!;
+      final initialNoteUpdated = viewModel.currentEntry.noteUpdatedAt!;
+
+      await Future.delayed(const Duration(milliseconds: 20));
+
+      // Note modification updates noteUpdatedAt while keeping noteCreatedAt
+      viewModel.onNoteChanged('First note entry modified');
+      expect(viewModel.currentEntry.noteCreatedAt, equals(initialNoteCreated));
+      expect(viewModel.currentEntry.noteUpdatedAt!.isAfter(initialNoteUpdated), isTrue);
+
+      // Serialization round-trip preserves all timestamps
+      final entryMap = viewModel.currentEntry.toMap();
+      final reconstituted = DayEntry.fromMap(entryMap);
+      expect(reconstituted.createdAt.toIso8601String(), equals(viewModel.currentEntry.createdAt.toIso8601String()));
+      expect(reconstituted.updatedAt.toIso8601String(), equals(viewModel.currentEntry.updatedAt.toIso8601String()));
+      expect(reconstituted.noteCreatedAt?.toIso8601String(), equals(viewModel.currentEntry.noteCreatedAt?.toIso8601String()));
+      expect(reconstituted.noteUpdatedAt?.toIso8601String(), equals(viewModel.currentEntry.noteUpdatedAt?.toIso8601String()));
+      expect(reconstituted.todos.first.createdAt.toIso8601String(), equals(toggledTodo.createdAt.toIso8601String()));
+      expect(reconstituted.todos.first.updatedAt.toIso8601String(), equals(toggledTodo.updatedAt.toIso8601String()));
     });
 
     test('DayNoteViewModel handles month & year navigation correctly', () async {
@@ -145,7 +199,7 @@ void main() {
       expect(viewModel.shouldShowOnboarding, isFalse);
 
       expect(viewModel.currentEntry.todos.isNotEmpty, isTrue);
-      expect(viewModel.currentEntry.note.contains('Welcome to your Daynote planner'), isTrue);
+      expect(viewModel.currentEntry.note.contains('Welcome to your DayLog planner'), isTrue);
       expect(viewModel.datesWithContent.length, greaterThanOrEqualTo(2));
     });
 
@@ -220,8 +274,8 @@ void main() {
       expect(initialIndex, equals(0));
     });
 
-    test('Production flavor app title is DayNote', () {
-      expect(FlavorConfig.prod.appTitle, equals('DayNote'));
+    test('Production flavor app title is DayLog', () {
+      expect(FlavorConfig.prod.appTitle, equals('DayLog'));
     });
   });
 

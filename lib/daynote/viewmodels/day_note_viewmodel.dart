@@ -222,19 +222,21 @@ class DayNoteViewModel extends ChangeNotifier {
     final previousDates = Set<String>.from(_datesWithContent);
 
     // 2. Apply optimistic update immediately
+    final now = DateTime.now();
     final optimisticTodo = TodoItem(
-      id: 'todo_temp_${DateTime.now().millisecondsSinceEpoch}',
+      id: 'todo_temp_${now.millisecondsSinceEpoch}',
       text: trimmed,
       isDone: false,
       order: _currentEntry.todos.length,
       priority: priority,
-      createdAt: DateTime.now(),
+      createdAt: now,
+      updatedAt: now,
     );
 
     final optimisticTodos = List<TodoItem>.from(_currentEntry.todos)..add(optimisticTodo);
     _currentEntry = _currentEntry.copyWith(
       todos: optimisticTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
     _syncDateIndicatorOptimistically(_selectedDate, _currentEntry);
     notifyListeners(); // Immediate 0ms UI update!
@@ -263,16 +265,20 @@ class DayNoteViewModel extends ChangeNotifier {
     final previousDates = Set<String>.from(_datesWithContent);
 
     // 2. Apply optimistic toggle immediately
+    final now = DateTime.now();
     final updatedTodos = _currentEntry.todos.map((todo) {
       if (todo.id == todoId) {
-        return todo.copyWith(isDone: !todo.isDone);
+        return todo.copyWith(
+          isDone: !todo.isDone,
+          updatedAt: now,
+        );
       }
       return todo;
     }).toList();
 
     _currentEntry = _currentEntry.copyWith(
       todos: updatedTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
     notifyListeners(); // Immediate 0ms UI update!
 
@@ -304,16 +310,20 @@ class DayNoteViewModel extends ChangeNotifier {
     final previousEntry = _currentEntry;
 
     // 2. Apply optimistic update immediately
+    final now = DateTime.now();
     final updatedTodos = _currentEntry.todos.map((todo) {
       if (todo.id == todoId) {
-        return todo.copyWith(text: trimmed);
+        return todo.copyWith(
+          text: trimmed,
+          updatedAt: now,
+        );
       }
       return todo;
     }).toList();
 
     _currentEntry = _currentEntry.copyWith(
       todos: updatedTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
     notifyListeners(); // Immediate 0ms UI update!
 
@@ -339,16 +349,20 @@ class DayNoteViewModel extends ChangeNotifier {
     final previousEntry = _currentEntry;
 
     // 2. Apply optimistic update immediately
+    final now = DateTime.now();
     final updatedTodos = _currentEntry.todos.map((todo) {
       if (todo.id == todoId) {
-        return todo.copyWith(priority: priority);
+        return todo.copyWith(
+          priority: priority,
+          updatedAt: now,
+        );
       }
       return todo;
     }).toList();
 
     _currentEntry = _currentEntry.copyWith(
       todos: updatedTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
     notifyListeners(); // Immediate 0ms UI update!
 
@@ -375,10 +389,11 @@ class DayNoteViewModel extends ChangeNotifier {
     final previousDates = Set<String>.from(_datesWithContent);
 
     // 2. Apply optimistic delete immediately
+    final now = DateTime.now();
     final updatedTodos = _currentEntry.todos.where((t) => t.id != todoId).toList();
     _currentEntry = _currentEntry.copyWith(
       todos: updatedTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
     _syncDateIndicatorOptimistically(_selectedDate, _currentEntry);
     notifyListeners(); // Immediate 0ms UI update!
@@ -414,14 +429,18 @@ class DayNoteViewModel extends ChangeNotifier {
     final item = updatedTodos.removeAt(oldIndex);
     updatedTodos.insert(newIndex, item);
 
+    final now = DateTime.now();
     final indexedTodos = [
       for (int i = 0; i < updatedTodos.length; i++)
-        updatedTodos[i].copyWith(order: i)
+        updatedTodos[i].copyWith(
+          order: i,
+          updatedAt: (oldIndex == i || newIndex == i) ? now : updatedTodos[i].updatedAt,
+        )
     ];
 
     _currentEntry = _currentEntry.copyWith(
       todos: indexedTodos,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
     );
     notifyListeners(); // Immediate 0ms UI update!
 
@@ -446,9 +465,20 @@ class DayNoteViewModel extends ChangeNotifier {
     final previousDatesSnapshot = Set<String>.from(_datesWithContent);
     final previousHadContent = _currentEntry.hasContent;
 
+    final now = DateTime.now();
+    final isCleared = newNote.trim().isEmpty;
+    final isFirstNote = _currentEntry.note.trim().isEmpty && !isCleared;
+    final noteCreatedAt = isCleared
+        ? null
+        : (_currentEntry.noteCreatedAt ?? (isFirstNote ? now : _currentEntry.createdAt));
+    final noteUpdatedAt = isCleared ? null : now;
+
     _currentEntry = _currentEntry.copyWith(
       note: newNote,
-      updatedAt: DateTime.now(),
+      updatedAt: now,
+      noteCreatedAt: noteCreatedAt,
+      noteUpdatedAt: noteUpdatedAt,
+      clearNoteTimestamps: isCleared,
     );
     _syncDateIndicatorOptimistically(_selectedDate, _currentEntry);
 
